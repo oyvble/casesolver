@@ -1,0 +1,4 @@
+#Changes version 1.0.1
+- The bug "setupAdvanced" could not be found, after saving "Advanced Setting", has been fixed.
+
+
