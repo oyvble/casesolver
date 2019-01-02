@@ -1,0 +1,100 @@
+Suggestive updates: 
+ - Deactivate mouse scroll in epg plots.
+ - Introduce new column for References called "Type": Known (imported), SingleSource (given as Unknown#), DC (Added through Deconvolution), Added (Added manually)
+   OR: Typed,SingleSource (given as unknown),DCed (added after DCing).
+  --  Gives Added option in Report Layout: Optional whether to show SingleSource (unknowns) and DCed profiles in references (these are already separated). 
+ - Better info about working progress.
+
+ - Possibly bugs:
+  -- When doing DC after single quanLR calculations and REF is removed.
+  -- MatchGraph for one candidate match.
+  -- Identical references not removed if different names? Example Case 7154
+  -- When creating report with QuanLR matchlist but QuanLR not selected as model.
+
+
+#Changes version 1.3.7
+  - DC conditioned on partial REFS now returns candidate shows deconvolved REF suggests
+  - LR for conditional references from Qual.MatchList now also shown. The LRs are based on the method last used.
+
+#Changes version 1.3.6
+  - BUG fixed in DC when conditoning on partial REFS.
+
+#Changes version 1.3.5
+  - BUGs fixed when no refs are imported in case (report and add_ref)
+
+#Changes version 1.3.4
+  - Homozygous genotypes for Y-markers are now given as only 1 allele for references.
+
+#Changes version 1.3.3
+  - Bug in ncol(matchMATGUI[]) when having 1 ref (and 1 mix).
+  - Bug in getStructuredData when having 2 alleles for Y-markers.
+
+#Changes version 1.3.2
+ - Fixed bug in getStructuredData when having partial references by import.
+
+
+#Changes version 1.3.1
+ - Faster structuring of data. Still limit in number of evidence (need to loop through all evidence).
+   -- The software now handles MANY references (more than 1e5 depending on the memory).
+     -> Handled in "edit/add references" in that user must select a segment of references.
+
+ - The IBS calculations:
+	-- Using only references matched in MatchStatus if more than 10000.
+	-- Utilizes the R-package big.memory for extended memory handling (optional).
+	-- Using only markers also found in popFreq if specified.
+
+ - Bug(s) fixed:
+   -- After running qualLR+quanLR, crashes when reanalysing comparison with negative qualLR not in quan matchlist.
+
+
+#Changes version 1.2.3
+
+  #Added in report:
+  - Option "Show Expected PH plots" has been added. If comparison is done, this will create EPG plots of the expected PH for all Mixtures with at least one matching reference (DC results also given if ran).
+
+  #Added calculation/interpretation flexibilities:
+  - Added button "Calculate Quan LRs" will caclulate the calculate the quantitative LR for all comparisons in the list. Results will come in Match list (Quan LR) - Final Mixture table will be updated wrt results.
+  - From the list "Match list (Qual LR)", the user can now double click on a row to calculate Quan LR for a specific hypothesis (user specifies conditional references + numContr).
+    -- Results will update the Match list (Quan LR) - Final Mixture table will be updated wrt results.
+    -- The conditional references are now listed in the column after "numContr".
+  - Added button in Mixtures "Deconvolve all samples" will automatically run DC for all samples.
+  - "Deconvolution" added to Data panel. The user can now consider DC at any times.
+   --  THe user can here select any number of replicates and condition of any refs as wanted.
+
+
+  Minor updates:
+  - The user is asked to restart the program when importing a new case if there were results from previous case.
+  - The program asks user of saving project before crossing out window (Quit).
+  - Graphical flexibility
+    -- Added buttons in MatchMatrix (Change view, truncate values)
+  - Y markers and other non-freq markers are no longer compared in match matrix (this earlier caused females to have small match comparisons).
+   -- Now using loci specified in allele frequencies.
+ - Under Setup->Model: Selecting model types now comes first.
+ - Single alleles for Y-markers of unknowns from SS_evidence are not considered as homozygous anymore (checking if loc name starts with DY). 
+   -- CODE: #if(av[1]==av[2] && (toupper(substr(loc,0,2))=="DY" || toupper(substr(loc,0,1))=="Y") ) av = av[1] 
+ - "Add reference profile": The user can now edit the alleles of all references.
+ - Added option in Report Layout:
+   -- Optional whether to show "MatchStatus" column.   
+ - Minor bug in Report fixed:  Mixture w/PH not shown when no SS given in data.
+
+
+#Changes version 1.1.1
+- A bug in the function calcHp has been fixed.
+
+#Changes version 1.1.0
+- The button "Change view" has been added to make it possible to view the allele data of evidence/reference vertically instead of horizontally 
+- The user can now change model specification option for euroformix (degradation ON/OFF stutter ON/OFF)
+  -> NB: AMEL locus is excluded if stutter=ON 
+- The LR values for each comparison is labeled in the window "Deconvolution/Show expected peak heights". THe LR will be based on the last calculated one (Quan or Qual).
+
+- The user can now use a frequency file with more loci systems than defined. Fixed by changing line 31 in calcQuanLRcomparison().
+
+Thanks to Vibeke Bertelsen for discovering the following bugs:
+- Bug when having only 1 match candidate in LR based comparison, when generating a report. Fixed by changing line 1299 and 1308 in gui().
+- Bug when performing DC with locus drop-out: Fixed by changing line 843 in gui().
+
+
+#Changes version 1.0.1
+- The bug "setupAdvanced could not be found", after saving "Advanced Setting", has been fixed.
+
+
