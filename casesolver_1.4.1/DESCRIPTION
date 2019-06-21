@@ -8,7 +8,7 @@ Maintainer: Oyvind Bleka <oyvble@hotmail.com>
 Description: CaseSolver is a software which automatically compares DNA profiles within a selected case.
 License: GPL(>=2)
 Imports:
-    gWidgets2tcltk, R2HTML, igraph, forensim, euroformix(>= 2.0.2) 
+    gWidgets2tcltk, R2HTML, igraph, forensim, euroformix 
 Suggests:
     bigmemory
 RoxygenNote: 6.1.1
