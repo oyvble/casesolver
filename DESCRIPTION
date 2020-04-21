@@ -1,0 +1,23 @@
+Package: casesolver
+Type: Package
+Title: A software for comparing DNA profiles within cases
+Version: 1.7.2
+Date: 2020-04-21
+Author: Oyvind Bleka
+Maintainer: Oyvind Bleka <oyvble@hotmail.com>
+Description: CaseSolver is a software which automatically compares DNA profiles within a selected case.
+URL: http://euroformix.com/casesolver
+License: GPL(>=2)
+Depends: 
+	R (>= 3.0.1),
+	euroformix (>= 2.0.2)	
+Imports:
+	plotly, 
+    gWidgets2, 
+	readxl, 
+	R2HTML, 
+	forensim,
+	igraph
+Suggests:
+    bigmemory
+RoxygenNote: 6.1.1
