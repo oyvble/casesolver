@@ -19,6 +19,11 @@ Suggestive updates:
   -- When creating report with QuanLR matchlist but QuanLR not selected as model.
 
 
+#Changes version 1.7.3 (21.04.2020)
+ Fixed bugs:
+ - Create report crashed when trying to print reference profiles when no references were given.
+ - It is now possible to import only reference profiles in a case.
+ 
 #Changes version 1.7.2 (21.04.2020)
  - Both Mixtures and evidence empty MatchStatus is now always 'Compared'.
  - Renamed option in "Advanced options": 'References in MatchStatus can be shown in MatchList' (before this was about whether to compare single source profiles or not).

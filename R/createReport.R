@@ -213,15 +213,15 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
   ###############
   if(checked[2]=="TRUE") { #show references?
     R2HTML::HTML(R2HTML::as.title( reportitems[2] ),file = htmlf,HR=2)
-    if(!is.null(refDataTABLE)) {
+    if(!is.null(refTab)) {
       #if(nrow(refDataTABLE)>=nLarge) print("THIS MAY TAKE A WHILE!")
-      R2HTML::HTML(as.data.frame(addRownameTable(refDataTABLE,type=4,L$samplename)), file= htmlf,row.names=TRUE,align="left",innerBorder = brdt1,Border=brdt2)
+      R2HTML::HTML(as.data.frame(refTab), file= htmlf,row.names=TRUE,align="left",innerBorder = brdt1,Border=brdt2)
     } else {
       R2HTML::HTML(paste0( L$none ),file = htmlf)#,HR=10)
     }
   }
   
-  if(checked[3]=="TRUE") { #show SS profiles?
+  if(checked[3]=="TRUE") { #show Single source profiles?
     R2HTML::HTML(R2HTML::as.title( reportitems[3] ),file = htmlf,HR=2)
     if(!is.null(ssTab)) {
       R2HTML::HTML(as.data.frame(ssTab), file= htmlf,row.names=TRUE,align="left",innerBorder = brdt1,Border=brdt2)
@@ -306,59 +306,70 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
     }
   }
   
-  #Helpfunction
+  #Helpfunction for insert result table
   easyAdd = function(X,type=2,inclRN=TRUE) {
-    if(!is.null(X)) {
-      R2HTML::HTML(as.data.frame(addRownameTable(X,type=type,L$samplename)), file= htmlf,row.names=inclRN,align="left",innerBorder = brdt1,Border=brdt2)
-    } else {
-      R2HTML::HTML(paste0( L$notcompleted ),file = htmlf)#,HR=10)
-    }
+    R2HTML::HTML(as.data.frame(addRownameTable(X,type=type,L$samplename)), file= htmlf,row.names=inclRN,align="left",innerBorder = brdt1,Border=brdt2)
   }
   
   #################
   ###COMPARISONS###
   #################
-  if(any(checked[9:12])) { #Any comparisons to show?
+  if(any(checked[9:12]=="TRUE")) { #Any comparisons to show?
     R2HTML::HTML(R2HTML::as.title( L$comparisons ),file = htmlf,HR=1)
   }
-  #Provide comparison matrix:
-  if(checked[9]=="TRUE" && !is.null(resCompMAC) ) { #Show match list1?
+  
+  #Provide match matrix:
+  if(checked[9]=="TRUE") {  #Show match matrix?
     R2HTML::HTML(R2HTML::as.title( reportitems[9] ),file = htmlf,HR=2)
-    if(nrow(resCompMAC)>0) {
-      ind <- as.numeric(resCompMAC)<setupThresh$MAC #get smaller indices
-      resCompMAC[ind] <- "" #show only greater than threshold
-      easyAdd(resCompMAC,type=4)
+    
+    #INSERT MATRIX
+    if( !is.null(resCompMAC) ) { #if completed
+      if(nrow(resCompMAC)>0) {
+        ind <- as.numeric(resCompMAC)<setupThresh$MAC #get smaller indices
+        resCompMAC[ind] <- "" #show only greater than threshold
+        easyAdd(resCompMAC,type=4)
+      }
+    } else {
+      R2HTML::HTML(paste0( L$notcompleted ),file = htmlf)#,HR=10)
     }
   }
   
   #Provide match list 1 (qual based):
-  if(checked[10]=="TRUE" && !is.null(resCompLR1) ) { #Show match list1?
+  if(checked[10]=="TRUE") {
     R2HTML::HTML(R2HTML::as.title( reportitems[10] ),file = htmlf,HR=2)
-    if(nrow(resCompLR1)>0) {
+    
+    if(!is.null(resCompLR1) ) { #if completed
       resCompLR1 <- resCompLR1[as.numeric(resCompLR1[,4])>=log10(setupThresh$LRthresh1),,drop=FALSE]
       if(nrow(resCompLR1)>0) {
         easyAdd(resCompLR1,type=0)
       } else {
         R2HTML::HTML(paste0( L$nocandidates ),file = htmlf)#,HR=10)
       }
+    } else {
+      R2HTML::HTML(paste0( L$notcompleted ),file = htmlf)#,HR=10)
     }
   }
+  
   #Provide match list 2 (quan based):
-  if(checked[11]=="TRUE" && !is.null(resCompLR2) ) { #Show match list1?
+  if(checked[11]=="TRUE") {
     R2HTML::HTML(R2HTML::as.title( reportitems[11] ),file = htmlf,HR=2)
-    if(nrow(resCompLR2)>0) {
+      
+    if(!is.null(resCompLR2) ) { #if completed
       resCompLR2 <- resCompLR2[as.numeric(resCompLR2[,4])>=log10(setupThresh$LRthresh2),,drop=FALSE]
       if(nrow(resCompLR2)>0) {
         easyAdd(resCompLR2,type=0)
       } else {
         R2HTML::HTML(paste0( L$nocandidates ),file = htmlf)#,HR=10)
       }
+    } else {
+      R2HTML::HTML(paste0( L$notcompleted ),file = htmlf)#,HR=10)
     }
   }
+  
   #Provide match list Final:
   if(checked[12]=="TRUE") { #Show match list?
     R2HTML::HTML(R2HTML::as.title( reportitems[12] ),file = htmlf,HR=2)
-    if(nrow(allMixList)>0) {
+    if(!is.null(allMixList) && nrow(allMixList)>0) {
       easyAdd(allMixList,type=0)
     } else {
       R2HTML::HTML(paste0( L$none ),file = htmlf)#,HR=10)

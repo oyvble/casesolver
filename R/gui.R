@@ -4,9 +4,6 @@
 #' @param envirfile A file to a saved environment of a project
 #' @export
 
-#rm(list=ls())
-#library(casesolver);envirfile=NULL;source("C:/Users/oyvbl/Dropbox/Forensic/MixtureProj/myDev/casesolver/R/gui.R");
-#library(casesolver);gui()
 gui = function(envirfile=NULL) {
  LUSsymbol <- "_"
  MPSsymbol = ":" #Added in version 1.5.0
@@ -580,6 +577,8 @@ f_reportlay = function(h,...) { #GUI function to set report layout
 
    for(ff in fn) { #for each files: 
 #ff=fn[2]
+     if( file.info(ff)$isdir ) next #skip if it was a folder
+     
     tryCatch({ 
      data2 <- importData(ff) #import data for selected case. Structure of markers must be given inside this function and returned by "markers".
      data$mix <-  rbind(data$mix,data2$mix) #add data to table
@@ -1952,7 +1951,7 @@ f_reportlay = function(h,...) { #GUI function to set report layout
    mixTab <- refTab <- "" #empty tables by default
    if(type%in%c("both","mix")) {    #Add mix-table
     mixDataTABLE <- get("mixDataTABLE",envir=nnTK) #assign to nnTK-environment
-    if(!is.null(mixDataTABLE)) {
+    if( !is.null(mixDataTABLE) && nrow(mixDataTABLE)>0 ) { #make sure that there are data in table
      mixDataMATCHSTATUS <- get("mixDataMATCHSTATUS",envir=nnTK) #assign to nnTK-environment 
      if(sort==1) ord = 1:nrow(mixDataTABLE)  #sort by default
      if(sort==2) ord = order(rownames(mixDataTABLE),decreasing=FALSE)  #sort by name (increasing name)
