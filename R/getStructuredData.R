@@ -196,8 +196,16 @@ getStructuredData = function(data,ln,minLoc=10) {
       }, error = function(e) print( paste0("There was an inconsistent number of loci observations for evidence ",mix))  ) 
       adata = strsplit(subEvid[,3],"/")
       hdata = strsplit(subEvid[,4],"/")
+      
       for(loc in ln) { #loop for each loci
        locind = which(loc==ln)
+       
+       if(length(adata[[locind]])!=length(hdata[[locind]])) {
+         outtxt <- paste0("!WARNING! ",mix,"-",loc,": The number of alleles was not same as the number of peaks") 
+         print(outtxt)
+       }
+       
+       
        mixL[[mix]][[loc]] = list(adata=adata[[locind]],hdata=as.numeric(hdata[[locind]]))
       }
    }

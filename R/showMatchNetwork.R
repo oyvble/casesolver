@@ -106,9 +106,11 @@ showMatchNetwork = function(nnTK,action,createInteractive=FALSE,selList=NULL) {
     style = list(size = 40, color = cols[ord] )#, line = list(color = 'black', width = 1))
     txtfont = list(color = '#000000', size = txtsz)
     ax = list(showline=FALSE,showticklabels=FALSE,zeroline=FALSE,showgrid=FALSE,title="") #axis setup: none
-    network <- plotly::plot_ly(df, x = ~x, y = ~y, mode = "markers+text", type="scatter", text = ~what,name= ~con , hoverinfo = "name",hoverlabel=list(font=list(size=txtsz),namelength=1000,bgcolor="white",bordercolor="black"), textfont=txtfont, marker=style )
-    out <- plotly::layout(network,xaxis=ax,yaxis=ax,shapes = edge_shapes)%>%plotly::hide_legend()
-    print(  out%>%plotly::config(scrollZoom=TRUE, displaylogo=FALSE,modeBarButtonsToRemove=c("lasso2d","select2d","hoverClosestCartesian","hoverCompareCartesian","toggleSpikelines"),toImageButtonOptions=list(width=w0,height=h0)) ) 
+    out <- plotly::plot_ly(df, x = ~x, y = ~y, mode = "markers+text", type="scatter", text = ~what,name= ~con , hoverinfo = "name",hoverlabel=list(font=list(size=txtsz),namelength=1000,bgcolor="white",bordercolor="black"), textfont=txtfont, marker=style )
+    out <- plotly::layout(out,xaxis=ax,yaxis=ax,shapes = edge_shapes)
+	out <- plotly::hide_legend(out)
+	out <- plotly::config(out, scrollZoom=TRUE, displaylogo=FALSE,modeBarButtonsToRemove=c("lasso2d","select2d","hoverClosestCartesian","hoverCompareCartesian","toggleSpikelines"),toImageButtonOptions=list(width=w0,height=h0)) 
+    print( out ) 
   } #end if plotly
   return(TRUE)
 }

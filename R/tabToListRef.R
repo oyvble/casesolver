@@ -3,11 +3,11 @@
 #' @details Used to convert reference data stored in matrix to list format required by functions.
 #' @param tab A (nR x nL) matrix with rows giving locus specific genotypes (for each column) for references
 #' @param ln Loci names of return list  
-#' @param forceDi Whether genotypes are restricted to contain 2 alleles or not.
+#' @param setEmpty Whether genotypes with one allele is set as empty or not (then set as homozygous)
 #' @return List format of references refL[[refname]][[locname]]$adata
 #' @export
 
-tabToListRef  = function(tab,ln=NULL,forceDi=TRUE) {
+tabToListRef  = function(tab,ln=NULL,setEmpty=FALSE) {
    locs = colnames(tab)
 
    if(!is.null(ln)) {
@@ -26,7 +26,13 @@ tabToListRef  = function(tab,ln=NULL,forceDi=TRUE) {
      for(loc in locs) { #for each locus
        av =  unlist(strsplit(tab[indref, colnames(tab)==loc],"/"))
        av = av[!is.na(av)] #remove NAs
-       if(forceDi && length(av)==1) av = rep(av,2)
+       if(length(av)==1) {
+          if(setEmpty) {
+             av = character() #set empty
+          } else {
+             av = rep(av,2) #set as homozygous
+          }
+       }
        refL[[ref]][[loc]] = list(adata=av)
      }
    }

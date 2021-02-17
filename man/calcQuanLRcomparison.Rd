@@ -4,8 +4,9 @@
 \alias{calcQuanLRcomparison}
 \title{calcQuanLRcomparison}
 \usage{
-calcQuanLRcomparison(DBmix, DBref, matchlist, popFreq, kit, xi, pC, lambda,
-  threshT, nDone = 4, maxC = 3, nContr = NULL)
+calcQuanLRcomparison(DBmix, DBref, matchlist, popFreq, kit, xiBW = 0,
+  xiFW = 0, pC = 0.05, lambda = 0.01, threshT = 50, nDone = 4,
+  maxC = 3, nContr = NULL, normalize = FALSE, minFreq = NULL)
 }
 \arguments{
 \item{DBmix}{A list with evidence information [[sample]][[loc]] = list(adata,hdata)}
@@ -18,19 +19,25 @@ calcQuanLRcomparison(DBmix, DBref, matchlist, popFreq, kit, xi, pC, lambda,
 
 \item{kit}{Used to model degradation. Must be one of the shortnames of kit: Returned by euroformix::getKit()}
 
-\item{xi}{Model parameter for Backward stutter. Default is 0 (no stutter). NULL indiciates stutter model.}
+\item{xiBW}{Model parameter for Backward stutter. NULL indicates stutter model.}
 
-\item{pC}{A numeric for allele drop-in probability. Default is 0.}
+\item{xiFW}{Model parameter for Forward stutter. NULL indicates stutter model.}
 
-\item{lambda}{Parameter in modeled peak height shifted exponential model. Default is 0.}
+\item{pC}{A numeric for allele drop-in probability.}
 
-\item{threshT}{The detection threshold given. Used when considering probability of allele drop-outs.}
+\item{lambda}{Parameter in modeled peak height shifted exponential model.}
+
+\item{threshT}{The detection threshold given.}
 
 \item{nDone}{Maximum number of random evaluations nlm-optimizing routing. Default is 4.}
 
 \item{maxC}{Maximum number of contributors possible to assume. Default is 3.}
 
 \item{nContr}{A vector of number of contributors for each of the row in the matchlist. If NULL (default), the max(nA)/2 rule is applied.}
+
+\item{normalize}{A boolean of whether normalization should be applied or not.}
+
+\item{minFreq}{The freq value included for new alleles. Default NULL is using min.observed in popFreq.}
 }
 \description{
 Function calculating LR using EuroForMix for remaining matches (from Step 1)

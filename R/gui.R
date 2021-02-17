@@ -1,10 +1,11 @@
 #' @title gui
 #' @description gui (GUI) is a GUI wrapper for CaseSolver
 #' @details The function starts the CaseSolver software.
-#' @param envirfile A file to a saved environment of a project
+#' @param envirfile A file to a saved environment of a project (must contain nnTK)
+#' @param envir A saved environment (nnTK)
 #' @export
 
-gui = function(envirfile=NULL) {
+gui = function(envirfile=NULL, envir=NULL) {
  LUSsymbol <- "_"
  MPSsymbol = ":" #Added in version 1.5.0
  colonsymbol = ":" #use variable for colon
@@ -26,7 +27,9 @@ gui = function(envirfile=NULL) {
  spc <- 10  #Spacing between widgets
 
  #REPORT ITEMS (may change over versions)
- reportitems <- rep("",21)  #assign emtpy  report items (must correspond to size of reportitems)
+ 
+ nReportItems = 26 #number of report items (will be inserted when opening program)
+ reportitems <- rep("",nReportItems)  #assign emtpy  report items (must correspond to size of reportitems)
 
  #########################################################
 ################Environment variables####################
@@ -41,100 +44,176 @@ gui = function(envirfile=NULL) {
  setupWrite = function(vals,file) write(vals,file=file,sep="\n")   #save to file in installation folder
  setupFileThresh <- paste(pgkPath,"configThresh",sep=.sep)   #file for threshold selection
  setupFileModel <- paste(pgkPath,"configModel",sep=.sep)   #file for model selection
+ setupFileMarkers <- paste(pgkPath,"configMarkers",sep=.sep)   #file for model selection per markers
  setupFileKit <- paste(pgkPath,"configKit",sep=.sep)  #file for kit selection
  setupFilePop <- paste(pgkPath,"configPop",sep=.sep)  #file for population selection
+ setupFileRare <- paste(pgkPath,"configRare",sep=.sep)  #file for options of rare alleles 
  setupFileCase <- paste(pgkPath,"configCase",sep=.sep)   #file for case selection
  setupFileImport <- paste(pgkPath,"configImport",sep=.sep)  #file for import selection
- setupFileExport <- paste(pgkPath,"mmTK.Rdata",sep=.sep)  #used to run euroformix
- setupFileExport2 <- paste(pgkPath,"mmTK2.Rdata",sep=.sep)  #used to run euroformix
- setupFileReport <- paste(pgkPath,"configReport",sep=.sep) #used to set report layout
+ setupFileReportLay <- paste(pgkPath,"configReportLay",sep=.sep) #used to set report layout
+ setupFileReportOpt <- paste(pgkPath,"configReportOpt",sep=.sep) #used to set report options
+ setupFileReportExpTyp <- paste(pgkPath,"configReportExpType",sep=.sep) #used to set report export type
+ setupFileReportExpOpt <- paste(pgkPath,"configReportExpOpt",sep=.sep) #used to set report export option
+ setupFileReportLocNames <- paste(pgkPath,"configReportLocNames",sep=.sep) #used to set marker names in report
+ 
+ setupFileMCMC <- paste(pgkPath,"configMCMC",sep=.sep) #used to set advanced settings
+ setupFileSorting <- paste(pgkPath,"configSorting",sep=.sep) #used to set sorting of tables settings
  setupFileAdvanced <- paste(pgkPath,"configAdvanced",sep=.sep) #used to set advanced settings
  setupFileView <- paste(pgkPath,"configView",sep=.sep) #used to set GUI layout
  setupFileLanguage <- paste(pgkPath,"configLanguage",sep=.sep)  #file for Language selection
+ setupFileExport <- paste(pgkPath,"mmTK.Rdata",sep=.sep)  #used to run euroformix
+ setupFileExport2 <- paste(pgkPath,"mmTK2.Rdata",sep=.sep)  #used to run euroformix
  
- #the files are stored in system settings:
- if(!file.exists(setupFileThresh)) {  #use default values if not existing
-   setupThresh =  list(MACthresh=0.9,LRthresh1=10,LRthresh2=1000,minLociSS=7,minIBS=20,ratio=10,probA=0.99)
- } else {
-   optF <- setupRead(file=setupFileThresh)
-   setupThresh = list(MACthresh=as.numeric(optF[1]),LRthresh1=as.numeric(optF[2]),LRthresh2=as.numeric(optF[3]),minLociSS=as.integer(optF[4]),minIBS=as.integer(optF[5]),ratio=as.numeric(optF[6]),probA=as.numeric(optF[7]))
+ #The files are stored in system settings and loaded when opening the tool:
+ 
+ #Thresholds:
+ optF = c(0.8,10,1000,7,20,15,0.99)
+ if(file.exists(setupFileThresh))    optF <- setupRead(file=setupFileThresh)
+ setupThresh = list(MACthresh=as.numeric(optF[1]),LRthresh1=as.numeric(optF[2]),LRthresh2=as.numeric(optF[3]),minLociSS=as.integer(optF[4]),minIBS=as.integer(optF[5]),ratio=as.numeric(optF[6]),probA=as.numeric(optF[7]))
+
+ #Model options (global):
+ optF =  c(50,0.05,0.01,0.01,1,2,2,1) #threshT: default value of detection threshold value,dropinC: Dropin probability parameter in model,dropinL: Dropin peak height distribution parameter Lambda. Modeltype={1,2,3}={qual,quan,both}
+ if(file.exists(setupFileModel)) optF <- setupRead(file=setupFileModel)
+ setupModel= list(threshT=as.numeric(optF[1]),dropinC=as.numeric(optF[2]),dropinL=as.numeric(optF[3]),fst=as.numeric(optF[4]),degrad=as.integer(optF[5]),stuttBW=as.integer(optF[6]),stuttFW=as.integer(optF[7]),modeltype=as.integer(optF[8]))
+
+ #Model options per marker (need to traverse a flexible number of items):
+ setupMarkers <- NULL #default is no specification (using global)
+ nItemsMarkers = 5 #marker names, AT values, Dropin probs, Dropin lambdas, Fsts
+ if(file.exists(setupFileMarkers)) {
+   optF <- setupRead(file=setupFileMarkers)
+   if(length(optF)>0) { #if registered
+     nLocs = round(length(optF)/nItemsMarkers) #number of loci in file
+     setupMarkers = list()#obtain vector with names and values 
+     for(itemInd in 1:nItemsMarkers) { #traverse through each elemen type
+       readRange = nLocs*(itemInd-1) + 1:nLocs
+       insVal = optF[readRange] #extend existing vector with value
+       if(itemInd>1) insVal = as.numeric(insVal)
+       setupMarkers[[itemInd]] = insVal
+     }
+   }
  }
- if(!file.exists(setupFileModel)) {  #use default values if not existing
-   setupModel =  list(threshT=50,dropinC=0.05,dropinL=0.01,degrad=1,stutt=2,modeltype=1) #threshT: default value of detection threshold value,dropinC: Dropin probability parameter in model,dropinL: Dropin peak height distribution parameter Lambda. Modeltype={1,2,3}={qual,quan,both}
- } else {
-   optF <- setupRead(file=setupFileModel)
-   setupModel= list(threshT=as.numeric(optF[1]),dropinC=as.numeric(optF[2]),dropinL=as.numeric(optF[3]),degrad=as.integer(optF[4]),stutt=as.integer(optF[5]),modeltype=as.integer(optF[6]))
- }
- if(!file.exists(setupFileKit)) {  #use default values if not existing
-   setupKit = list(kitname="") #empty kit by default. Select by short names (from getKit function)
- } else {
-   optF <- setupRead(file=setupFileKit)
-   setupKit = list(kitname=optF[1])
- }
- if(!file.exists(setupFilePop)) {  #use default values if not existing
-   setupPop = list(popfile="",amel="") #empty population by default. Points to a text-file.
- } else {
-   optF <- setupRead(file=setupFilePop)
-   setupPop = list(popfile=optF[1],amel=optF[2])
- }
- if(!file.exists(setupFileCase)) {  #use default values if not existing
-   setupCase = list(casepath="") #empty casepath by default. Points to a folder with CASEID given as folder names. 
- } else {
-   optF <- setupRead(file=setupFileCase)
-   setupCase = list(casepath=optF[1])
- }
- if(!file.exists(setupFileImport)) {  #use default values if not existing
-   setupImport = list(importfile="") #empty importfile by default (must contain the R-function importData. Points to a text-file.
- } else {
-   optF <- setupRead(file=setupFileImport)
-   setupImport = list(importfile=optF[1])
- }
- if(!file.exists(setupFileReport)) {  #use default values if not existing
-   setupReport = list(checked=rep(TRUE,length(reportitems))) #Gives boolean of how layout should be given
- } else {
-   optF <- setupRead(file=setupFileReport)
-   setupReport = list(checked=optF=="TRUE") #set checked vector
- }
- if(!file.exists(setupFileAdvanced)) {  #use default values if not existing
-   setupAdvanced = list(maxC1=4,maxC2=3,nDone=2,useMinK1="TRUE",compSS="FALSE",isSNP="FALSE",selProfiles="FALSE")
- } else {
-   optF <- setupRead(file=setupFileAdvanced)
-   setupAdvanced = list(maxC1=as.integer(optF[1]),maxC2=as.integer(optF[2]),nDone=as.integer(optF[3]),useMinK1=optF[4],compSS=optF[5],isSNP=optF[6],selProfiles=optF[7])
- }
- if(!file.exists(setupFileView)) {  #use default values if not existing
-   setupView = list(importHorizontal="FALSE",matchmatrix="FALSE")
- } else {
-   optF <- setupRead(file=setupFileView)
-   setupView = list(importHorizontal=optF[1],matchmatrix=optF[2])
- }
- if(!file.exists(setupFileLanguage)) {  #use default values if not existing
-   setupLanguage = list(language=defaultLanguage)#,encoding=defaultEncoding) #English langugage used by default.  
- } else {
-   optF <- setupRead(file=setupFileLanguage)
-   setupLanguage = list(language=optF[1])#,encoding=optF[2])
+
+ #costumized locus/marker names in report
+ setupReportLocNames = NULL
+ if(file.exists(setupFileReportLocNames)) {
+   optF <- setupRead(file=setupFileReportLocNames)
+   if(length(optF)>0) { #if registered
+     nLocs = round(length(optF)/2) #number of loci in file
+   }
+   setupReportLocNames = optF[1:nLocs + nLocs] #obtain edited marker names
+   names(setupReportLocNames) = optF[1:nLocs] #obtain Conventional names
  }
  
- if(is.null(envirfile)) {
-  nnTK = new.env( parent = emptyenv() ) #create new envornment object. Parent must be empty
+ #Kit selection
+ optF = "" #no kit selected by default
+ if(file.exists(setupFileKit)) optF <- setupRead(file=setupFileKit)
+ setupKit = list(kitname=optF[1])   
+   
+ #Population freq (file selection):
+ optF = rep("",2) #filename, amelChoice
+ if(file.exists(setupFilePop)) optF <- setupRead(file=setupFilePop)
+ setupPop = list(popfile=optF[1],amel=optF[2])
+   
+ #Population freq (rare alleles):
+ optF = c("TRUE","") #whether to normalize, min. frequencies
+ if(file.exists(setupFileRare)) optF <- setupRead(file=setupFileRare)
+ setupRare = list(normalize=optF[1],minFreq=optF[2])
+ 
+ #Path to Case folder (selection)
+ optF = "" #empty casepath by default. Points to a folder with CASEID given as folder names. 
+ if(file.exists(setupFileCase)) optF <- setupRead(file=setupFileCase)
+ setupCase = list(casepath=optF[1]) 
+ 
+ #Path to importData R-file (must contain the R-function importData. Points to a text-file.)
+ optF = "" #empty importfile by default (must contain the R-function importData. Points to a text-file.
+ if(file.exists(setupFileImport)) optF <- setupRead(file=setupFileImport)
+ setupImport = list(importfile=optF[1])
+ 
+ #Advanced options
+ optF = c(4,3,3,"TRUE","FALSE","FALSE","FALSE")
+ if(file.exists(setupFileAdvanced)) optF <- setupRead(file=setupFileAdvanced)
+ setupAdvanced = list(maxC1=as.integer(optF[1]),maxC2=as.integer(optF[2]),nDone=as.integer(optF[3]),useMinK1=optF[4],compSS=optF[5],isSNP=optF[6],selProfiles=optF[7])   
+
+ #Data view (vertical or horizontal)
+ optF = c("FALSE")
+ if(file.exists(setupFileView)) optF <- setupRead(file=setupFileView)
+ setupView = list(importHorizontal=optF[1])
+ 
+ #selected language
+ optF = defaultLanguage #,encoding=defaultEncoding) #English langugage used by default.  
+ if(file.exists(setupFileLanguage)) optF <- setupRead(file=setupFileLanguage)
+ setupLanguage = list(language=optF[1])#,encoding=optF[2]) 
+
+ #Option for sorting of tables:
+ #Tables in import: 1) Evid (SingleSources and Mixtures) [EPGs will follow same order] and  2) Refs (known and extended)
+ #Tables from comparison: 3) MatchList(Qual), 4) MatchList(Quan), 5) Matches
+ optF = rep(1, 5) #defualt sorting
+ if(file.exists(setupFileSorting)) optF <- setupRead(file=setupFileSorting)
+ setupSorting = as.integer(optF)
+ 
+ #Options for MCMC
+ optF = c(2000,2,0.05,1)
+ if(file.exists(setupFileMCMC)) optF <- setupRead(file=setupFileMCMC)
+ setupMCMC = list(niter=as.integer(optF[1]),delta=as.numeric(optF[2]),quantile=as.numeric(optF[3]),seed=as.integer(optF[4]))   
+ 
+ #Report:
+ #Layout option
+ optF = 1:nReportItems #order considered (0 means not used)
+ if(file.exists(setupFileReportLay)) optF <- setupRead(file=setupFileReportLay)
+ setupReportLay = list(priority=as.integer(optF)) #Gives priority of how layout should be given
+ 
+ #Other options
+ optNames = c("MatchStatus","MCMCsettings","mleLR","bayesLR","consLR","Mx","validFailed","verbalLR")
+ optF = rep(TRUE,length(optNames)) #WHether to show different options
+ if(file.exists(setupFileReportOpt)) optF <- setupRead(file=setupFileReportOpt)
+ setupReportOpt = setNames(as.logical(optF), optNames )  #Gives boolean of options within report
+ 
+ #Export options: Export/Preview
+ optF = c(TRUE,TRUE,FALSE,FALSE,FALSE,FALSE) #default values to insert
+ if(file.exists(setupFileReportExpTyp)) optF <- as.logical( setupRead(file=setupFileReportExpTyp) )
+ setupReportExpTyp = list(HTML=optF[1:2],DOCX=optF[3:4],DOC=optF[5:6]) 
+
+ #Other export options (Table, sizes), DOC
+ optF = c(1920,1080,120, 11,8.5,0.1,6,9,  6,11)
+ if(file.exists(setupFileReportExpOpt)) optF <- setupRead(file=setupFileReportExpOpt)
+ names(optF) = c("Width (px)","Height (px)","Resolution (ppi)",   #image options
+                 "Width (inch)","Height (inch)","Margin (inch)","Table size","Text font size", #DOC options
+                 "Table size","Text font size") #DOCX options
+ setupReportExpOpt = list(PNG=optF[1:3], DOC=optF[4:8],DOCX=optF[9:10]) 
+ 
+ if(is.null(envir)) {
+ #Always done: create new envornment object. Parent must be empty
+  nnTK = new.env( parent = emptyenv() ) 
 
   #Toolbar options: can be changed any time by using toolbar
   assign("setupThresh",setupThresh,envir=nnTK) 
   assign("setupModel",setupModel,envir=nnTK) 
+  assign("setupMarkers",setupMarkers,envir=nnTK)  
   assign("setupKit",setupKit,envir=nnTK) 
-  assign("setupPop",setupPop,envir=nnTK) 
+  assign("setupPop",setupPop,envir=nnTK)
+  assign("setupRare",setupRare,envir=nnTK)
   assign("setupCase",setupCase,envir=nnTK) 
   assign("setupImport",setupImport,envir=nnTK) 
-  assign("setupReport",setupReport,envir=nnTK) 
   assign("setupAdvanced",setupAdvanced,envir=nnTK) 
   assign("setupView",setupView,envir=nnTK) 
   assign("setupLanguage",setupLanguage,envir=nnTK) 
+  assign("setupMCMC",setupMCMC,envir=nnTK) 
+  assign("setupSorting",setupSorting,envir=nnTK) 
+  
+  #Report settings
+  assign("setupReportLay",setupReportLay,envir=nnTK)  #layout options
+  assign("setupReportExpTyp",setupReportExpTyp,envir=nnTK)  #Export types
+  assign("setupReportExpOpt",setupReportExpOpt,envir=nnTK)  #export format
+  assign("setupReportOpt",setupReportOpt,envir=nnTK)  #other options (also whether to rotate tables)
+  assign("setupReportLocNames",setupReportLocNames,envir=nnTK)  #User may modify marker names
   
   #initializing environment variables
   assign("workdir",NULL,envir=nnTK) #assign working directory to nnTK-environment
 
   #Considered CaseID:
   assign("caseID",NULL,envir=nnTK) #Used for report
-
+  assign("version",version,envir=nnTK) #Include version which is used (useful for later)
+  
   #imported data:
   assign("popFreq",NULL,envir=nnTK) #assign to nnTK-environment
   assign("mixDataTABLE",NULL,envir=nnTK) #Table of evidence profiles (only alleles)
@@ -155,35 +234,59 @@ gui = function(envirfile=NULL) {
   assign("resMatches",NULL,envir=nnTK)  #store match-results from comparison (those with LR>threshold)
   assign("allMixList",NULL,envir=nnTK)  #store match-results from comparison (those with LR>threshold) together with all mixtures
   assign("DClist",NULL,envir=nnTK)  #store list with deconvoluted reference candidates
-  assign("DClistReport",NULL,envir=nnTK)  #store list with confirmed deconvoluted reference candidates 
+  assign("DClistReport",NULL,envir=nnTK)  #store list with confirmed deconvoluted reference candidates (includes probs)
   assign("resRMP",NULL,envir=nnTK)  #store random match prob results 
   assign("resIBS",NULL,envir=nnTK)  #store IBS compare results (used in report)
   assign("storedFitHp",NULL,envir=nnTK) #store mle-fitted objects under Hp (for all match candidates)
   assign("resEvidConc",NULL,envir=nnTK)  #store concordance results
   
- } else { #IF FILE IS GIVEN
+  #Object for WoE calculations
+  assign("modelSettings",NULL,envir=nnTK)  #includes following objects: popFreq,kit,fst,lambda,threshT,xiBW,xiFW,pC (updated when saved)
+  assign("resWOEeval",NULL,envir=nnTK)  #store match-results from weight of evidence evaluations (LR-per marker, PH-validation)
+
+  nnTK0 = nnTK #store environment to make older projects backward compatible
+ } else if(is.null(envirfile)) {
+     nnTK = envir #copy environment
+ }
+  
+ #} else { #IF FILE IS GIVEN
+ if(!is.null(envirfile)) {
   load(envirfile) #loading environment
 
-  #Make backward compatible:
-  optL <- get("setupAdvanced", envir = nnTK) #open options from file
-  checkL = c(useMinK1="TRUE",compSS="FALSE",isSNP="FALSE",selProfiles="FALSE") #variables to include if missing
-  missvar = names(checkL)[!names(checkL)%in%names(optL)]
-  if( length(missvar)>0 ) {
-    for(var in missvar) optL[[var]] = checkL[[var]] #insert default value
-    assign("setupAdvanced",optL,envir=nnTK)  #store to envir again
-  } 
-  
-  #Make backward compatible from v1.7:
-  #  get("setupModel", envir = nnTK)$degrad/stutt must be numbers (1=ON),(2=OFF):
-  optL =  get("setupModel",envir=nnTK) #obtain model selection options
-  if( !is.null(optL) ) {
-    if(!is.numeric(optL$degrad)) optL$degrad = ifelse(optL$degrad=="ON",1,2) #update to numbers
-    if(!is.numeric(optL$stutt)) optL$stutt = ifelse(optL$stutt=="ON",1,2) #update to numbers
-    assign("setupModel",optL,envir=nnTK)  #store to envir again
+  #Inform the user that the old project file is not supported by current version of casesolver
+  outdated=FALSE
+  projVersion = nnTK$version #obtain project version get("version",envir=nnTK)
+  if(is.null(projVersion)) {
+    outdated = TRUE
+  }  else {
+    projVersion2 = unlist(projVersion)[1:2] #strsplit(projVersion,"\\."))[1:2]
+    version2 = unlist(version)[1:2]
+    if( is.null(projVersion) || version2[1]!=projVersion2[1] || version2[2]!=projVersion2[2]) outdated = TRUE
   }
-  if( is.null(nnTK$resEvidConc) ) assign("resEvidConc",NULL,envir=nnTK)  #assign empty concordance results 
-  if( is.null(nnTK$setupLanguage) ) assign("setupLanguage",list(language=defaultLanguage),envir=nnTK) #assigning default language: DONT MAKE BACKWARD COMPATIBLE
-  
+  if(outdated) {
+    versionTxt = "The loaded project file was outdated:\n"
+    versionTxt = paste0(versionTxt,"Project version: ",projVersion)
+    versionTxt = paste0(versionTxt,"\n\nPlease create a new project file with current CaseSolver version.\n\nWarning: The program may not work properly with an outdated project file.")
+    gWidgets2::gmessage(versionTxt,"Outdated project file", icon="info")
+   
+    #Try make loaded project as backward compatible as possible: Use 'default settings' if non-compatible objects
+    reqObjs = names(nnTK0) #obtain (all) required objects
+    oldObjs = names(nnTK)  #objects from old version
+    for(obj in reqObjs) {  #traverse all objects
+      if(!obj%in%oldObjs) {
+        assign(obj , nnTK0[[obj]] ,envir=nnTK)  #store default object if not found
+      } else {
+        reqItems = names(nnTK0[[obj]]) #obtain required items
+        if(is.null(reqItems)) next #jump to next object
+        
+        oldItems = names(nnTK[[obj]]) #obtain required items
+        if(length(reqItems)!= length(oldItems) || !all(reqItems==oldItems)) {
+          assign(obj , nnTK0[[obj]] ,envir=nnTK)  #store default object if missmatch found
+        }
+      }
+    }
+  } #end if outdated
+  #assign("setupRare",setupRare,envir=nnTK)
  } #end if project file was restored
 
 #################################################################################
@@ -193,18 +296,21 @@ gui = function(envirfile=NULL) {
  #This function is written since the encoding in  gWidgets2::gfile is fixed to UTF-8 which doesn't handle special letters
  mygfile <- function(text,type,filter=list(),initf=NULL) { #Possible bug: text ignored when type="selectdir"
    file <- gWidgets2::gfile(text=text,type=type,filter=filter,initial.filename=initf)
-    Encoding(file ) <- defaultEncoding #Set to local encoder L$encoding #set special encoding (latin1 is default)
+   Encoding(file ) <- defaultEncoding #Set to local encoder L$encoding #set special encoding (latin1 is default)
    return(file)
  }
 
+ #Helpfunction to check if file is OK
+ fileNotOK = function(x) { return( is.na(x) || length(x)==0)  }
+   
  saveTable = function(tab,sep="txt") {
   tabfile  <- mygfile(text= paste( L$save , L$table) ,type="save") #csv is correct format!
-  if(!is.na(tabfile)) {
+  if(fileNotOK(tabfile)) return()
+    
    if(length(unlist(strsplit(tabfile,"\\.")))==1) tabfile = paste0(tabfile,".",sep)
    if(sep=="txt" | sep=="tab") write.table(tab,file=tabfile,quote=FALSE,sep="\t",row.names=FALSE) 
    if(sep=="csv") write.table(tab,file=tabfile,quote=FALSE,sep=",",row.names=FALSE) 
    print(paste("Table saved in ",tabfile,sep=""))
-  }
  } #end file
 
  setPopFreq = function(change=FALSE,giveMessage=TRUE) { #helpfunction to read popFreq from file and set to environment
@@ -213,7 +319,7 @@ gui = function(envirfile=NULL) {
   	opt <- get("setupPop",envir=nnTK) 
      tryCatch( {
       popFreq <- getFreqs(opt$popfile)
-      AMEL <- c(0.75,0.25) #Assuming 50-50 Male/Femal population
+      AMEL <- c(0.75,0.25) #Assuming 50-50 Male/Femal population, abuse on Y/Y possibility
       names(AMEL) <- c("X","Y")
       if( opt$amel=="TRUE" && !any(grepl("AM",names(popFreq))) ) popFreq$AMEL =AMEL
       assign("popFreq",popFreq,envir=nnTK) #assign popFreq to nnTK-environment
@@ -225,45 +331,46 @@ gui = function(envirfile=NULL) {
      }
 	return(TRUE)
  } 
-
- getEnvirKit = function() { #get kit from environment
-  kitname = get("setupKit",envir=nnTK)$kitname 
-  if(is.null(kitname) || is.na(kitname[1]) || kitname==L$none || kitname=="" ) kitname = NULL
-  return(kitname)
+ 
+ #Helpfunction to show table in GDF (editable cells)
+ showGDFtable = function(title,table) {
+   setwin2 <- gWidgets2::gwindow( title ,visible=FALSE) 
+   guitab <- gWidgets2::gdf(items=table,container = setwin2) 
+   gWidgets2::visible(setwin2) <- TRUE
+   gWidgets2::focus(setwin2) <- TRUE
  }
-
- canPrintEPG = function() { #Helpfunction to check if can print EPG (kit specified)
-   return( !is.null(getEnvirKit()) )  #possible to print EPG?
+ 
+ #Helpfunction to ensure focus of main window
+ setFocus = function() {
+   gWidgets2::focus(mainwin) <- TRUE
  }
-
 
 ###########################FILE#####################################
  f_setwd = function(h,...) {
   dirfile = mygfile(text= paste( L$select , L$folder) ,type="selectdir")
-  if(length(dirfile)>0) {
-   setwd(dirfile)
-   assign("workdir",dirfile,envir=nnTK) #assign working directory
-  }
+  if(fileNotOK(dirfile)) return()
+  setwd(dirfile)
+  assign("workdir",dirfile,envir=nnTK) #assign working directory
  }
  f_openproj = function(h,...) {
   filterList = list()
   filterList[[ L$proj  ]] = list(patterns=list("*.Rdata")) #set file extension pattern 
   filterList[[ L$all  ]] = list(patterns=list("*")) #set file extension pattern 
   projfile = mygfile(text= paste( L$open , L$proj) ,type="open", filter=filterList)
-  if(length(projfile)>0 && !is.na(projfile)) {
+  if(fileNotOK(projfile)) return()
+  
    gWidgets2::dispose(mainwin)
-   gui(projfile) #send environment into program
-  }
+   casesolver::gui(projfile) #open environment file in program
  }
  f_saveproj = function(h,...) {
   projfile = mygfile(text= paste( L$save , L$proj) ,type="save")
-  if(length(projfile)>0 && !is.na(projfile)) {
+  if(fileNotOK(projfile)) return()
+  
    if(length(unlist(strsplit(projfile,"\\.")))==1) projfile = paste0(projfile,".Rdata")
    print("Size of stored objects (in MB):") #prints size of each stored object
    print(sapply(nnTK,object.size)/1e6) #prints size of each stored object
    save(nnTK,file=projfile,compress="xz",eval.promises=FALSE,precheck=FALSE,compression_level=2)
    print(paste("Project saved in ",projfile,sep=""))
-  }
  }
  f_quitproj = function(h,...) {
   ubool <- gWidgets2::gconfirm( L$msg.saveproj ,title= L$quitprog ,icon="info")
@@ -275,31 +382,193 @@ gui = function(envirfile=NULL) {
   gWidgets2::dispose(mainwin) #remove window!
  }
 
-###########################REPORT SET#####################################
+###########################REPORT SETTINGS#####################################
 f_reportlay = function(h,...) { #GUI function to set report layout
-   opt <- get("setupReport",envir=nnTK) #get layout settings
-   if(is.null(opt)) {
-    checkv <- rep(TRUE,length(reportitems))
-   } else {
-    if( length(opt$checked)!=length(reportitems) ) { #if number of report items does not match
-      checkv <- rep(TRUE,length(reportitems)) #Set all as true by default
-    } else {
-      checkv  <- opt$checked
-    }
-   }
+   opt <- get("setupReportLay",envir=nnTK) #get layout settings
    setwin <- gWidgets2::gwindow( L$reportlayout ,visible=FALSE)
-   tabval = gWidgets2::ggroup(spacing=0,container=(setwin),horizontal=FALSE) 
+   group = gWidgets2::ggroup(spacing=5,container= setwin,horizontal=FALSE) 
+   checkbox = gWidgets2::glayout(spacing=0,container=(group),horizontal=FALSE) 
    reportitems2 = paste( L$show , reportitems) #put "show" in front of each reportitems
-   checkbox <- gWidgets2::gcheckboxgroup( reportitems2 ,checked=checkv ,use.table=FALSE,container=tabval)
-   gWidgets2::add(tabval,checkbox)#,expand=TRUE,fill=TRUE)
-   savebut <- gWidgets2::gbutton( L$save ,checked=checkv ,use.table=FALSE,container=tabval,handler = function(h, ...) { 
-    opt$checked <- reportitems2%in%gWidgets2::svalue(checkbox)
-    assign("setupReport",opt,envir=nnTK)  #assign user-value to opt-list
-    setupWrite(unlist(opt$checked),file=setupFileReport)    #save to file in installation folder
-    gWidgets2::dispose(setwin)
+   nItems = length(reportitems) #number of items
+   itemRange = 0:nItems
+   checkbox[1,1] = gWidgets2::glabel("Report object",container=checkbox)
+   checkbox[1,2] = gWidgets2::glabel("Priority",container=checkbox)
+   for(i in 1:nItems) {
+     val = opt$priority[i] #obtain value
+     checkbox[i+1,1] <- gWidgets2::gcheckbox( reportitems2[i] ,checked=val>0,container=checkbox)
+     checkbox[i+1,2] <- gWidgets2::gcombobox(items=itemRange,selected=which(val==itemRange),editable=TRUE,container=checkbox)
+     gWidgets2::size(checkbox[i+1,2]) = 4
+   } 
+   #gWidgets2::add(tabval,checkbox)#,expand=TRUE,fill=TRUE)
+   savebut <- gWidgets2::gbutton( L$save ,use.table=FALSE,container=group,handler = function(h, ...) { 
+     for(i in 1:nItems) {
+       val = 0 #default is not checked
+       checked = gWidgets2::svalue(checkbox[i+1,1]) #indicate if checked
+       if(checked) val= as.integer(gWidgets2::svalue(checkbox[i+1,2])) #obtain value
+       opt$priority[i] = val #update priority variable
+     } 
+     assign("setupReportLay",opt,envir=nnTK)  #assign user-value to opt-list
+     setupWrite(unlist(opt$priority),file=setupFileReportLay)    #save to file in installation folder
+     gWidgets2::dispose(setwin)
    } )
    gWidgets2::visible(setwin) <- TRUE
-}
+  }
+ 
+ f_reportopt = function(h,...) { #GUI function to set report option
+   opt <- get("setupReportOpt",envir=nnTK) #get layout settings
+   #obtain names of options (INSERT HERE ONLY, NOT USED IN REPORT)
+   items = paste(L$show,names(opt)) #c(L$matchstatus) #"MatchStatus"  
+   
+   setwin <- gWidgets2::gwindow( paste(L$report, L$options)  ,visible=FALSE)
+   tabtmp <- gWidgets2::ggroup(horizontal = FALSE,container=setwin)
+   
+   #Option layout
+   checkBox = gWidgets2::glayout(spacing=0,container= tabtmp)  
+     
+   for(j in 1:length(items)) {
+    checkBox[j,1] = gWidgets2::glabel(names(items)[j],container=checkBox)
+    checkBox[j,2] = gWidgets2::gcheckbox(items[j],checked = as.logical(opt[j]),container=checkBox)
+   }
+   
+   #Save-button:
+   savebut = gWidgets2::gbutton(L$save,container=tabtmp, handler = function(h) {
+     for(j in 1:length(items)) {
+         val = as.logical( gWidgets2::svalue(checkBox[j,2]) )
+         if(!is.na(val)) opt[j]= val #insert value if not NA
+     }
+     assign("setupReportOpt",opt,envir=nnTK)  #assign user-value to opt-list
+     setupWrite(unlist(opt),file=setupFileReportOpt)    #save to file in installation folder
+     gWidgets2::dispose(setwin)
+   } )
+   gWidgets2::visible(setwin) <- TRUE
+ }
+ 
+ 
+ f_reportexptyp = function(h,...) { #GUI function to set report export options
+   opt <- get("setupReportExpTyp",envir=nnTK) #get layout setting
+   
+   setwin <- gWidgets2::gwindow( paste(L$report, L$export)  ,visible=FALSE, width=300,height=200)
+   checkbox = gWidgets2::glayout(spacing=5,container=(setwin),horizontal=FALSE) 
+   
+   #Showing selection tables:
+   types = names(opt) #c("HTML","DOCX","DOC") #report types
+   items = c(L$report, L$preview) 
+   for(i in 1:length(types)) checkbox[i+1,1] = gWidgets2::glabel(types[i],container=checkbox)
+   for(j in 1:length(items)) checkbox[1,j+1] = gWidgets2::glabel(items[j],container=checkbox)
+   for(i in 1:length(types)) {
+     type = types[i]
+     for(j in 1:length(items)) {
+       val=opt[[type]][j] #obtain value
+       checkbox[i+1,j+1] <- gWidgets2::gcheckbox("",checked=val,container=checkbox)
+     }
+   }
+   #Save-button:
+   checkbox[1,1] = gWidgets2::gbutton(L$save,container=checkbox, handler = function(h) {
+     for(i in 1:length(types)) {
+       type = types[i]
+       for(j in 1:length(items)) {
+         opt[[type]][j]=  gWidgets2::svalue(checkbox[i+1,j+1]) #obtain value
+       }
+     }
+     assign("setupReportExpTyp",opt,envir=nnTK)  #assign user-value to opt-list
+     setupWrite(unlist(opt),file=setupFileReportExpTyp)    #save to file in installation folder
+     gWidgets2::dispose(setwin)
+   } )
+
+   gWidgets2::visible(setwin) <- TRUE
+  }
+ 
+ #export options
+  f_reportexpopt = function(h,...) { #GUI function to set report option
+    opt <- get("setupReportExpOpt",envir=nnTK) #get layout settings
+    types = names(opt)
+    
+    setwin <- gWidgets2::gwindow( paste(L$report,  L$export, L$options)  ,visible=FALSE)
+    tabtmp <- gWidgets2::ggroup(horizontal = FALSE,container=setwin)
+    
+    #Option layout
+    checkList = list() #layout list
+    for(i in 1:length(types)) {
+      type = types[i]
+      items = opt[[type]]
+      checkList[[i]] = gWidgets2::glayout(spacing=0,container= gWidgets2::gframe(type, container=tabtmp))  
+      
+      for(j in 1:length(items)) {
+        checkList[[i]][j,1] = gWidgets2::glabel(names(items)[j],container=checkList[[i]])
+        checkList[[i]][j,2] = gWidgets2::gedit(items[j],container=checkList[[i]])
+      }
+    }
+    #Save-button:
+    savebut = gWidgets2::gbutton(L$save,container=tabtmp, handler = function(h) {
+      for(i in 1:length(types)) {
+        type = types[i]
+        items = opt[[type]]
+        for(j in 1:length(items)) {
+          val = as.numeric( gWidgets2::svalue(checkList[[i]][j,2]) )
+          if(!is.na(val)) opt[[type]][j]= val #insert value if not NA
+        }
+      }
+      assign("setupReportExpOpt",opt,envir=nnTK)  #assign user-value to opt-list
+      setupWrite(unlist(opt),file=setupFileReportExpOpt)    #save to file in installation folder
+      gWidgets2::dispose(setwin)
+    } )
+    gWidgets2::visible(setwin) <- TRUE
+  }
+  
+  #helpfunction to modify marker names for report tables
+  f_reportlocnames = function(h,...) {
+    locNameVec <- get("setupReportLocNames",envir=nnTK) #obtain stored object (vector of marker names)
+
+    #Obtain marker names from current imported case
+    evidTable = get("mixDataTABLE",envir=nnTK) #Table of evidence profiles (only alleles)
+    refTable = get("refDataTABLE",envir=nnTK) #Table of ref profiles (only alleles)
+    
+    caseLocNames <- NULL #toupper( names(locNameVec)) #default is markers stored in setupFile
+    if(!is.null(evidTable)) { #if evid table found
+      caseLocNames = toupper(colnames(evidTable))
+    } else {
+      if(!is.null(refTable)) { #if else ref table found
+        caseLocNames = toupper(colnames(refTable))
+      }
+    }
+    if(is.null(caseLocNames) && is.null(locNameVec)) return() #if no marker info found
+    
+    #POSSIBLY MODIFY THE locNAme vector    
+    if(is.null(locNameVec)) {
+      locNameVec = setNames(caseLocNames,caseLocNames) #use markers from imported case
+    } else if(!is.null(caseLocNames)) { #If something was previously stored and case info is found
+      locNameVec2 = setNames(caseLocNames,caseLocNames) #use markers from imported case
+      commonLocs = intersect(caseLocNames,names(locNameVec)) #find common
+      locNameVec2[commonLocs] = locNameVec[commonLocs] #update marker names from settings (not from case)
+      locNameVec = locNameVec2 #update
+    }
+    locNames = names(locNameVec) #obtain names
+    
+    #Create window for selection
+    setwin <- gWidgets2::gwindow( paste(L$Markernames)  ,visible=FALSE, width=100, height=500)
+    grouplay <- gWidgets2::ggroup(spacing=2,container=(setwin),horizontal = FALSE, use.scrollwindow = TRUE)  #set group layout
+    tabsel = gWidgets2::glayout(spacing=10,container=(grouplay),horizontal = TRUE)  #set grid  (will contain buttons)
+    tabsel[1,1] = gWidgets2::gbutton(text=L$restore,container=tabsel, handler = function(h,...) {
+      for(rowind in 1:length(locNameVec))  gWidgets2::svalue(tabval[rowind,2]) <- locNameVec[rowind] #recover name in edit box
+    }) 
+    tabsel[1,2] = gWidgets2::gbutton(text=L$save,container=tabsel, handler = function(h,...) {
+      for(rowind in 1:length(locNameVec))  locNameVec[rowind] <- gWidgets2::svalue(tabval[rowind,2]) #obtain names from edit box
+      assign("setupReportLocNames",locNameVec,envir=nnTK)  #assign user-values
+      setupWrite(c(names(locNameVec),locNameVec),file=setupFileReportLocNames)    #save to file in installation folder
+      gWidgets2::dispose(setwin) #remove window
+    }) 
+    
+    #Box with names
+    tabval = gWidgets2::glayout(spacing=0,container=(grouplay))  #create grid layout
+    w0 <- 15 #width of textbox
+    for(rowind in 1:length(locNameVec)) {
+      tabval[rowind,1] <- gWidgets2::glabel(text=locNames[rowind],container=tabval)  #insert conventional marker name
+      tabval[rowind,2] <- gWidgets2::gedit(text=locNameVec[rowind],width=w0,container=tabval)  #insert conventional marker name
+    }
+    gWidgets2::focus(setwin) = TRUE #set top
+    gWidgets2::visible(setwin) = TRUE #show window
+  }
+  
 
 ###########################SETTINGS#####################################
  f_threshsel=  function(h,...) { #GUI function to set threshold values
@@ -340,7 +609,7 @@ f_reportlay = function(h,...) { #GUI function to set report layout
    setwin <- gWidgets2::gwindow(paste0(  L$modelsettings ),visible=FALSE)
    tabval = gWidgets2::glayout(spacing=0,container=(setwin)) 
 
-   tabval[1,1] <- gWidgets2::glabel(text= L$modeltypes ,container=tabval) #Model type(s)
+   tabval[1,1] <- gWidgets2::glabel(text= paste0(L$modeltypes," (",L$compare,")") ,container=tabval) #Model type(s)
    tabval[1,2] <- gWidgets2::gcombobox(items=modtypetxt,selected=opt$modeltype,horizontal=TRUE,container=tabval)
    tabval[2,1] <- gWidgets2::glabel(text= L$analyticalthreshold ,container=tabval) #Detection threshold
    tabval[2,2] <- gWidgets2::gedit(text=opt$threshT,width=w0,container=tabval)
@@ -348,21 +617,52 @@ f_reportlay = function(h,...) { #GUI function to set report layout
    tabval[3,2] <- gWidgets2::gedit(text=opt$dropinC,width=w0,container=tabval)
    tabval[4,1] <- gWidgets2::glabel(text= L$dropinpeakheightlambda ,container=tabval) #Dropin peak height Lambda (EFM)
    tabval[4,2] <- gWidgets2::gedit(text=opt$dropinL,width=w0,container=tabval)
+   tabval[5,1] <- gWidgets2::glabel(text= L$fstsetting,container=tabval) #Dropin peak height Lambda (EFM)
+   tabval[5,2] <- gWidgets2::gedit(text=opt$fst,width=w0,container=tabval)
+   tabval[6,1] <- gWidgets2::glabel(text= L$degradationmodel ,container=tabval) #Degradation model (EFM)
+   tabval[6,2] <- gWidgets2::gradio(items=radiotxt,selected=opt$degrad,horizontal=TRUE,container=tabval)
+   tabval[7,1] <- gWidgets2::glabel(text= L$BWstuttermodel,container=tabval) #Stutter model (EFM)
+   tabval[7,2] <- gWidgets2::gradio(items=radiotxt,selected=opt$stuttBW,horizontal=TRUE,container=tabval)
+   tabval[8,1] <- gWidgets2::glabel(text= L$FWstuttermodel,container=tabval) #Stutter model (EFM)
+   tabval[8,2] <- gWidgets2::gradio(items=radiotxt,selected=opt$stuttFW,horizontal=TRUE,container=tabval)
    
-   tabval[5,1] <- gWidgets2::glabel(text= L$degradationmodel ,container=tabval) #Degradation model (EFM)
-   tabval[5,2] <- gWidgets2::gradio(items=radiotxt,selected=opt$degrad,horizontal=TRUE,container=tabval)
-   tabval[6,1] <- gWidgets2::glabel(text= L$stuttermodel,container=tabval) #Stutter model (EFM)
-   tabval[6,2] <- gWidgets2::gradio(items=radiotxt,selected=opt$stutt,horizontal=TRUE,container=tabval)
+   #helpfunction to set marker specific settings
+   f_setpermarker = function(h) {
+     isok = setPopFreq(giveMessage=FALSE) #set  population frequency from last selected file
+     if(!isok) {
+       print("Specify a frequency file to continue.")
+       return()
+     }
+     gWidgets2::dispose(setwin) #close setup window
+     print("Please be patient (this could take a while)...")
+     casesolver::setMarkerSettings(nnTK) # Obtain updated object
+     
+     #Store object to project and to file:     
+     write(unlist(get("setupMarkers",envir=nnTK)),file=setupFileMarkers)    #save to file in installation folder
+     gWidgets2::gmessage("Marker settings was successfully stored.")
+   }
    
-   tabval[7,1] <- gWidgets2::gbutton( L$save , container=tabval,handler = function(h, ...) { 
+   tabval[2,3] <- gWidgets2::gbutton(text= L$setpermarker ,container=tabval, handler=f_setpermarker) #Detection threshold
+   tabval[3,3] <- gWidgets2::gbutton(text= L$setpermarker ,container=tabval, handler=f_setpermarker) #Drop-in
+   tabval[4,3] <- gWidgets2::gbutton(text= L$setpermarker ,container=tabval, handler=f_setpermarker) #dropin lambda
+   tabval[5,3] <- gWidgets2::gbutton(text= L$setpermarker ,container=tabval, handler=f_setpermarker) #fst
+   
+   tabval[9,1] <- gWidgets2::gbutton( L$save , container=tabval,handler = function(h, ...) { 
     opt$modeltype <- which(gWidgets2::svalue(tabval[1,2])==modtypetxt) #set index 1,2,3
     opt$threshT <- as.numeric(gWidgets2::svalue(tabval[2,2]))
     opt$dropinC <- as.numeric(gWidgets2::svalue(tabval[3,2])) 
     opt$dropinL <- as.numeric(gWidgets2::svalue(tabval[4,2]))
-    opt$degrad <- which(gWidgets2::svalue(tabval[5,2])==radiotxt)  #set index 1,2
-    opt$stutt <-  which(gWidgets2::svalue(tabval[6,2])==radiotxt)  #set index 1,2 
+    opt$fst <- as.numeric(gWidgets2::svalue(tabval[5,2]))
+    opt$degrad <- which(gWidgets2::svalue(tabval[6,2])==radiotxt)  #set index 1,2
+    opt$stuttBW <-  which(gWidgets2::svalue(tabval[7,2])==radiotxt)  #set index 1,2 
+    opt$stuttFW <-  which(gWidgets2::svalue(tabval[8,2])==radiotxt)  #set index 1,2 
+
     assign("setupModel",opt,envir=nnTK)  #assign user-value to opt-list
     setupWrite(unlist(opt),file=setupFileModel)    #save to file in installation folder
+    
+    #STORE INFO IN modelSettings Object
+    assign("modelSettings",NULL,envir=nnTK)  #includes following objects: popFreq,kit,fst,lambda,threshT,xiBW,xiFW,pC (updated when saved)
+    
     gWidgets2::dispose(setwin)
    } )
    gWidgets2::visible(setwin) <- TRUE
@@ -386,28 +686,46 @@ f_reportlay = function(h,...) { #GUI function to set report layout
    gWidgets2::visible(setwin) <- TRUE
  }
  
+ #GUI for modifying population frequency settings
  f_popsel=  function(h,...) {
    opt <- get("setupPop",envir=nnTK) 
+   popfn <-  opt$popfile #population file name
+   rareOpt = get("setupRare",envir=nnTK) 
+   
+   #Helpfunction for storing rare allele settings from GUI
+   storeRareSettings = function(dispose=TRUE) {
+     rareOpt$normalize = gWidgets2::svalue(grid2[1,1])
+     rareOpt$minFreq = gWidgets2::svalue(grid2[3,1])
+     assign("setupRare",rareOpt,envir=nnTK)   #store to environment
+     setupWrite(unlist(rareOpt),file=setupFileRare)    #save to file in installation folder if successful
+     if(dispose) gWidgets2::dispose(setwin) #remove subwindow
+   }
+   
    setwin <- gWidgets2::gwindow( paste( L$select ,L$popfreq) ,visible=FALSE)
-   tabval = gWidgets2::glayout(spacing=0,container=(setwin)) 
-   tabval[1,1] <- gWidgets2::glabel(text= paste0( L$selected ," ", L$popfreq,colonsymbol),container=tabval)
-   tabval[1,2] <- gWidgets2::glabel(text=opt$popfile,container=tabval)
-   tabval[2,1] <- gWidgets2::gcheckbox(text=paste( L$include , L$AMEL ),checked = ifelse(opt$amel=="TRUE",TRUE,FALSE),container=tabval)
-   tabval[3,1] <- gWidgets2::gbutton( paste( L$select , L$popfreq) , container = tabval,handler = function(h, ...) { 
+   grp = gWidgets2::ggroup(spacing=4,container=(setwin),horizontal = FALSE)
+   grid1 = gWidgets2::glayout(spacing=0,container=grp) 
+   grid1[1,1] <- gWidgets2::glabel(text= paste0( L$selected ," ", L$popfreq,colonsymbol),container=grid1)
+   grid1[1,2] <- gWidgets2::glabel(text= basename( popfn ) ,container=grid1)
+   gWidgets2::tooltip(grid1[1,2]) <- popfn #highligh full file name when hovered
+   grid1[2,1] <- gWidgets2::gcheckbox(text=paste( L$include , L$AMEL ),checked = ifelse(opt$amel=="TRUE",TRUE,FALSE),container=grid1)
+   gWidgets2::tooltip(grid1[2,1]) <- "Including AMEL into the probabilistic model (ad-hoc approach). Needs to be ticked before selecting file." 
+   grid1[3,1] <- gWidgets2::gbutton( paste( L$select , L$popfreq) , container = grid1,handler = function(h, ...) { 
     ff <- mygfile(paste( L$select , L$file ),type="open")
     if(length(ff)==0) return()
     opt$popfile <- ff
-    opt$amel <-gWidgets2::svalue(tabval[2,1])
+    opt$amel <-gWidgets2::svalue(grid1[2,1])
     assign("setupPop",opt,envir=nnTK)  #assign user-value to opt-list
     ok <- setPopFreq(change=TRUE)	#Assume that another freq file has been selected
     if(ok) {
       setupWrite(unlist(opt),file=setupFilePop)    #save to file in installation folder if successful
-      gWidgets2::dispose(setwin) #remove subwindow
+      storeRareSettings(TRUE) #store rare settings first
+      #gWidgets2::dispose(setwin) #remove subwindow
       #f_popsel(); #update gui window again after selecting new folder
-	}
+	  }
    })
    
-   tabval[4,1] <- gWidgets2::gbutton( paste( L$show , L$popfreq ), container = tabval,handler = function(h, ...) { #SHOW FREQS
+   #BUTTON TO SHOW FREQUENCIES (OWN WINDOW)
+   grid1[4,1] <- gWidgets2::gbutton( paste( L$show , L$popfreq ), container = grid1,handler = function(h, ...) { #SHOW FREQS
     ok = setPopFreq() #import population frequency from last selected file
     if(!ok) return()
     popL = get("popFreq",envir=nnTK)
@@ -424,12 +742,9 @@ f_reportlay = function(h,...) { #GUI function to set report layout
      tab[(ll-1)*nB + 3,inds] <- popL[[loc]] #frequencies
     }
     colnames(tab) <- paste0(1:ncol(tab)) #set index (column numbers)
-    setwin2 <- gWidgets2::gwindow( L$popfreq ,visible=FALSE) 
-    guitab <- gWidgets2::gdf(items=tab,container = setwin2) 
-    gWidgets2::add(setwin2,guitab,expand=TRUE,fill=TRUE) 
-    gWidgets2::visible(setwin2) <- TRUE
+    showGDFtable( L$popfreq, tab)
    })
-   tabval[5,1] <- gWidgets2::gbutton( L$removeselected, container = tabval,handler = function(h, ...) { 
+   grid1[5,1] <- gWidgets2::gbutton( L$removeselected, container = grid1,handler = function(h, ...) { 
     opt = list(popfile="",amel="")
     assign("setupPop",opt,envir=nnTK)  
     setupWrite(unlist(opt),file=setupFilePop) #make empty
@@ -437,8 +752,22 @@ f_reportlay = function(h,...) { #GUI function to set report layout
     gWidgets2::dispose(setwin) #remove subwindow
     f_popsel() #open again
    })
- 
+   
+   #Other options (about freq for rare alles)
+   
+   grid2 = gWidgets2::glayout(spacing=0,container=gWidgets2::gframe( L$rarealleles ,container=grp)) 
+   grid2[1,1] <- gWidgets2::gcheckbox( L$normalizeimpute ,checked = as.logical(rareOpt$normalize),container=grid2)
+   gWidgets2::tooltip(grid2[1,1]) <- "Normalize allele frequencies after inserting rare alleles (not in allele freq population file)"
+   grid2[2,1] <- gWidgets2::glabel(text= paste0( L$minFreq ,colonsymbol) ,container=grid2)
+   gWidgets2::tooltip(grid2[2,1]) <- "Select minimum allele frequency value to be used for rare alleles (leaving it empty will make it use minimium observed)"
+   minFreq = rareOpt$minFreq
+   if(is.na(minFreq)) minFreq = ""
+   grid2[3,1] <- gWidgets2::gedit( minFreq,container=grid2)
+   grid2[4,1] <- gWidgets2::gbutton(L$save,container=grid2, handler=function(h) storeRareSettings())
+   gWidgets2::tooltip(grid2[4,1]) <- "Selecting allele frequency file will also save the settings"
+   
    gWidgets2::visible(setwin) <- TRUE
+   gWidgets2::focus(setwin) <- TRUE
  }#end function
 
  f_importsel=  function(h,...) {
@@ -469,16 +798,17 @@ f_reportlay = function(h,...) { #GUI function to set report layout
    tabval[2,1] <- gWidgets2::glabel(text= paste( L$select , L$pathcasefolders) ,container=tabval)
    tabval[2,2] <- gWidgets2::gbutton( L$select , container = tabval,handler = function(h, ...) { 
     opt$casepath <- mygfile( paste( L$select , L$folder ),type="selectdir")
+    
     assign("setupCase",opt,envir=nnTK)  #assign user-value to opt-list
     setupWrite(unlist(opt),file=setupFileCase)    #save to file in installation folder
     gWidgets2::dispose(setwin) #remove subwindow
     gWidgets2::dispose(mainwin) #remove main window
-    gui(); #update gui window again after selecting new folder
+    gui(); #update restarted gui window again after selecting new folder 
    })
   gWidgets2::visible(setwin) <- TRUE
  }
 
-  #The user can change model settings (nDone,maxContributors)
+  #The user can change advanced model settings (nDone,maxContributors)
   f_advancedoptions = function(h,...) { 
    opt <- get("setupAdvanced",envir=nnTK) 
    setwin <- gWidgets2::gwindow( paste( L$advanced , L$options ) ,visible=FALSE)
@@ -514,6 +844,33 @@ f_reportlay = function(h,...) { #GUI function to set report layout
    gWidgets2::visible(setwin) <- TRUE
   }
   
+  #The user can change MCMC settings (niter,delta,seed)
+  f_mcmcoptions = function(h,...) { 
+    opt <- get("setupMCMC",envir=nnTK) 
+    setwin <- gWidgets2::gwindow( paste( L$mcmc , L$options ) ,visible=FALSE)
+    tabval = gWidgets2::glayout(spacing=0,container=(setwin)) 
+    
+    #Traversing each option:
+    for(elem in names(opt)) {
+      rowind = which(names(opt)==elem) #get rowindex
+      tabval[rowind,1] <- gWidgets2::glabel(text= L[[elem]] ,container=tabval) #"Maximum contributors in QualLR (LRmix)"
+      tabval[rowind,2] <- gWidgets2::gedit(text=opt[[elem]],width=w0,container=tabval) 
+    }
+
+    #Last button is save (storing and writing settings)
+    tabval[length(opt)+1,1] <- gWidgets2::gbutton( L$save , container=tabval,handler = function(h, ...) { 
+      opt2 = list() #avoid wrong order 
+      for(elem in names(opt)) {
+        rowind = which(names(opt)==elem) #get rowindex
+        opt2[[elem]] <- as.numeric(gWidgets2::svalue(tabval[rowind,2]))  #max number of contributors in LRmix model
+      }
+      assign("setupMCMC",opt2,envir=nnTK)  #assign user-value to opt-list
+      setupWrite(unlist(opt2),file=setupFileMCMC)    #save to file in installation folder
+      gWidgets2::dispose(setwin)
+    } )
+    gWidgets2::visible(setwin) <- TRUE
+  }
+  
   #The user can select language:
   f_selLanguage =  function(h,...) { #GUI function to select language
     items0 = casesolver::getLanguage() #get list of available languages
@@ -534,7 +891,7 @@ f_reportlay = function(h,...) { #GUI function to set report layout
       
       #RESTARTING PROGRAM
       gWidgets2::dispose(mainwin) #shut down main window
-      gui() #start an empty session (recognized)
+      gui(envir=nnTK); #start an with same session (recognized)
     } )
     gWidgets2::visible(setwin) <- TRUE
   }
@@ -544,7 +901,12 @@ f_reportlay = function(h,...) { #GUI function to set report layout
  ##########FUNCTIONALITIES HELPFUNCTIONS########## 
  #################################################
 
- 
+  #Helpfunction for resaving to setupSorting object
+  resave_Sorting = function(index,value) {
+    sortTypes = get("setupSorting",envir=nnTK) #Obtain sort types
+    sortTypes[index] = value
+    assign("setupSorting",sortTypes,envir=nnTK)
+  }
  
  f_importData = function(h,...) { #wrapper function which calls other functions: importData and getStructuredData
    #REMOVE PREV. RESULTS WHEN NEW IMPORT:
@@ -579,6 +941,7 @@ f_reportlay = function(h,...) { #GUI function to set report layout
 #ff=fn[2]
      if( file.info(ff)$isdir ) next #skip if it was a folder
      
+     #IMPORTING DATA FROM USER-SPECIFIED FUNCTION (MUST BE NAMED "importData")
     tryCatch({ 
      data2 <- importData(ff) #import data for selected case. Structure of markers must be given inside this function and returned by "markers".
      data$mix <-  rbind(data$mix,data2$mix) #add data to table
@@ -626,7 +989,7 @@ f_reportlay = function(h,...) { #GUI function to set report layout
    }
      
    print("-------STRUCTURING DATA-------")
-   datalist <- getStructuredData(data,ln=toupper(markers),minLoc=get("setupThresh",envir=nnTK)$minLociSS) #get Data in both List-format and Table-format (mixDataTABLE,refDataTABLE,mixDataLIST)
+   datalist <- casesolver::getStructuredData(data,ln=toupper(markers),minLoc=get("setupThresh",envir=nnTK)$minLociSS) #get Data in both List-format and Table-format (mixDataTABLE,refDataTABLE,mixDataLIST)
    datalist$mixDataMATCHSTATUS = changeUnknownName(datalist$mixDataMATCHSTATUS) #update unknown names
    rownames(datalist$refDataTABLE) = changeUnknownName(rownames(datalist$refDataTABLE)) #update unknown names
    
@@ -642,9 +1005,11 @@ f_reportlay = function(h,...) { #GUI function to set report layout
    assign("mixDataLIST",datalist$mixDataLIST,envir=nnTK) #assign to nnTK-environment
   # assign("refDataLIST",datalist$refDataLIST,envir=nnTK) #NOT USED ANYMORE!
 
-   updateTables() #update datables
-   refreshTabLIST() #update mixture-list
- } #end function
+   updateTables() #update datables (default sorting first time)
+   refreshTabLIST() #update mixture-list (default sorting first time)
+   
+   setFocus #set focus
+ } #end import function
 
 
  #A do-all function for selected profiles(substitutes Export and Deconvolute):
@@ -658,7 +1023,7 @@ f_reportlay = function(h,...) { #GUI function to set report layout
     }
   mixL <- get("mixDataLIST",envir=nnTK)[mixSelID] #get selected mixtures
 	refTab <- get("refDataTABLE",envir=nnTK)[refSelID,,drop=FALSE] #get reference table
-	refL <- tabToListRef(tab=refTab,forceDi=TRUE) #FORCING DUP alleles (necessary for EFM)	
+	refL <- casesolver::tabToListRef(tab=refTab,setEmpty=FALSE) #FORCING 1-alleles to be homozygous (necessary for EFM)	
 	rm(refTab);gc()
 	evids <- names(mixL)
 	refs <- names(refL)
@@ -711,6 +1076,7 @@ f_reportlay = function(h,...) { #GUI function to set report layout
 	tabFun[4,1] = gWidgets2::gbutton(text= paste(L$deletefrom, L$gui) ,container=tabFun, handler=function(h,...) { 
 	 	selL <- getSelected()
 		txt = L$msg.deleteprofiles #delete following profiles?
+		sortTypes = get("setupSorting",envir=nnTK) #Obtain sort types
 		#if removing any evid profiles: 
 		if( length(selL[[1]])>0 ) {  
 		 bool <- gWidgets2::gconfirm(paste0(txt,"\n",paste0(selL[[1]],collapse="\n")))
@@ -731,8 +1097,8 @@ f_reportlay = function(h,...) { #GUI function to set report layout
    		  assign("mixDataMATCHSTATUS",mixStatus,envir=nnTK) #store match status again 
    		  assign("mixDataLIST", get("mixDataLIST",envir=nnTK)[rownames(mixTab)],envir=nnTK) #store evid list
    		  
-  		  updateTables(type="mix") #updates evid tables again 
-  		  refreshTabLIST() #update match list
+  		  updateTables(type="mix",sort=sortTypes[1]) #updates evid tables again 
+  		  refreshTabLIST(sort=sortTypes[5]) #update match list
   		  #REFRESH DECONVOLUTION TAB
 		   }
 		 } 
@@ -749,10 +1115,11 @@ f_reportlay = function(h,...) { #GUI function to set report layout
 
 		  assign("mixDataMATCHSTATUS",mixStatus,envir=nnTK) #store match status again 
  		  assign("refDataTABLE",refTab,envir=nnTK) #store ref table 
- 		  updateTables(type="ref") #updates tables again 
+ 		  
+ 		  updateTables(type="ref",sort=sortTypes[2]) #updates tables again 
  		  if(any(mixStatusIndremove)) {
- 		    updateTables(type="mix") #updates mix tables again 
- 		    refreshTabLIST() #update match list
+ 		    updateTables(type="mix",sort=sortTypes[1]) #updates mix tables again 
+ 		    refreshTabLIST(sort=sortTypes[5]) #update match list
  		  } 
 		 }
 		}
@@ -877,7 +1244,7 @@ f_reportlay = function(h,...) { #GUI function to set report layout
  
 
  viewdata = function(mixL,refL=NULL,printout=TRUE) { #helpfunction to visualize data
-  kitname = getEnvirKit()
+  kitname = casesolver::getEnvirKit(nnTK)
   threshT=get("setupModel",envir=nnTK)$threshT
   type = getSampleType2(mixL, kitname) #get sample types (EPG/MPS/LUS)
 
@@ -916,7 +1283,7 @@ f_reportlay = function(h,...) { #GUI function to set report layout
     op <- par(no.readonly = TRUE)
     dev.off()
     par(op)
-    gWidgets2::focus(mainwin)
+    setFocus
   } #end if not MPS
 
   if( require(plotly) ) {
@@ -947,18 +1314,20 @@ f_reportlay = function(h,...) { #GUI function to set report layout
    allid <- c(last$ref,id) #remember the other refs also
    last <- list(mix=last$mix,ref=allid) #store ids
    assign("clicktableLast",last,envir=nnTK) #
-   refL <- tabToListRef(tab=get("refDataTABLE",envir=nnTK)[allid,,drop=FALSE],forceDi=FALSE) #NOT FORCING DUP alleles
+   refL <- casesolver::tabToListRef(tab=get("refDataTABLE",envir=nnTK)[allid,,drop=FALSE],setEmpty=FALSE) #FORCING DUP alleles
    viewdata(mixL[last$mix],refL)
   } 
  } #end function
 
- f_calcLRefm = function(h,...) { #function to run LR for all comparisons having LR>LRthresh(Qual)
+ f_calcQuanLRall = function(h,...) { #function to run LR for all comparisons having LR>LRthresh(Qual)
+   sortTypes = get("setupSorting",envir=nnTK) #Obtain sort types
+   
    getMatchesLR(type="quan") #run EFM 
-   refreshTabLIST2() #update QUAN LR table with results
+   refreshTabLIST2(sort=sortTypes[4]) #update QUAN LR table with results
 
    #Create matchlist (Final step)
-   createMatchlist(modtype=2)
-   refreshTabLIST() #update tables  
+   createMatchlist(modtype=2) #update matchlist with results from QUAN LR
+   refreshTabLIST(sort=sortTypes[5]) #update tables  
    gWidgets2::svalue(nb) <- 5 #go to overview when done
  }
 
@@ -1006,16 +1375,14 @@ f_reportlay = function(h,...) { #GUI function to set report layout
    ind <- which(tab2[id,1]==tab1[,1] & tab2[id,2]==tab1[,2]) #get correct index of unsorted list
   }
   contFit <- get("storedFitHp",envir=nnTK)[[ind]]  #get stored model fit under Hp
-  kitname = getEnvirKit() #get selected kit
+  kitname = getEnvirKit(nnTK) #get selected kit
 
   suppressWarnings({
    dc <- euroformix::deconvolve(contFit,maxlist=1) #get top candidate profiles
-   print(dc$toprankGi) #show top ranked
-   print(contFit$fit$thetahat2) #estimates
   })
 
   #Again: determine whether it is EPG/MPS(LUS)/(strings): Check if "_" is used. Otherwise check with all alleles are strings
-  type = getSampleType2(contFit$model$samples,kitname) #get sample type
+  type = casesolver::getSampleType2(contFit$model$samples,kitname) #get sample type
   makePlotTop(type,contFit,dc,kitname) #create plot
     
  } #end if clickmatchlistQUAN 
@@ -1023,78 +1390,98 @@ f_reportlay = function(h,...) { #GUI function to set report layout
  #Helpfunction to get refList for specific given refs (single alleles are always filled twice, assumed homozygouz)
  getRefL = function(refs) { #return list with same order as for refs
   reftab=get("refDataTABLE",envir=nnTK)
-  refL <- casesolver::tabToListRef(tab=reftab[match(refs,rownames(reftab)),,drop=FALSE],forceDi=TRUE) #FORCING DUP alleles
+  refL <- casesolver::tabToListRef(tab=reftab[match(refs,rownames(reftab)),,drop=FALSE],setEmpty=TRUE) #Genotypes with 1-alleles are ignored
   rm(reftab);gc()
   return(refL)
  }
  
  #FUNCTION WHICH PERFORMS DC (uses settings in GUI)
- doDC = function(nC,evids=NULL,refs=NULL,showPlot=TRUE,useplotly=TRUE) {
+ doDC = function(nC,evids=NULL,refs=NULL,showPlot=TRUE,useplotly=TRUE,addedProfiles=NULL) {
    useplotly <- useplotly && require(plotly) #must be installed
    
-   refData = NULL
+   refData <- condOrder <- NULL
    if(!is.null(refs) && length(refs)>0) {
      refData = getRefL(refs) # get list of reference data
+     condOrder = 1:length(refs) #hypothesis is to condition on all references
    }
    evidData <- get("mixDataLIST",envir=nnTK)[evids] #evidence to consider
-   evid = paste0(evids,collapse="/") #collapse multiple evidence names
+   evids = paste0(evids,collapse="/") #collapse multiple evidence names
    condrefs = paste0(refs,collapse="/")
-   kit0 = NULL #no kit specified by default
-   xi0 = 0 #no stutters assumed by default
-   if( get("setupModel",envir=nnTK)$degrad==1 ) kit0 = getEnvirKit() #if degrad model
-   if( get("setupModel",envir=nnTK)$stutt==1 ) xi0 = NULL #if stutter model
-   popFreq0 = get("popFreq",envir=nnTK) #get population freqs
-   locs0=names(popFreq0) #get name of all loci
+   
    suppressWarnings({ 
-     contFit <- casesolver::calcHp(evidData,refData,nC=nC,popFreq=popFreq0,kit=kit0,pC=get("setupModel",envir=nnTK)$dropinC,lambda=get("setupModel",envir=nnTK)$dropinL,threshT=get("setupModel",envir=nnTK)$threshT, xi=xi0 , nDone=get("setupAdvanced",envir=nnTK)$nDone) #get fitted object
+     contFit <- casesolver::calcQuanMLE(evidData,refData,condOrder,nC,nnTK,verbose=TRUE) #get fitted object
      dc <- euroformix::deconvolve(contFit,maxlist=1) #get top candidate profiles
    })
    if(showPlot) {
-     kitname = getEnvirKit() #get kitname
+     kitname = getEnvirKit(nnTK) #get kitname
      type = getSampleType2(evidData,kitname) #get sample type
-     makePlotTop(type,contFit,dc,kitname)
+
+     #INSERTING ADDED PROFILE BY MANIPULATE FITTED MLE-model
+     if(!is.null(addedProfiles)) {
+       locs = names(dc$toprankGi) #obtain locus names
+       for(loc in locs) {
+         if(is.null( contFit$model$refData)) contFit$model$refData = list() #must create list if not exist
+         for(comp in names(addedProfiles)) {
+           if(is.null( contFit$model$refData[[loc]])) contFit$model$refData[[loc]] = list() #must create list if not exist
+           alleles = addedProfiles[[comp]][[loc]]$adata
+           contFit$model$refData[[loc]][[comp]] = alleles #insert aleles
+         }
+       }
+       #conditional index to insert
+       if(!is.null(contFit$model$condOrder)) {
+         contFit$model$condOrder = c(contFit$model$condOrder, max(contFit$model$condOrder)+1)
+       } else {
+         contFit$model$condOrder = 1
+       }
+     }
+     
+     tryCatch({
+       makePlotTop(type,contFit,dc,kitname)
+      }, error = function(e) print(e))
    } #end if showPlot
+   if(!is.null(addedProfiles)) return() #stopfunction if there was added profiles to show in plot (special case)
    
    #INSERTING CANDIDATE DECONVOLED PROFILES:
    ratio <- get("setupThresh",envir=nnTK)$ratio #get ratio-threshold
    probA <- get("setupThresh",envir=nnTK)$probA #get probability of allele - threshold
    
-   #locs <- names(dc$toprankGi) #get loci (from DC)
+   locs0 <- names(dc$toprankGi) #get loci (from DC)
    contrs = colnames(dc$toprankGi[[1]]) #get contributors
-   candtab <- matrix(nrow=0,ncol=length(locs0)+4) 
-   colnames(candtab) <- c("Component","Conditional","nC","MixProp",locs0)
+   candtab <- matrix(nrow=0,ncol=2*length(locs0)+4) #list of candidates with genotypes (and probabilities)
+   colnames(candtab) <- c(L$Component, L$Conditionals,L$NOC,L$MixProp,locs0,locs0)
    nR = length(refData) #number of conditional refs
    for(cind in 1:length(contrs)) { #for each contributors
      compn <-  contrs[cind] #paste0(evid,"_C",uind) #component name
      addRef = FALSE #Should the profile be added? (Must have at least 1 deduced allele for an unknown component)
      mxhat <- contFit$fit$thetahat2[cind] #get mixture proportion
-     newrow <- rep(NA,length(locs0))
+     newrow <- rep(NA,2*length(locs0))
      for(loc in locs0) { #for each locus 
-       insind <- which(locs0==loc) #insert index
+       insind <- which(locs0==loc) #insert index for genotypes
+       insind2 <- length(locs0) + insind #insert index for probabilities (added last)
        if(is.null(dc$toprankGi[[loc]])) next #skip if marker not found
        cand <- dc$toprankGi[[loc]][,cind] #get candidate  
-       if(!is.na(cand[3]) &&  as.numeric(cand[3])<ratio) { #if not a likely genotype
+       candRatio = as.numeric(cand[3]) #obtain 'ratio to next' for candidate
+       if(!is.na(cand[3]) &&  candRatio<ratio) { #if not a likely genotype
          ind <- which(dc$table4[,1]==compn & dc$table4[,2]==loc)[1] #find top ranked single allele
-         if( as.numeric(dc$table4[ind,4])>= probA )  newrow[insind] <- dc$table4[ind,3] #insert allele if prob>probA
+         candProbA = as.numeric(dc$table4[ind,4]) #get allele prob for candidate
+         if( candProbA >= probA ) {
+           newrow[insind] <- dc$table4[ind,3] #insert allele if prob>probA
+           #newrow[insind2] <- candProbA #insert allele prob
+         } 
        } else { #else insert genotype candidate
-         newrow[insind] <- cand[1]
+         newrow[insind] <- cand[1] #insert genotype
        }
+       newrow[insind2] <- signif(candRatio,2) #insert ratio, rounded, to marker (always)
        if( cind <= nR && length(refData[[cind]][[loc]]$adata)==0 && !is.na(newrow[insind]) ) addRef  = TRUE #indicate that ref prof. should be added
      } #end for each loci
-     if(all(is.na(newrow))) next #skip to next
+     if(all(is.na(newrow[1:length(locs0)]))) next #skip if not deduced genotypes (Notice change from v1.8 when adding probabilities)
      if( cind <= nR && !addRef) next #skip if ref should not be added
      if(cind <= nR ) compn = names(refData)[cind] #use ref name instead if conditioned on
-     newrow <- c(paste0(evid,"-",compn),condrefs,nC,signif(mxhat,2),newrow)
+     newrow <- c(paste0(evids,"-",compn),condrefs,nC,signif(mxhat,2),newrow)
      candtab <- rbind(candtab, newrow)
    } 
    return(candtab)
  } #end doDC
- 
-
- getAlleles = function(x) {
-   if(length(x)==1) return(as.character()) #dont consider if only 1 allele
-   return(x)
- }
  
  #helpfunction to change "Unknown" to language specific name
  changeUnknownName = function(x) {
@@ -1107,44 +1494,23 @@ f_reportlay = function(h,...) { #GUI function to set report layout
  #Helpfunction to calc LR (fit quan model for both hyps)
  #REPLICATES NOT SUPPORTED!
  fitEFMHYPs = function(nC,evids,ref,condref=NULL) {
-    ok = setPopFreq()
-    if(!ok) return()
-  
-    #Prepare params:
-    pC=get("setupModel",envir=nnTK)$dropinC;
-    lambda=get("setupModel",envir=nnTK)$dropinL;
-    threshT=get("setupModel",envir=nnTK)$threshT;
-    kit = NULL #no kit specified by default
-    xi = 0 #no stutters assumed by default
-    if( get("setupModel",envir=nnTK)$degrad==1 ) kit = getEnvirKit() #if degrad model
-    if( get("setupModel",envir=nnTK)$stutt==1 ) xi = NULL #if stutter model
-    if( !is.null(kit) && !canPrintEPG() ) {
-     gWidgets2::gmessage("Please specify a kit for further comparisons.\nGo to Settings->Kit selection")
-     return() 
-    } 
-
+   
     #Prepare data:
-    popFreq=get("popFreq",envir=nnTK);
+    #popFreq=get("popFreq",envir=nnTK);
     samples <- get("mixDataLIST",envir=nnTK)[evids] #consider lists
-    uselocs <-  names(popFreq)[toupper(names(popFreq))%in%toupper(names(samples[[1]]))] #loci to consider
-    if(is.null(xi)) uselocs <- setdiff(uselocs,"AMEL") #EXCLUDE AMEL IF STUTTER CONSIDERD (QUICK SOLUTION) 
-    samples = lapply(samples,function(x) x[uselocs])
+    #uselocs <-  names(popFreq)[toupper(names(popFreq))%in%toupper(names(samples[[1]]))] #loci to consider
+    #if(is.null(xi)) uselocs <- setdiff(uselocs,"AMEL") #EXCLUDE AMEL IF STUTTER CONSIDERD (QUICK SOLUTION) 
+    #samples = lapply(samples,function(x) x[uselocs])
     allrefs = c(ref,condref) #get all refs. POI is first ref
-    refD = getRefL(allrefs) # get list of reference data
-    refD2 <- list() #reference list must have other structure than considered here...
-    for(loc in uselocs) refD2[[loc]] <- lapply(refD ,function(x) getAlleles(x[[loc]]$adata)) #extract reference
-    data <- euroformix::Qassignate(samples, popFreq[uselocs],refD2,incS=FALSE,incR=FALSE) #don't include stutters, use all loci
+    refData = getRefL(allrefs) # get list of reference data (1-alleles are put as empty)
 
     condhp <- 1:length(allrefs) #conditional order must be increasing order
     condhd <- condhp - 1 #don't condition on POI under Hd
 
     #RUN CALCULATIONS:
-    nDone=get("setupAdvanced",envir=nnTK)$nDone
     fitMLE = function(condOrder) {
-     nU = nC-sum(condOrder>0)
-     if(nU>2) fit <- euroformix::contLikMLEpara(nC,data$samples,data$popFreq,data$refData,condOrder,xi=xi,prC=pC,lambda=lambda,nDone=nDone,threshT=threshT,kit=kit,verbose=TRUE)
-     if(nU<=2) fit <- euroformix::contLikMLE(nC,data$samples,data$popFreq,data$refData,condOrder,xi=xi,prC=pC,lambda=lambda,nDone=nDone,threshT=threshT,kit=kit,verbose=TRUE)
-     return(fit)
+      mlefit <- casesolver::calcQuanMLE(samples,refData,condOrder,nC,nnTK,verbose=TRUE)
+      return(mlefit)
     }
     #Calculate under Hp:
     fithp = fitMLE(condhp)
@@ -1264,9 +1630,10 @@ f_reportlay = function(h,...) { #GUI function to set report layout
     assign("storedFitHp",hpfitlist,envir=nnTK)  #store object
 
     #UPDATE TABLES:
-    refreshTabLIST2(which(ord==insInd)) #update tables with results, with marked on selected one
+    sortTypes = get("setupSorting",envir=nnTK) #Obtain sort types
+    refreshTabLIST2(which(ord==insInd),sort=sortTypes[4]) #update tables with results, with marked on selected one
     createMatchlist(modtype=3) #final step is to update MIXTURES table
-    refreshTabLIST(evidsel=mixsel) #update match-tables: mark on considered evidence  
+    refreshTabLIST(evidsel=mixsel,sort=sortTypes[5]) #update match-tables: mark on considered evidence  
 
     gWidgets2::svalue(nb) <- 4 #go to quan LR result tab when done
   }) #end button
@@ -1334,19 +1701,51 @@ f_reportlay = function(h,...) { #GUI function to set report layout
 
  #Functions executed when double clicked on the DC list: 
  #2) Show Deconvoluted candidates (added to deconvoluted reference list)
- clickDClist = function(h,...) {
+ addDCprofile = function(h,...) {
    DClist <- get("DClist",envir=nnTK)
    if(is.null(DClist)) return() #return if no list found
-   id <- as.integer(gsub("#","",gWidgets2::svalue(h$obj)))
+   suppressWarnings({
+     id <- as.integer(gsub("#","",gWidgets2::svalue(h$obj)))
+   })
+   if(is.na(id)) id <- as.integer(gsub("#","",gWidgets2::svalue(DClistGUI)))
+   
    if(length(id)>1) {
    	gWidgets2::gmessage( L$msg.selectoneprofile )
      return()
    }
    answ <- gWidgets2::gconfirm(paste0( L$msg.addDCprofile ,"\n",DClist[id,1]))
-   if(answ) f_addref(h=list(action=DClist[id,])) #open edit window of references
-   #assign("DClistReport",NULL,envir=nnTK)  #store confirmed deconvoluted reference candidates to own list (used for reporting)
- }
+   
+   if(answ) { #if extracting DCed candidate
+     DCrow = DClist[id,] #obtain DC row to extract
+     f_addref(h=list(action=DCrow)) #open edit window of references
 
+     #Store extracted DC-result to report object:
+     refTab = get("refDataTABLE",envir=nnTK)
+     DCtab = rbind(get("DClistReport",envir=nnTK),DCrow) #create DC-tab
+     rownames(DCtab)[nrow(DCtab)] = rownames(refTab)[nrow(refTab)] #obtain last extracted ref-name and insert to row
+     
+     #UPDATING DClistReport object (used for reporting):
+     assign("DClistReport",DCtab,envir=nnTK)
+     #gWidgets2::svalue(nb) <- 1 #go to data-tab     
+   }
+ }
+ 
+ #Helpfunction to show LRper marker when clicked
+ showLRperMarker = function(h,...) {
+   resWOEeval = get("resWOEeval",envir=nnTK) #obtain object
+   if(is.null(resWOEeval)) return()
+   suppressWarnings({
+     id <- as.integer(gsub("#","",gWidgets2::svalue(h$obj))) #svalue gives name of button if pressed, otherwise its the row in table
+   })
+   if(is.na(id)) id <- as.integer(gsub("#","",gWidgets2::svalue(WOElistGUI)))
+   
+   #extract and show
+   s0 = 1 #signif level
+   tab <- cbind(round(resWOEeval[[id]]$mleLRi,s0))  #obtain LR per marker
+   colnames(tab) = L$LR
+   showGDFtable(L$lrpermarker, casesolver::addRownameTable(tab,samplename = L$Marker))
+ }
+ 
  #function which takes all matches (with LR>threshold) and create a list to double click on (showing confirming under all conded)
  createMatchlist = function(modtype) { #directly after calculations are done
   #modtype: 0=MAConly(noLR), 1=All Qual LR, 2=All Quan LR, 3=Original Qual LR, but some updated with Quan LR
@@ -1478,23 +1877,20 @@ f_reportlay = function(h,...) { #GUI function to set report layout
   DBref <- get("refDataTABLE",envir=nnTK)
   DBref = DBref[rownames(DBref)%in%unique(Clist[,2]),,drop=FALSE] #get only relevant references
 
-  #matchlist=Clist;popFreq=get("popFreq",envir=nnTK);kit=getEnvirKit();pC=get("setupModel",envir=nnTK)$dropinC;lambda=get("setupModel",envir=nnTK)$dropinL;threshT=get("setupModel",envir=nnTK)$threshT;maxC=6;p0=0.1;#xi=xi0
+  mod <- casesolver::getModelSettings(nnTK)  #object for model settings
+  
+#matchlist=Clist;popFreq=mod$popFreq;pC=mod$pC; maxC=get("setupAdvanced",envir=nnTK)$maxC1;useMinK1=as.logical(get("setupAdvanced",envir=nnTK)$useMinK1);normalize=mod$normalize;minFreq=mod$minFreq
   suppressWarnings({
-   if(type=="qual")  matchLRres <- calcQualLRcomparison(DBmix,DBref,matchlist=Clist,popFreq=get("popFreq",envir=nnTK),pC=get("setupModel",envir=nnTK)$dropinC,maxC=get("setupAdvanced",envir=nnTK)$maxC1,useMinK1=as.logical(get("setupAdvanced",envir=nnTK)$useMinK1))
+   if(type=="qual")  matchLRres <- casesolver::calcQualLRcomparison(DBmix,DBref,matchlist=Clist,popFreq=mod$popFreq,pC=mod$pC, maxC=get("setupAdvanced",envir=nnTK)$maxC1,useMinK1=as.logical(get("setupAdvanced",envir=nnTK)$useMinK1),normalize=mod$normalize,minFreq=mod$minFreq)
    if(type=="quan") {
-      kit0 = NULL #no kit specified by default
-  	  xi0 = 0 #no stutters assumed by default
-      if( get("setupModel",envir=nnTK)$degrad==1 ) {
-        kit0 = getEnvirKit() #if degrad model
-        if(is.null(kit0)) print("NB: Kit was not selected and hence degradation model was not used.")        
-      }
-      if( get("setupModel",envir=nnTK)$stutt==1 ) xi0 = NULL #if stutter model
-      ncontr = NULL #Number of contributors to use (default is the max(nA)/2 rule)
-      if(ncol(Clist)==5) ncontr = Clist[,5] #number of contributors given in last column if qualLR calculated
+     
+      nContr = NULL #Number of contributors to use (default is the max(nA)/2 rule)
+      if(ncol(Clist)==5) nContr = Clist[,5] #number of contributors given in last column if qualLR calculated
 
       #use "Rule of three" for EFM model when applied to SNPs
-      if(!is.null(get("setupAdvanced",envir=nnTK)$isSNP) && get("setupAdvanced",envir=nnTK)$isSNP=="TRUE")  ncontr = rep("3",nrow(Clist))
-      matchLRres <- calcQuanLRcomparison(DBmix,DBref,matchlist=Clist[,1:3,drop=FALSE],popFreq=get("popFreq",envir=nnTK),kit=kit0,xi=xi0,pC=get("setupModel",envir=nnTK)$dropinC,lambda=get("setupModel",envir=nnTK)$dropinL,threshT=get("setupModel",envir=nnTK)$threshT,nDone=get("setupAdvanced",envir=nnTK)$nDone,maxC=get("setupAdvanced",envir=nnTK)$maxC2,nContr=ncontr) 
+      if(!is.null(get("setupAdvanced",envir=nnTK)$isSNP) && get("setupAdvanced",envir=nnTK)$isSNP=="TRUE")  nContr = rep("3",nrow(Clist))
+#matchlist=Clist[,1:3,drop=FALSE];popFreq=mod$popFreq;kit=mod$kit;xiBW=mod$xiBW;xiFW=mod$xiFW;pC=mod$pC;lambda=mod$lambda;threshT=mod$threshT;nDone=mod$nDone;maxC=get("setupAdvanced",envir=nnTK)$maxC2;normalize=mod$normalize;minFreq=mod$minFreq
+      matchLRres <- casesolver::calcQuanLRcomparison(DBmix,DBref,matchlist=Clist[,1:3,drop=FALSE],popFreq=mod$popFreq,kit=mod$kit,xiBW=mod$xiBW,xiFW=mod$xiFW,pC=mod$pC,lambda=mod$lambda,threshT=mod$threshT,nDone=mod$nDone,maxC=get("setupAdvanced",envir=nnTK)$maxC2,nContr=nContr, normalize=mod$normalize,minFreq=mod$minFreq) 
    }
   })
   matchlist <- matchLRres$MatchList
@@ -1524,7 +1920,7 @@ f_reportlay = function(h,...) { #GUI function to set report layout
  } #end LR comparison
 
 
- #Function giving window for editing alleles for new references
+ #Function giving window for editing alleles for new references (returns ref-name)
  f_addref = function(h,...) { 
   refT <- get("refDataTABLE",envir=nnTK)
   refTNames = rownames(refT)
@@ -1554,15 +1950,22 @@ f_reportlay = function(h,...) { #GUI function to set report layout
 
   newline <- c(defN,rep(def,length(locs)))
   if(!is.null(h$action)) { #opened with deconvolution
-    tmp <- h$action #get 
+    tmp <- h$action #get sample name
     newline[1] <- tmp[1] #get sample name (component)
     dat <- tmp[5:length(tmp)] #get suggested deconvolved elem
-    newline[-1] <- dat[match(locs,names(dat))] #
+    newline[-1] <- dat[match(locs,names(dat))] #obtain correct order (notice that only 1st match element is used)
     newline[is.na(newline)] <- ""
   }
   newTab <- rbind(newTab,newline) #add empty/new row
 
+  #CREATE GUI WINDOW (OTHER PROCESS WILL STOP)
+  flag <- tcltk::tclVar("") #init flag to avoid quitting GUI
   setwin <- gWidgets2::gwindow(paste0( L$data.editrefs ),visible=FALSE) 
+  gWidgets2::addHandlerUnrealize( setwin, handler = function(h,...) { #
+    tcltk::tclvalue(flag) <- "destroy" #Destroy wait flag
+    return(NULL) #return selected profiles when window is exit 
+  }  ) #call quit function
+  
   tabval = gWidgets2::ggroup(spacing=0,container=(setwin),horizontal=FALSE)  
   guitab <- gWidgets2::gdf(items=newTab,container = tabval) 
   gWidgets2::add(tabval,guitab,expand=TRUE,fill=TRUE) 
@@ -1630,22 +2033,29 @@ f_reportlay = function(h,...) { #GUI function to set report layout
     if(!is.null(Anew2)) {
      refT <- rbind(refT,Anew2) #add to existing table
      rownames(refT)[nrow(refT)] <- sn
+     
+     
     }    
     assign("refDataTABLE",refT,envir=nnTK) #store table 
     gWidgets2::dispose(setwin) #close window
-    updateTables(type="ref") #updates tables again 
+    tcltk::tclvalue(flag) <- "destroy" #Destroy wait flag
+    
+    sortTypes = get("setupSorting",envir=nnTK) #Obtain sort types
+    updateTables(type="ref",sort=sortTypes[2]) #updates tables again (with same sorting)
   }) #end button
-  gWidgets2::visible(setwin) <- TRUE 
+  gWidgets2::visible(setwin) <- TRUE
+  tcltk::tkwait.variable(flag) #important to not quit window before broken
  }  #end add ref
 
  #FUNCTION TO STORE TABLE:
  f_exporttable = function(h,...) { 
    tab <- NULL
-   if(h$action=="mac")    tab <- addRownameTable(get("resCompMAC",envir=nnTK)$MatchMatrix,type=1,L$samplename)
+   if(h$action=="mac")    tab <- casesolver::addRownameTable(get("resCompMAC",envir=nnTK)$MatchMatrix,type=1,L$samplename)
    if(h$action=="qual")    tab <- get("resCompLR1",envir=nnTK)
    if(h$action=="quan")    tab <- get("resCompLR2",envir=nnTK)
    if(h$action=="final")    tab <- get("allMixList",envir=nnTK)
    if(h$action=="dc")    tab <- get("DClist",envir=nnTK)
+   if(h$action=="woe")    tab <-  get("resWOEeval",envir=nnTK)$resTable
    saveTable(tab,"csv")
  }
 
@@ -1666,9 +2076,10 @@ f_reportlay = function(h,...) { #GUI function to set report layout
     if(nC<=length(refs)) {
      print(paste0("No unknowns to deconvolve for sample ",evid)) 
     } else {
-     print(paste0("Deconvolving sample ",evid)) 
+     print(paste0("Deconvolving sample #",ss,": ",evid)) 
      candtab <- doDC(nC,evid,refs,showPlot=FALSE,useplotly=FALSE)
      candtabs = rbind(candtabs,candtab) #add candidate table
+     print("")
      print(paste0(round(ss/nS* 100), "% DC calculation complete...")) 
     } 
   }
@@ -1679,9 +2090,40 @@ f_reportlay = function(h,...) { #GUI function to set report layout
    refreshDCLIST() #refresh DC-list
    gWidgets2::svalue(nb) <- 6 #go to DC-tab after calculation
   }
-} #end f_doDCall
+ } #end f_doDCall
 
+ #Function to do WOE as a final step from matchlist
+ f_doWOEcall = function(h,...) {
+   
+   #CHECK AND SET FREQUENCY FILE BEFORE
+   ok = setPopFreq(giveMessage=TRUE) #import population frequency from last selected file
+   if(!ok) return() #retun from function if not frequencies are set.
 
+   #perform WOE calculation (returns from function when closed/finished)
+   calcWOEhyps(nnTK) 
+   #Update with WoE table when done evaluated
+   #length( get("resWOEeval",envir=nnTK) )
+   resList = get("resWOEeval",envir=nnTK) #obtain results
+   #object.size(resWOEeval)/1e6 #size of object
+   
+   if(length(resList)==0) return() #return if no elements
+   extractrow = function(x) {
+     s0 = 2
+     evidtxt = paste0(x$evid,collapse="/")
+     condtxt = paste0(x$cond ,collapse="/")
+     validtxt = paste0(x$nFailedHp,"/",x$nFailedHd)
+     c(evidtxt,x$poi,condtxt,x$NOC,round(x$mleLR,s0),round(x$bayesLR,s0),round(x$consLR,s0),round(x$MxPOI,s0),validtxt)
+   }
+   resTable = t(sapply(resList,  extractrow))
+   colnames(resTable) = c(L$evidences, L$POI, L$Conditionals, L$NOC, L$LRmle, L$LRbayes, L$LRcons, L$MxPOI, L$nFailed)
+   resList$resTable =resTable #insert table
+   
+   print("Done with Weight-of-evidence calculations!")
+   assign("resWOEeval",resList,envir=nnTK) #obtain results
+   refreshWOELIST()
+   gWidgets2::svalue(nb) <- 7  #change panel
+ }
+ 
  
 ##################################################################################################
 ########### Program starts #######################################################################
@@ -1695,33 +2137,46 @@ f_reportlay = function(h,...) { #GUI function to set report layout
  softname <- paste("CaseSolver",L$version,version)
  
  #DEFINE REPORT ITEMS BASED ON LANGUAGE:
+ reportitems = rep(NA,nReportItems)
  reportitems[1] = L$header #"Header"
  reportitems[2] = L$references  #"References"
- reportitems[3] = paste0( L$singlesources ," (", L$alleles,")")  #"Single sources (alleles)"
- reportitems[4] = paste0( L$mixtures ," (", L$alleles,")") #"Mixtures (alleles)"
- reportitems[5] = paste0( L$consensusprofiles ," (", L$alleles,")") #"Consensus (alleles)"
- reportitems[6] = paste( L$singlesources , L$withPH ) #"Single sources w/PH"
- reportitems[7] = paste( L$mixtures , L$withPH ) #"Mixtures w/PH"
- reportitems[8] = L$metadata  # "Metadata"
- reportitems[9] = L$matchmatrix #"Match matrix"
- reportitems[10] = paste0( L$matchlist ," (", L$qualLR,")")  #"MatchList (Qual)"
- reportitems[11] = paste0( L$matchlist ," (", L$quanLR,")")  #"MatchList (Quan)"
- reportitems[12] = paste( L$finalmatchlist )  #"FinalMatchList"
- reportitems[13] = paste( L$matchnetwork )  #""MatchNetwork"
- reportitems[14] = paste0( L$RMNE ," (", L$evidence,")" ) #"RMNE for evidence" 
- reportitems[15] = paste0( L$RMP ," (", L$reference,")" ) #"RMP for references"
- reportitems[16] = paste0( L$IBS ," (", L$reference,")" ) #"IBS for references"
- reportitems[17] = L$settings #"Settings"
- reportitems[18] = paste0(  L$EPG, " (", L$singlesources ,")") #"EPG figures for single sources"
- reportitems[19] = paste0(  L$EPG, " (", L$mixtures ,")") # "EPG figures for mixtures"
- reportitems[20] = L$matchstatus #"MatchStatus"  
- reportitems[21] = paste( L$concordantevidences ) #"Concordant Evidences"
- #reportitems[22] = L$expPHplot #"Expected PH plots"
-
+ reportitems[3] = L$extractedprofiles #Extracted profiles"
+ reportitems[4] = paste0( L$singlesources ," (", L$alleles,")")  #"Single sources (alleles)"
+ reportitems[5] = paste0( L$mixtures ," (", L$alleles,")") #"Mixtures (alleles)"
+ reportitems[6] = paste0( L$consensusprofiles ," (", L$alleles,")") #"Consensus (alleles)"
+ reportitems[7] = paste( L$singlesources , L$withPH ) #"Single sources w/PH"
+ reportitems[8] = paste( L$mixtures , L$withPH ) #"Mixtures w/PH"
+ reportitems[9] = L$metadata  # "Metadata"
+ 
+ #Comparisons:
+ reportitems[10] = L$matchmatrix #"Match matrix"
+ reportitems[11] = paste0( L$matchlist ," (", L$qualLR,")")  #"MatchList (Qual)"
+ reportitems[12] = paste0( L$matchlist ," (", L$quanLR,")")  #"MatchList (Quan)"
+ reportitems[13] = paste( L$finalmatchlist )  #"FinalMatchList"
+ reportitems[14] = paste( L$matchnetwork )  #""MatchNetwork"
+ reportitems[15] = paste0( L$RMNE ," (", L$evidence,")" ) #"RMNE for evidence" 
+ reportitems[16] = paste0( L$RMP ," (", L$reference,")" ) #"RMP for references"
+ reportitems[17] = paste( L$concordantevidences ) #"Concordant Evidences"
+ reportitems[18] = paste0( L$IBS ," (", L$reference,")" ) #"IBS for references"
+ 
+ #Quantifications:
+ reportitems[19] = L$deconvoluted #Deconvoluted
+ reportitems[20] = L$woeResult #WoE table
+ reportitems[21] = L$woeStatements #Statements
+ reportitems[22] = L$woeParams #Estimated model parameters (listed per hypothesis)
+ reportitems[23] = L$lrpermarker #LR per marker (woe)
+ 
+ #attachments:
+ reportitems[24] = L$settings #"Settings"
+ reportitems[25] = paste0(  L$EPG, " (", L$singlesources ,")") #"EPG figures for single sources"
+ reportitems[26] = paste0(  L$EPG, " (", L$mixtures ,")") # "EPG figures for mixtures"
+ #reportitems[25] = L$expPHplot #"Expected PH plots"
+ if(length(reportitems)!=nReportItems) stop("Number of report items were wrong.")
+ 
  #storing report item names to be used in report:
- optReport <- get("setupReport",envir=nnTK)  #get report options
+ optReport <- get("setupReportLay",envir=nnTK)  #get report options
  optReport$reportitems = reportitems #store name of reportnames
- assign("setupReport",optReport,envir=nnTK) #store back to environment
+ assign("setupReportLay",optReport,envir=nnTK) #store back to environment
  
  #Get ON-OFF choices (used in f_createreport and f_modelsel)
  radiotxt = c( L$on , L$off )
@@ -1736,7 +2191,7 @@ f_reportlay = function(h,...) { #GUI function to set report layout
    gWidgets2::gaction( paste( L$save , L$proj ) ,handler=f_saveproj),
    gWidgets2::gaction( L$quit ,handler=f_quitproj,icon="close")
   )
- mblst[[ L$setup ]] =list( 
+  mblst[[ L$setup ]] =list( 
    gWidgets2::gaction( paste( L$set , L$threshsettings ) ,handler=f_threshsel),
    gWidgets2::gaction( paste( L$set , L$modelsettings )  ,handler=f_modelsel),
    gWidgets2::gaction( paste( L$select ,L$kit) ,handler=f_kitsel),
@@ -1745,10 +2200,15 @@ f_reportlay = function(h,...) { #GUI function to set report layout
    gWidgets2::gaction( paste( L$select , L$pathcasefolders ) ,handler=f_casedirsel)
   )
    mblst[[ L$report ]] =list( 
-   gWidgets2::gaction( paste( L$set , L$reportlayout ) ,handler=f_reportlay)
+   gWidgets2::gaction( paste( L$set , L$reportlayout ) ,handler=f_reportlay),
+   gWidgets2::gaction( paste( L$set , L$report, L$options) ,handler=f_reportopt),
+   gWidgets2::gaction( paste( L$set , L$report, L$export, "Types" ) ,handler=f_reportexptyp),
+   gWidgets2::gaction( paste( L$set , L$report, L$export, L$options) ,handler=f_reportexpopt),
+   gWidgets2::gaction( paste( L$set , L$Markernames) ,handler=f_reportlocnames)
   )
   mblst[[ L$advanced ]] = list( 
    gWidgets2::gaction( paste( L$advanced , L$options ) ,handler= f_advancedoptions),
+   gWidgets2::gaction( paste( L$mcmc , L$options ) ,handler= f_mcmcoptions),
    gWidgets2::gaction( L$randomibs ,handler=f_calcIBSdist), #calculates random IBS
    gWidgets2::gaction( paste( L$select , L$language ) ,handler=f_selLanguage) #select language
   )
@@ -1763,7 +2223,7 @@ f_reportlay = function(h,...) { #GUI function to set report layout
  #############
  #Main window#
  #############
- mainwin <- gWidgets2::gwindow(softname, visible=TRUE, width=mwW,height=mwH)
+ mainwin <- gWidgets2::gwindow(softname, visible=FALSE, width=mwW,height=mwH)
  gWidgets2::addHandlerUnrealize( mainwin, handler = function(h,...) {
 	return( gWidgets2::gconfirm( L$msg.quit ) )
  }  ) #call quit function
@@ -1775,9 +2235,9 @@ f_reportlay = function(h,...) { #GUI function to set report layout
  tabmatchlist1 = gWidgets2::ggroup(horizontal=FALSE,spacing=spc/2,container=nb,label= paste0( L$matchlist," (", L$qualLR,")" )) #results from Qualitative model (LRmix)
  tabmatchlist2 = gWidgets2::ggroup(horizontal=FALSE,spacing=spc/2,container=nb,label= paste0( L$matchlist," (", L$quanLR,")" )) #results from Quantitative model (EFM)
  tabmixtures = gWidgets2::ggroup(horizontal=FALSE,spacing=spc/2,container=nb,label= L$matches ) #comparison results (collapsed)
- tabdeconv = gWidgets2::ggroup(horizontal=FALSE,spacing=spc/2,container=nb,label= L$deconvoluted ) #comparison results
-
-
+ tabdeconv = gWidgets2::ggroup(horizontal=FALSE,spacing=spc/2,container=nb,label= L$deconvoluted ) #Deconvolution results
+ tabWOE = gWidgets2::ggroup(horizontal=FALSE,spacing=spc/2,container=nb,label= L$woe ) #WoE results\
+ 
 ####################################################
 ###############Tab 1: Import Data:##################
 ####################################################
@@ -1786,8 +2246,9 @@ f_reportlay = function(h,...) { #GUI function to set report layout
  layhor0 = as.logical(get("setupView",envir=nnTK)$importHorizontal) #get configured layout of tables
  tabimportA = gWidgets2::glayout(spacing=5,container=gWidgets2::gframe( paste( L$select , L$caseid ) ,container=tabimport)) #kit and population selecter
  tabimportC = gWidgets2::glayout(spacing=5,container=gWidgets2::gframe( L$functionalities ,container=tabimport)) #Tasks button
- tabimportB = gWidgets2::ggroup(horizontal=layhor0,container=gWidgets2::gframe( paste0( L$data.evidref ),container=tabimport,expand=TRUE,fill=TRUE),expand=TRUE,fill=TRUE) #evidence,ref dataframe
 
+ tabimportB = gWidgets2::gpanedgroup(horizontal=layhor0,container=gWidgets2::gframe( paste0( L$data.evidref ),container=tabimport,expand=TRUE,fill=TRUE),expand=TRUE,fill=TRUE) #evidence,ref dataframe
+  
  txtEmptycasedir = paste( L$msg.emptycasedir, L$setup, ">", L$set , L$pathcasefolders ) #create a error message for not finding case folders
  #Choose box and import button
  casedir <-  get("setupCase",envir=nnTK)$casepath
@@ -1808,31 +2269,40 @@ f_reportlay = function(h,...) { #GUI function to set report layout
   } else {
     opt$importHorizontal = "TRUE"
   }
+  
+  assign("setupView",opt,envir=nnTK)  #store to environment
   setupWrite(unlist(opt),file=setupFileView)    #save to file in installation folder
   gWidgets2::dispose(mainwin) #shut down window
-  gc() #empty garbage memory
-  gui() #start an empty session
+  #gc() #empty garbage memory
+  gui(envir=nnTK) #restart GUI session with project environment
  })
  
  if( length(casefolds2)>0 && length(caseid)>0  ) {#v1.4.1: ADDED if to make possible to exchange proj files
     tabimportA[1,2] <- gWidgets2::gcombobox(items=casefolds2, selected = caseid  , editable = TRUE, container = tabimportA) 
     tabimportA[1,3] <- gWidgets2::gbutton(text= L$import ,container=tabimportA,handler=f_importData) #IMPORT FUNCTION!!!
+    gWidgets2::tooltip(tabimportA[1,3]) <- L$tip.data.import #add tooltip only if button is visible
  }
-
+ 
  mixTabGUI <- gWidgets2::gtable(items="",multiple = TRUE,container = tabimportB, handler=clicktable,action="mix")
  refTabGUI <- gWidgets2::gtable(items="",multiple = TRUE,container = tabimportB, handler=clicktable,action="ref")
- gWidgets2::add(tabimportB,mixTabGUI,expand=TRUE,fill=TRUE)
- gWidgets2::add(tabimportB,refTabGUI,expand=TRUE,fill=TRUE)
-
- sortstring1 <- paste( L$data.sortevid, c("#", L$name , L$matchstatus ))
+ #gWidgets2::add(tabimportB,mixTabGUI,expand=TRUE,fill=TRUE)
+ #gWidgets2::add(tabimportB,refTabGUI,expand=TRUE,fill=TRUE)
+ gWidgets2::svalue(tabimportB) = 0.5 #set as 50-50 by default
+ 
+ #TABLE SORTING
+ sortstring1 <- paste( L$data.sortevid, c("#", L$name , L$matchstatus )) #EVID
  tabimportA[1,4] = gWidgets2::gcombobox(items=sortstring1,selected=1,container=tabimportA,horizontal = TRUE, handler=
   function(h,...) { 
-   updateTables(sort=which(sortstring1== gWidgets2::svalue(tabimportA[1,4])),type=h$action) 
+   sortval = which(sortstring1== gWidgets2::svalue(tabimportA[1,4])) #sort value
+   resave_Sorting(1,sortval) #resaving to setupSorting object
+   updateTables(sort=sortval,type=h$action) 
  },action="mix")
- sortstring2 <-  paste( L$data.sortref, c("#", L$name ))
+ sortstring2 <-  paste( L$data.sortref, c("#", L$name )) #REFERENCE
  tabimportA[1,5] = gWidgets2::gcombobox(items=sortstring2,selected=1,container=tabimportA,horizontal = TRUE, handler=
   function(h,...) { 
-   updateTables(sort=which(sortstring2== gWidgets2::svalue(tabimportA[1,5])),type=h$action) 
+   sortval = which(sortstring2== gWidgets2::svalue(tabimportA[1,5]))
+   resave_Sorting(2,sortval) #resaving to setupSorting object
+   updateTables(sort=sortval,type=h$action) 
  },action="ref")
 
  #UPDATE IN v1.5: Possible to add references afterwards
@@ -1864,21 +2334,26 @@ f_reportlay = function(h,...) { #GUI function to set report layout
     rownames(refT) = newsn 
 
     assign("refDataTABLE",refT,envir=nnTK) #store table 
-    updateTables(type="ref") #updates ref-table again 
+    
+    sortTypes = get("setupSorting",envir=nnTK) #Obtain sort types
+    updateTables(type="ref",sort=sortTypes[2]) #updates ref-table again 
   })
 
  tabimportC[1,1] = gWidgets2::gbutton(text= L$compare ,container=tabimportC,handler= #COMPARE FUNCTION
   function(h,...) {
 
-  if(nrow(get("refDataTABLE",envir=nnTK))==0) return() #return if no refs
+  refDataTABLE =  get("refDataTABLE",envir=nnTK)
+  if(is.null(refDataTABLE) || nrow(refDataTABLE)==0) return() #return if no refs
 
   #Reset all earlier comparison-results (since method may have changed):
   print("Resetting all previous comparison-results...")
   assign("resCompMAC",NULL,envir=nnTK);assign("resCompLR1",NULL,envir=nnTK);assign("resCompLR2",NULL,envir=nnTK)  
   assign("resCompLR",NULL,envir=nnTK);assign("resMatches",NULL,envir=nnTK);assign("allMixList",NULL,envir=nnTK) 
-  matchL1GUI[] = NULL #Set to zero
-  matchL2GUI[] = NULL #Set to zero
-
+  suppressWarnings({
+   matchL1GUI[] = NULL #Set to zero if anything
+   matchL2GUI[] = NULL #Set to zero if anything
+  })
+  
   #CHECK AND SET FREQUENCY FILE
   ok = setPopFreq(giveMessage=TRUE) #import population frequency from last selected file
   if(ok) {
@@ -1900,27 +2375,28 @@ f_reportlay = function(h,...) { #GUI function to set report layout
   modtype <- get("setupModel",envir=nnTK)$modeltype #model type selected {1="qual",2="quan",3="both"} #Otherwise only MAC based
   if(!ok) modtype = 0 # return() #show MAC results if LR can't be calculated
 
+  sortTypes = get("setupSorting",envir=nnTK) #Obtain sort types
   #Step 2 (optional): Calculate qual based LR
   if( modtype%in%c(1,3) ) {
    getMatchesLR(type="qual") #LRmix
-   refreshTabLIST1() #update table with results
+   refreshTabLIST1(sort=sortTypes[3]) #update table with results
    gWidgets2::svalue(nb) <- 3 #go to qual LR result tab when done
   }
 
   #Step 3 (optional): Calculate quan based LR
   if( modtype%in%c(2,3) ) {
-   if( get("setupModel",envir=nnTK)$degrad==1 && !canPrintEPG() ) { #If degradation model chosen but kit not selected
+   if( get("setupModel",envir=nnTK)$degrad==1 && !casesolver::canPrintEPG(nnTK) ) { #If degradation model chosen but kit not selected
     gWidgets2::gmessage( paste( L$msg.kitspecify, L$settings ,">", L$select ,L$kit) )
     return()
    } 
    getMatchesLR(type="quan") #EFM based
-   refreshTabLIST2() #update tables with results
+   refreshTabLIST2(sort=sortTypes[4]) #update tables with results
    gWidgets2::svalue(nb) <- 4 #go to quan LR result tab when done
   }
 
   #Step 3: Create matchlist (Final)
   createMatchlist(modtype=modtype) 
-  refreshTabLIST() #update tables  
+  refreshTabLIST(sort=sortTypes[5]) #update tables  
   gWidgets2::svalue(nb) <- 5 #go to overview when done
 
  })
@@ -1930,10 +2406,10 @@ f_reportlay = function(h,...) { #GUI function to set report layout
 
  tabimportC[1,3] = gWidgets2::gbutton(text= L$data.select ,container=tabimportC,handler=f_markprofs)
 
- tabimportC[1,4] = gWidgets2::gbutton(text= paste( L$calculate , L$RMP ),container=tabimportC,handler=f_calcRMP)
+ tabimportC[1,4] = gWidgets2::gbutton(text= paste( L$calculate , L$IBS ) ,container=tabimportC,handler=f_calcIBS)
 
- tabimportC[1,5] = gWidgets2::gbutton(text= paste( L$calculate , L$IBS ) ,container=tabimportC,handler=f_calcIBS)
-
+ tabimportC[1,5] = gWidgets2::gbutton(text= paste( L$calculate , L$RMP ),container=tabimportC,handler=f_calcRMP)
+ 
  tabimportC[1,6] = gWidgets2::gbutton(text= L$data.concordance ,container=tabimportC,handler=f_calcEvidConc)
 
  tabimportC[1,7] = gWidgets2::gbutton(text= L$data.editrefs ,container=tabimportC,handler=f_addref)
@@ -1946,26 +2422,24 @@ f_reportlay = function(h,...) { #GUI function to set report layout
 
 
  #INSERT DATA (TABLE-FORMAT) TO GUI: NOTICE the clicktable handler 
- updateTables <- function(sort=1,type="both") { #function to call to update tables  
-  
+ updateTables <- function(sort=1,type="both") { #function to call to update tables (possibly changed order)
+   gWidgets2::visible(mainwin) = FALSE
+   
    mixTab <- refTab <- "" #empty tables by default
    if(type%in%c("both","mix")) {    #Add mix-table
-    mixDataTABLE <- get("mixDataTABLE",envir=nnTK) #assign to nnTK-environment
+    mixDataTABLE <- get("mixDataTABLE",envir=nnTK) #assigned in nnTK-environment
     if( !is.null(mixDataTABLE) && nrow(mixDataTABLE)>0 ) { #make sure that there are data in table
      mixDataMATCHSTATUS <- get("mixDataMATCHSTATUS",envir=nnTK) #assign to nnTK-environment 
-     if(sort==1) ord = 1:nrow(mixDataTABLE)  #sort by default
-     if(sort==2) ord = order(rownames(mixDataTABLE),decreasing=FALSE)  #sort by name (increasing name)
-     if(sort==3) {
-        ord = order(mixDataMATCHSTATUS,rownames(mixDataTABLE),decreasing=FALSE)
-        ismix = mixDataMATCHSTATUS[ord]=="mixture" #obtain mixture
-        ord = c(ord[!ismix],ord[ismix])   
-     }
+
+     #SORT TABLE:     
+     ord = casesolver::orderTableSort(rownames(mixDataTABLE),mixDataMATCHSTATUS,sort)
+     
      newtab <- cbind(mixDataMATCHSTATUS,mixDataTABLE)
-     mixTab <- addRownameTable(newtab,type=2,L$samplename)
+     mixTab <- casesolver::addRownameTable(newtab,type=2,L$samplename)
      colnames(mixTab)[1:3] <- c(" ", L$samplename,L$matchstatus) #insert column name for table
      mixTab[mixTab[,3]=="mixture",3] = L$mixture #insert name: BEWARE THAT SAMPLENAMES SHOULD NOT CONTAIN "mixture"
 
-     mixTabGUI[] <- mixTab[ord,,drop=FALSE]
+     mixTabGUI[] <- mixTab[ord,,drop=FALSE] #update order in GUI table
      if(!layhor0 && !is.null(ncol(mixTab)) && nrow(mixTab)<nLarge ) { #if vertical layout and less than nlarge rows
       colw1 = c(30,150,150)
       colL = 100 #column width for each locus
@@ -1976,9 +2450,11 @@ f_reportlay = function(h,...) { #GUI function to set report layout
    if(type%in%c("both","ref")) {    #Add ref-table
     refDataTABLE <- get("refDataTABLE",envir=nnTK) #assign to nnTK-environment
     if(!is.null(refDataTABLE)) {
-     if(sort==1) ord = 1:nrow(refDataTABLE)  #sort by default
-     if(sort==2) ord = order(rownames(refDataTABLE),decreasing=FALSE)  #sort by name (increasing name)
-     refTab <- addRownameTable(refDataTABLE,type=2,L$samplename)
+      
+     #SORT TABLE:     
+     ord = casesolver::orderTableSort(rownames(refDataTABLE),sort=sort)
+      
+     refTab <- casesolver::addRownameTable(refDataTABLE,type=2,L$samplename)
      refTabGUI[] <- refTab[ord,,drop=FALSE]
 
      if(!layhor0 && !is.null(ncol(refTab)) && nrow(refTab)<nLarge ) { #if vertical layout and less than nlarge rows
@@ -1989,22 +2465,28 @@ f_reportlay = function(h,...) { #GUI function to set report layout
      }
     } 
    }
- }
- updateTables() #update when program starts
+   gWidgets2::visible(mainwin) = TRUE
+   setFocus()
+ } #end update Table
+ updateTables() #update when program starts (use default sorting)
 
+ #Add tooltips:
+ gWidgets2::tooltip(tabimportA[1,1]) <- L$tip.data.changeview
+ gWidgets2::tooltip(tabimportA[1,6]) <- L$tip.data.importref
+ gWidgets2::tooltip(tabimportC[1,1]) <- L$tip.data.compare
+ gWidgets2::tooltip(tabimportC[1,2]) <- L$tip.data.createreport
+ gWidgets2::tooltip(tabimportC[1,3]) <- L$tip.data.selectprofiles
+ gWidgets2::tooltip(tabimportC[1,4]) <- L$tip.data.ibs
+ gWidgets2::tooltip(tabimportC[1,5]) <- L$tip.data.rmp
+ gWidgets2::tooltip(tabimportC[1,6]) <- L$tip.data.conc
+ gWidgets2::tooltip(tabimportC[1,7]) <- L$tip.data.editref
+ gWidgets2::tooltip(tabimportC[1,8]) <- L$tip.data.restart
+ 
 ####################################################################################################################
 #######################################Tab 2: Match matrix: #############################################################
 #####################################################################################################################
 
  f_rotateMatchMatrix = function(h,...) {
-  opt = get("setupView",envir=nnTK) #get options
-  if(opt$matchmatrix == "TRUE") {
-    opt$matchmatrix = "FALSE"
-  } else {
-    opt$matchmatrix = "TRUE"
-  }
-  setupWrite(unlist(opt),file=setupFileView)    #save to file in installation folder
-  assign("setupView",opt,envir=nnTK) #store again
   refreshTabMATRIX(rotate=TRUE) #update with rotated table  
  }
 
@@ -2012,20 +2494,27 @@ f_reportlay = function(h,...) { #GUI function to set report layout
   val = get("setupThresh",envir=nnTK)$MACthresh #get options
   matchmat <- get("resCompMAC",envir=nnTK)$MatchMatrix
   if(is.null(matchmat)) return()
-  if(gWidgets2::svalue(tabCompA0[1,6])== L$truncate )  {
+  if(gWidgets2::svalue(gridTab2[1,6])== L$truncate )  {
    matchmat[matchmat<val] = ""   #remove values below threshold
   }
-  matchMATGUI[] <-  addRownameTable(matchmat,type=2,L$samplename)
+  
+  gWidgets2::visible(mainwin) = FALSE
+  matchMATGUI[] <-  casesolver::addRownameTable(matchmat,type=2,L$samplename)
   if(!is.null(ncol(matchMATGUI[])) && all(dim(matchmat)<nLarge) ) gWidgets2::size(matchMATGUI) <- list(column.widths=c(30,rep(100,ncol(matchMATGUI[])-1)))
+  gWidgets2::visible(mainwin) = TRUE
+  setFocus()
  }
 
- tabCompA0 = gWidgets2::glayout(horizontal = FALSE,spacing=5,container=gWidgets2::gframe( L$further ,container=tabmatchmatrix)) #kit and population selecter
- tabCompA0[1,1] <- gWidgets2::gbutton(text= L$export, container=tabCompA0,handler=f_exporttable,action="mac")  #Button to create matchcloud
- tabCompA0[1,2] <- gWidgets2::gbutton(text= L$rotatematrix, container=tabCompA0,handler=f_rotateMatchMatrix)  #Button to rotate table
- tabCompA0[1,3] <- gWidgets2::gbutton(text=paste( L$sort.by , L$sort.column),container=tabCompA0,handler= function(h,...) { refreshTabMATRIX(sort = 2)}) #Sort by colnames   
- tabCompA0[1,4] <- gWidgets2::gbutton(text=paste( L$sort.by , L$sort.row),container=tabCompA0,handler= function(h,...) { refreshTabMATRIX(sort = 3)}) #Sort by rownames   
- tabCompA0[1,5] <- gWidgets2::gbutton(text=paste( L$sort.by , L$sort.matchval),container=tabCompA0,handler= function(h,...) { refreshTabMATRIX(sort = 4)}) #Sort by rownames   
- tabCompA0[1,6] <- gWidgets2::gradio(items= c( L$donttruncate , L$truncate ) ,selected=1,container=tabCompA0,handler=f_truncatevals)  #Button to create matchcloud
+ gridTab2 = gWidgets2::glayout(horizontal = FALSE,spacing=5,container=gWidgets2::gframe( L$further ,container=tabmatchmatrix)) #kit and population selecter
+ gridTab2[1,1] <- gWidgets2::gbutton(text= L$export, container=gridTab2,handler=f_exporttable,action="mac")  #Button to create matchcloud
+ gWidgets2::tooltip(gridTab2[1,1]) <- L$tip.export 
+ 
+ gridTab2[1,2] <- gWidgets2::gbutton(text= L$rotatematrix, container=gridTab2,handler=f_rotateMatchMatrix)  #Button to rotate table
+ gridTab2[1,3] <- gWidgets2::gbutton(text=paste( L$sort.by , L$sort.column),container=gridTab2,handler= function(h,...) { refreshTabMATRIX(sort = 2)}) #Sort by colnames   
+ gridTab2[1,4] <- gWidgets2::gbutton(text=paste( L$sort.by , L$sort.row),container=gridTab2,handler= function(h,...) { refreshTabMATRIX(sort = 3)}) #Sort by rownames   
+ gridTab2[1,5] <- gWidgets2::gbutton(text=paste( L$sort.by , L$sort.matchval),container=gridTab2,handler= function(h,...) { refreshTabMATRIX(sort = 4)}) #Sort by rownames   
+ gridTab2[1,6] <- gWidgets2::gradio(items= c( L$donttruncate , L$truncate ) ,selected=1,container=gridTab2,handler=f_truncatevals)  #Button to create matchcloud
+ gWidgets2::tooltip(gridTab2[1,6]) <- L$tip.matchmatrix.truncate
  tabCompMatrix <- gWidgets2::ggroup(container=tabmatchmatrix,expand=TRUE,fill=TRUE)
  matchMATGUI <- gWidgets2::gtable(items="",container=tabCompMatrix) #add to frame
  gWidgets2::add(tabCompMatrix,matchMATGUI,expand=TRUE,fill=TRUE)
@@ -2045,26 +2534,37 @@ f_reportlay = function(h,...) { #GUI function to set report layout
       resobj$MatchMatrix = resobj$MatchMatrix[ rowOrder,colOrder, drop=FALSE]
     }
     if(rotate) resobj$MatchMatrix = t(resobj$MatchMatrix) #ROTATE MATRIX
-    
     assign("resCompMAC",resobj,envir=nnTK) #store manipulated object (keep same form of table in report)
     
-    matchMATGUI[] <-  addRownameTable(resobj$MatchMatrix,type=2,L$samplename) #rotate view
+    gWidgets2::visible(mainwin) = FALSE
+    matchMATGUI[] <-  casesolver::addRownameTable(resobj$MatchMatrix,type=2,L$samplename) #rotate view
     if(!is.null(ncol(matchMATGUI[])) && all(dim(resobj$MatchMatrix)<nLarge)) gWidgets2::size(matchMATGUI) <- list(column.widths=c(30,rep(100,ncol(matchMATGUI[])-1)))
+    gWidgets2::visible(mainwin) = TRUE
+    
+    #truncate if option is selected
+    if(gWidgets2::svalue(gridTab2[1,6])==L$truncate) f_truncatevals(NULL) 
+    
+    setFocus()
  }
+ refreshTabMATRIX() #use default sort
  
- refreshTabMATRIX()
-
 ####################################################################################################################
-#######################################Tab 3a: Match List (Qual): ##################################################
+#######################################Tab 3: Match List (Qual): ##################################################
 ####################################################################################################################
  sortMathListTablesTxt = paste( L$sort.by , c( L$sort.lr , L$sort.evid , L$sort.ref ))
 
- tabCompA1 = gWidgets2::glayout(horizontal = FALSE,spacing=5,container=gWidgets2::gframe( L$further ,container=tabmatchlist1)) #kit and population selecter
- tabCompA1[1,1] <- gWidgets2::gbutton(text= L$export ,container=tabCompA1,handler=f_exporttable,action="qual")  
- tabCompA1[1,2] <- gWidgets2::gbutton(text= paste( L$calculate , L$all, L$quanLR) ,container=tabCompA1,handler=f_calcLRefm)  
- tabCompA1[1,3] <- gWidgets2::gcombobox(items=sortMathListTablesTxt,selected=1,container=tabCompA1,handler=
+ gridTab3 = gWidgets2::glayout(horizontal = FALSE,spacing=5,container=gWidgets2::gframe( L$further ,container=tabmatchlist1)) #kit and population selecter
+ gridTab3[1,1] <- gWidgets2::gbutton(text= L$export ,container=gridTab3,handler=f_exporttable,action="qual")  
+ gWidgets2::tooltip(gridTab3[1,1]) <- L$tip.export 
+ 
+ gridTab3[1,2] <- gWidgets2::gbutton(text= paste( L$calculate , L$all, L$quanLR) ,container=gridTab3,handler=f_calcQuanLRall)  
+ gWidgets2::tooltip(gridTab3[1,2]) <- L$tip.matchlistQual.calc
+ 
+ gridTab3[1,3] <- gWidgets2::gcombobox(items=sortMathListTablesTxt,selected=1,container=gridTab3,handler=
    function(h,...) {
-     refreshTabLIST1(which(gWidgets2::svalue(tabCompA1[1,3])==sortMathListTablesTxt)) #change sorted order
+     sortval = which(gWidgets2::svalue(gridTab3[1,3])==sortMathListTablesTxt)
+     resave_Sorting(3,sortval) #resaving to setupSorting object
+     refreshTabLIST1(sort=sortval) #change sorted order
    }
  )  
  tabCompLIST1 = gWidgets2::ggroup(container=tabmatchlist1,expand=TRUE,fill=TRUE)
@@ -2077,29 +2577,27 @@ f_reportlay = function(h,...) { #GUI function to set report layout
     if(is.null(matchlist)) return() #return if no list found
     if(nrow(matchlist)==0) return() #return if no candidate found
 
-    resTab = addRownameTable(matchlist,type=3,L$samplename)
-    if(sort==1) { #sort by LR (default)
-     ord = 1:nrow(resTab)
-    } else if(sort==2) { #sort by evid name
-     ord = order(resTab[,2],resTab[,3],decreasing=FALSE)
-    } else if(sort==3) { #sort by ref name
-     ord = order(resTab[,3],resTab[,2],decreasing=FALSE)
-    }
+    resTab = casesolver::addRownameTable(matchlist,type=3,L$samplename)
+    ord = casesolver::orderTableSort(resTab[,2],resTab[,3],sort) #obtain order of sorting
+    
     matchL1GUI[] <-  resTab[ord,,drop=FALSE]
     if( nrow(resTab)<nLarge ) gWidgets2::size(matchL1GUI) <- list(column.widths=c(30,300,300,70,70,100))
  }
- refreshTabLIST1()
-
+ refreshTabLIST1() #use default sort
 
 ####################################################################################################################
-#######################################Tab 3b: Match List (Quan): ##################################################
+#######################################Tab 4: Match List (Quan): ##################################################
 ####################################################################################################################
 
- tabCompA2 = gWidgets2::glayout(horizontal = FALSE,spacing=5,container=gWidgets2::gframe( L$further ,container=tabmatchlist2)) #kit and population selecter
- tabCompA2[1,1] <- gWidgets2::gbutton(text= L$export ,container=tabCompA2,handler=f_exporttable,action="quan")#  
- tabCompA2[1,3] <- gWidgets2::gcombobox(items=sortMathListTablesTxt,selected=1,container=tabCompA2,handler=
+ gridTab4 = gWidgets2::glayout(horizontal = FALSE,spacing=5,container=gWidgets2::gframe( L$further ,container=tabmatchlist2)) #kit and population selecter
+ gridTab4[1,1] <- gWidgets2::gbutton(text= L$export ,container=gridTab4,handler=f_exporttable,action="quan")#
+ gWidgets2::tooltip(gridTab4[1,1]) <- L$tip.export 
+ 
+ gridTab4[1,3] <- gWidgets2::gcombobox(items=sortMathListTablesTxt,selected=1,container=gridTab4,handler=
    function(h,...) {
-     refreshTabLIST2(sort=which(gWidgets2::svalue(tabCompA2[1,3])==sortMathListTablesTxt)) #change sorted order
+     sortval = which(gWidgets2::svalue(gridTab4[1,3])==sortMathListTablesTxt)
+     resave_Sorting(4,sortval) #resaving to setupSorting object
+     refreshTabLIST2(sort=sortval) #change sorted order
    }
  )  
 
@@ -2112,34 +2610,37 @@ f_reportlay = function(h,...) { #GUI function to set report layout
     matchlist <- get("resCompLR2",envir=nnTK)
     if(is.null(matchlist)) return() #return if no list found
     if(nrow(matchlist)==0) return() #return if no candidate found
-    resTab = addRownameTable(matchlist,type=3,L$samplename)
-    if(sort==1) { #sort by LR (default)
-     ord = 1:nrow(resTab)
-    } else if(sort==2) { #sort by evid name
-     ord = order(resTab[,2],resTab[,3],decreasing=FALSE)
-    } else if(sort==3) { #sort by ref name
-     ord = order(resTab[,3],resTab[,2],decreasing=FALSE)
-    }
+    resTab = casesolver::addRownameTable(matchlist,type=3,L$samplename)
+    ord = casesolver::orderTableSort(resTab[,2],resTab[,3],sort) #obtain order of sorting
+    
     matchL2GUI[] <- resTab[ord,,drop=FALSE]
     if(nrow(resTab)<nLarge) gWidgets2::size(matchL2GUI) <- list(column.widths=c(30,300,300,70,70,rep(100,ncol(matchlist)-4)))
     if(!is.null(selInd)) gWidgets2::svalue(matchL2GUI) <- selInd #select row
  }
- refreshTabLIST2()
+ refreshTabLIST2() #use default sort
 
 ################################################################################################
-#################################Tab 4: Matches: ##############################################
+#################################Tab 5: Matches: ##############################################
 ################################################################################################
  sortMixListTablesTxt = paste( L$sort.by , c( "#" , L$sort.evid , L$sort.ref ))
 
- tabCompA3 = gWidgets2::glayout(horizontal = FALSE,spacing=5,container=gWidgets2::gframe( L$further ,container=tabmixtures),expand=TRUE,fill=TRUE) #kit and population selecter
- tabCompA3[1,1] <- gWidgets2::gbutton(text= paste( L$deconvolvemixtures ) ,container=tabCompA3,handler=f_doDCall)# perform DC for all mixtures (with default settings)
- tabCompA3[1,2] <- gWidgets2::gbutton(text= L$export ,container=tabCompA3,handler=f_exporttable,action="final")#  
- tabCompA3[1,3] <- gWidgets2::gbutton(text= paste( L$show , L$match , L$network ) ,container=tabCompA3,handler=f_showMatchNetwork,action="all")  #Button to create matchcloud
- tabCompA3[1,4] <- gWidgets2::gbutton(text= paste( L$showfor , L$mixtures )  ,container=tabCompA3,handler=f_showMatchNetwork,action="onlymix")  #Button to create matchcloud
- tabCompA3[1,5] <- gWidgets2::gbutton(text= paste( L$showfor , L$singlesources ),container=tabCompA3,handler=f_showMatchNetwork,action="onlyss")  #Button to create matchcloud
- tabCompA3[1,6] <- gWidgets2::gcombobox(items=sortMixListTablesTxt,selected=1,container=tabCompA3,expand=TRUE,handler=
+ gridTab5 = gWidgets2::glayout(horizontal = FALSE,spacing=5,container=gWidgets2::gframe( L$further ,container=tabmixtures),expand=TRUE,fill=TRUE) #kit and population selecter
+ gridTab5[1,1] <- gWidgets2::gbutton(text= paste( L$woeperform ),container=gridTab5,handler=f_doWOEcall)
+ gWidgets2::tooltip(gridTab5[1,1]) <- L$tip.matches.woe
+ gridTab5[1,2] <- gWidgets2::gbutton(text= paste( L$deconvolvemixtures ) ,container=gridTab5,handler=f_doDCall)# perform DC for all mixtures (with default settings)
+ gWidgets2::tooltip(gridTab5[1,2]) <- L$tip.matches.dcall
+
+ gridTab5[1,3] <- gWidgets2::gbutton(text= paste( L$show , L$match , L$network ) ,container=gridTab5,handler=f_showMatchNetwork,action="all")  #Button to create matchcloud
+ gridTab5[1,4] <- gWidgets2::gbutton(text= paste( L$showfor , L$mixtures )  ,container=gridTab5,handler=f_showMatchNetwork,action="onlymix")  #Button to create matchcloud
+ gridTab5[1,5] <- gWidgets2::gbutton(text= paste( L$showfor , L$singlesources ),container=gridTab5,handler=f_showMatchNetwork,action="onlyss")  #Button to create matchcloud
+ gridTab5[1,6] <- gWidgets2::gbutton(text= L$export ,container=gridTab5,handler=f_exporttable,action="final")#  
+ gWidgets2::tooltip(gridTab5[1,6]) <- L$tip.export 
+ 
+ gridTab5[1,7] <- gWidgets2::gcombobox(items=sortMixListTablesTxt,selected=1,container=gridTab5,expand=TRUE,handler=
    function(h,...) {
-     refreshTabLIST(sort=which(gWidgets2::svalue(tabCompA3[1,6])==sortMixListTablesTxt)) #change sorted order
+     sortval = which(gWidgets2::svalue(gridTab5[1,7])==sortMixListTablesTxt)
+     resave_Sorting(5,sortval) #resaving to setupSorting object
+     refreshTabLIST(sort=sortval) #change sorted order
    }
  )  
 
@@ -2169,64 +2670,315 @@ f_reportlay = function(h,...) { #GUI function to set report layout
     mixlist[match(matchlist[,1],mixName),3] <- matchlist[,3] #Update number of contributors
     assign("allMixList",mixlist,envir=nnTK)  #store match-results from comparison (those with LR>threshold) together with all mixtures
 
-    resTab = addRownameTable(mixlist,type=3,L$samplename)
-    if(sort==1) { #sort by LR (default)
-     ord = 1:nrow(resTab)
-    } else if(sort==2) { #sort by evid name
-     ord = order(resTab[,2],resTab[,3],decreasing=FALSE)
-    } else if(sort==3) { #sort by ref name
-     ord = order(resTab[,3],resTab[,2],decreasing=FALSE)
-    }
+    resTab = casesolver::addRownameTable(mixlist,type=3,L$samplename)
+    ord = casesolver::orderTableSort(resTab[,2],resTab[,3],sort) #obtain order of sorting
     mixlistGUI[] <- resTab[ord,,drop=FALSE]
 
     if(nrow(resTab)<nLarge) gWidgets2::size(mixlistGUI) <- list(column.widths=c(30,300,500,100))
     if(!is.null(evidsel)) gWidgets2::svalue(mixlistGUI) = which(mixlist[,1]==evidsel)  #marking line
   }
-  refreshTabLIST()
+  refreshTabLIST() #use default sort
 
 ################################################################################################
-#################################Tab 5: Deconvoluted: ##############################################
+#################################Tab 6: Deconvoluted: ##############################################
 ################################################################################################
- tabCompA4 = gWidgets2::glayout(horizontal = FALSE,spacing=5,container=gWidgets2::gframe( L$further ,container=tabdeconv)) #kit and population selecter
- tabCompA4[1,1] <- gWidgets2::gbutton(text=paste( L$export , L$table ),container=tabCompA4,handler=f_exporttable,action="dc")#  
- tabCompA4[1,2] <- gWidgets2::gbutton(text=paste( L$export , L$selected ),container=tabCompA4,handler=function(h,...) {
-   dclist <- get("DClist",envir=nnTK)
-   if(is.null(dclist)) return() #none found
+ sortDCTableTxt <- paste( L$sort.by , c( "#" , L$sort.evid , L$similarity ))
+  
+ gridTab6 = gWidgets2::glayout(horizontal = FALSE,spacing=5,container=gWidgets2::gframe( L$further ,container=tabdeconv)) #kit and population selecter
+ gridTab6[1,1] <- gWidgets2::gbutton(text=paste( L$export , L$table ),container=gridTab6,handler=f_exporttable,action="dc")# 
+ gWidgets2::tooltip(gridTab6[1,1]) <- L$tip.export
+ 
+ gridTab6[1,2] <- gWidgets2::gbutton(text=paste( L$export , L$selected ),container=gridTab6,handler=function(h,...) {
+   DClist <- get("DClist",envir=nnTK)
+   if(is.null(DClist)) return() #none found
    selID =  as.integer(gsub("#","",gWidgets2::svalue(DClistGUI) ) )
    if(length(selID)==0) return() #none selected
-   dclist<- dclist[selID,,drop=FALSE] #get selected profiles
-   refn = dclist[,1] #get refnames
-   refTab = dclist[,-(1:4),drop=FALSE]
+   dupInd = which(duplicated(colnames(DClist))) #get index of duplicated
+   
+   refn = DClist[selID,1] #get refnames
+   refTab = t(DClist[selID,-c(1:4,dupInd)])
    rownames(refTab) = refn 
-   saveTable(sampleListToTable(tabToListRef(tab=refTab,forceDi=TRUE))) #save to file
+   saveTable(sampleListToTable(casesolver::tabToListRef(tab=refTab,setEmpty=FALSE))) #save to file
   })# End export selected
-
- tabCompA4[1,3] <- gWidgets2::gbutton(text=paste( L$delete , L$selected ),container=tabCompA4,handler=function(h,...) {
-     dclist <- get("DClist",envir=nnTK)
-     if(is.null(dclist)) return() #none found
+ gWidgets2::tooltip(gridTab6[1,2]) <- L$tip.dc.exportsel
+ 
+ 
+ gridTab6[1,3] <- gWidgets2::gbutton(text=paste( L$delete , L$selected ),container=gridTab6,handler=function(h,...) {
+     DClist <- get("DClist",envir=nnTK)
+     if(is.null(DClist)) return() #none found
      selID =  as.integer(gsub("#","",gWidgets2::svalue(DClistGUI) ) )
      if(length(selID)==0) return() #none selected
-     dclist<- dclist[-selID,,drop=FALSE] #update
-    	assign("DClist",dclist,envir=nnTK)
+     DClist <- DClist[-selID,,drop=FALSE] #update
+     assign("DClist",DClist,envir=nnTK)
      refreshDCLIST()
  })
-
- tabDCLIST = gWidgets2::ggroup(container=tabdeconv,expand=TRUE,fill=TRUE)
- DClistGUI <- gWidgets2::gtable(items="",multiple = TRUE,container=tabDCLIST,handler=clickDClist)
- gWidgets2::add(tabDCLIST,DClistGUI,expand=TRUE,fill=TRUE)#add to frame
-
- refreshDCLIST = function() {  #get list of matched elements
+ gWidgets2::tooltip(gridTab6[1,3]) <- L$tip.dc.delete
+ 
+ 
+ gridTab6[1,4] <- gWidgets2::gbutton(text=paste( L$show , L$probRatioToNext ),container=gridTab6,handler=function(h,...) {
    DClist <- get("DClist",envir=nnTK)
    if(is.null(DClist)) return() #return if no list found
-   DClistGUI[] <- addRownameTable( DClist ,type=3,L$samplename) #add DC-list
+   selID =  as.integer(gsub("#","",gWidgets2::svalue(DClistGUI) ) )
+   if(length(selID)==0) return() #none selected
+   dupInd = which(duplicated(colnames(DClist))) #get index of duplicated
+   tab = cbind(DClist[selID,-c(1:4,dupInd)], DClist[selID,dupInd])
+   colnames(tab) = c(L$Genotype, L$probRatioToNext)
+   
+   showGDFtable(L$probRatioToNext, casesolver::addRownameTable(tab,samplename = L$Marker))
+ })
+ gWidgets2::tooltip(gridTab6[1,4]) <- L$tip.dc.showprobs
+
+ tabDCLIST = gWidgets2::ggroup(container=tabdeconv,expand=TRUE,fill=TRUE)
+ DClistGUI <- gWidgets2::gtable(items="",multiple = FALSE,container=tabDCLIST,handler=addDCprofile)
+ gWidgets2::add(tabDCLIST,DClistGUI,expand=TRUE,fill=TRUE)#add to frame
+
+ #Show PHexp for deconvolved profile (including other fit):
+ gridTab6[1,5] <- gWidgets2::gbutton(text=paste( L$expPHplot ),container=gridTab6,handler=function(h) {
+   DClist <- get("DClist",envir=nnTK)
+   if(is.null(DClist)) return() #return if no list found
+   selID =  as.integer(gsub("#","",gWidgets2::svalue(DClistGUI) ) )
+   if(length(selID)==0) return() #none selected
+   
+   #Prepare profiles:
+   candname = DClist[selID,1] #name of candidate
+   splitPtrn = "-C" #split pattern to remove last component
+   evids =  strsplit(candname,splitPtrn)[[1]] #remove last component
+   candname = paste0("C",evids[length(evids)]) #obtain name of component
+   evids = paste(evids[1:(length(evids)-1)],collapse=splitPtrn) #keep only evidence name but make it possible for evidence names to have pattern
+   evids = strsplit(evids,"/")[[1]] #obtain evidences to consider (possibly replicates)
+   conds = strsplit(DClist[selID,2],"/")[[1]] #obtain conditional refs
+   NOC = as.integer(DClist[selID,3])
+
+   #Prepare profile of candidate:
+   dupInd = which(duplicated(colnames(DClist))) #get index of duplicated column names
+   candProfile =DClist[selID,-c(1:4,dupInd),drop=FALSE] #get profile of candidate
+   rownames(candProfile) = candname
+   
+   addedProfiles = tabToListRef(candProfile)
+   doDC(nC=NOC,evids=evids,refs=conds,showPlot=TRUE,useplotly=TRUE,addedProfiles=addedProfiles)
+ })
+ 
+ #add button for adding ref
+ gridTab6[1,6] <- gWidgets2::gbutton(text=paste( L$addasref ),container=gridTab6,handler=addDCprofile)
+ gWidgets2::tooltip(gridTab6[1,6]) <- L$tip.dc.addasref
+ 
+ #Possible to sort table
+ gridTab6[1,7] <- gWidgets2::gcombobox(items=sortDCTableTxt,selected=1,container=gridTab6,expand=TRUE,handler=
+                                         function(h,...) {
+                                           sortval = which(gWidgets2::svalue(gridTab6[1,7])==sortDCTableTxt)
+                                           #resave_Sorting(6,sortval) #DONT store sortvalue to setupSorting object
+                                           refreshDCLIST(sort=sortval) #change sorted order
+                                         })  
+ 
+ #Function to update DC-table GUI 
+ refreshDCLIST = function(sort=1) {  #get list of matched elements
+   DClist <- get("DClist",envir=nnTK)
+   if(is.null(DClist)) return() #return if no list found
+   dupInd = which(duplicated(colnames(DClist))) #get index of duplicated column names
+#   locnames = colnames(DClist)[dupInd]  #column names
+   
+   #ORDER ROWS WRT criteria
+   ord = 1:nrow(DClist) #default is no sorting
+   if(sort==2) { #sort based on evid name
+     ord = order(DClist[,1])
+  #Order by clustering:
+   } else if(nrow(DClist)>=3 && sort==3) { #perform sorting based on similarity (using clustering), must have at least 3 rows
+     
+     #Idea: Order samples based on hierachical clustering structure (based on distance outcome)
+     ord = casesolver::clusterOrder( table=DClist[,-c(1:4,dupInd),drop=FALSE] )
+   }# end if clustering
+
+   DCtab =  casesolver::addRownameTable(DClist[,-dupInd,drop=FALSE] ,type=3,L$samplename) #add # to first column 
+   
+   #PREPARE OUT-PUT TABLE (SORTING + TRUNCATE COLUMNS):
+   DClistGUI[] <-  DCtab[ord,,drop=FALSE] #DC table to consider 
    gWidgets2::size(DClistGUI) <- list(column.widths=c(30,100,100,30,50,rep(50,ncol(DClistGUI)-5))) 
  }
  refreshDCLIST()
 
-#####################################################################################################
+ ################################################################################################
+ #################################Tab 7: Weight of evidence: ####################################
+ ################################################################################################
+ gridTab7 = gWidgets2::glayout(horizontal = FALSE,spacing=5,container=gWidgets2::gframe( L$further ,container=tabWOE)) #kit and population selecter
+ gridTab7[1,1] <- gWidgets2::gbutton(text=paste( L$export , L$table ),container=gridTab7,handler=f_exporttable,action="woe")#  
+ gridTab7[1,2] <- gWidgets2::gbutton(text=paste( L$show , L$lrpermarker  ),container=gridTab7,handler=showLRperMarker)  #show LR-marker for selected
+ 
+ #Other things to show:
+ gridTab7[1,3] <- gWidgets2::gbutton(text=paste( L$show , "param est."  ),container=gridTab7, handler=function(h) {
+   resWOEeval <- get("resWOEeval",envir=nnTK) #obtain WOE results
+   if(is.null(resWOEeval)) return()
+   id <- as.integer(gsub("#","",gWidgets2::svalue(WOElistGUI)))
+   hypsettxt = paste0("Hyp. set #",id)
+   samplename = resWOEeval$resTable[id,1]
+     
+   #Show mixture proportions in a separe plot:
+   if(require(plotrix)) {
+     MxHp = sort(resWOEeval[[id]]$MxRefs$hp,decreasing = T) #sort to make same colors
+     MxHd = sort(resWOEeval[[id]]$MxRefs$hd,decreasing = T) #sort to make same colors
+     s0 = 2
+     labelHp = paste0(names(MxHp)," ",round(MxHp*100),"%") #Obtain labels
+     labelHd = paste0(names(MxHd)," ",round(MxHd*100),"%") #Obtain labels
+     plotfn = paste0("WOEpie",id) #file name
+     graphics.off() #remove other plots first
+     png(plotfn,height=400,width=1000)
+     par(mfrow=c(1,2))
+     marg = c(0,5,0,6)
+     plotrix::pie3D(MxHp,radius=0.9,labels=labelHp,explode=0.1,main="Hp",mar=marg)
+     plotrix::pie3D(MxHd,radius=0.9,labels=labelHd,explode=0.1,main="Hd",mar=marg)
+     mtext(samplename,cex=1.5,outer=T,line=-2)
+     dev.off()
+     
+     TopWin <- gWidgets2::gwindow(paste0("Mixture proportions for ",hypsettxt))#,width=800,height=400)
+     gWidgets2::gimage(plotfn,container=TopWin)
+     gWidgets2::focus(TopWin) = TRUE
+     file.remove(plotfn) #remove file after
+   }
+   
+  #show params in table   
+   tab = resWOEeval[[id]]$paramTable
+   showGDFtable(hypsettxt,casesolver::addRownameTable(tab,samplename = "Param"))
+#   print( resWOEeval[[id]]$MxRefs )   
+ })
 
+ gridTab7[1,4] <- gWidgets2::gbutton(text=paste( L$show , "model validation"  ),container=gridTab7, handler=function(h) {
+    resWOEeval <- get("resWOEeval",envir=nnTK) #obtain WOE results
+    if(is.null(resWOEeval)) return()
+    id <- as.integer(gsub("#","",gWidgets2::svalue(WOElistGUI)))
+    hypsettxt = paste0("Hyp. set #",id)
+
+    #hyp = gWidgets2::gconfirm("Select hypothesis (Yes=Hp, No=Hd)","Choose hypothesis",icon = "question")
+    
+    kit0 = casesolver::getEnvirKit(nnTK)
+    plotfn1 =  paste0("WOEvalidHp",id) #file name
+    plotfn2 =  paste0("WOEvalidHd",id) #file name
+    graphics.off() #remove other plots first
+    size0 = 600
+    png(plotfn1,height=size0,width=size0)
+    euroformix::validMLEmodel( resWOEeval[[id]]$mleHp, kit=kit0,plottitle = "Hp")
+    dev.off() 
+    
+    png(plotfn2,height=size0,width=size0)
+    euroformix::validMLEmodel( resWOEeval[[id]]$mleHd, kit=kit0,plottitle = "Hd" )
+    dev.off() 
+    
+    TopWin <- gWidgets2::gwindow(paste0("Model validation for ",hypsettxt))#,width=800,height=400)
+    ggrp <- gWidgets2::ggroup(container=TopWin)
+    gWidgets2::gimage(plotfn1,container=ggrp)
+    gWidgets2::gimage(plotfn2,container=ggrp)
+    gWidgets2::focus(TopWin) = TRUE
+    file.remove(plotfn1) #remove file after
+    file.remove(plotfn2) #remove file after
+    
+ })  
+ gridTab7[1,5] <- gWidgets2::gbutton(text=paste( L$show , "model fitted PH"  ),container=gridTab7, handler=function(h) {
+   resWOEeval <- get("resWOEeval",envir=nnTK) #obtain WOE results
+   if(is.null(resWOEeval)) return()
+   id <- as.integer(gsub("#","",gWidgets2::svalue(WOElistGUI)))
+   
+   hyp = gWidgets2::gconfirm("Select hypothesis (Yes=Hp, No=Hd)","Choose hypothesis",icon = "question")
+   kit0 = casesolver::getEnvirKit(nnTK)
+   if(hyp) {
+     euroformix::plotTopEPG2( resWOEeval[[id]]$mleHp, kit=kit0)
+   } else {
+     euroformix::plotTopEPG2( resWOEeval[[id]]$mleHd, kit=kit0)
+   }
+ })  
+
+ gridTab7[1,6] <- gWidgets2::gbutton(text=paste( L$show, L$statement ),container=gridTab7, handler=function(h) {
+
+   resWOEeval <- get("resWOEeval",envir=nnTK) #obtain WOE results
+   if(is.null(resWOEeval)) return()
+   id <- as.integer(gsub("#","",gWidgets2::svalue(WOElistGUI)))
+   state = resWOEeval[[id]]$statement #obtain statement
+
+   env = new.env( parent = emptyenv() ) 
+   assign("text",state,envir=env)
+   casesolver::textEditor(env) #use inbuilt text editor to modify statement
+   resWOEeval[[id]]$statement = get("text",envir=env)#obtain possibly edited text
+   assign("resWOEeval",resWOEeval,envir=nnTK) #store text to environment
+ }) 
+ 
+ gridTab7[1,7] <- gWidgets2::gbutton(text=paste( L$calccons ),container=gridTab7,handler=function(h) {
+   resWOEeval <- get("resWOEeval",envir=nnTK) 
+   if(is.null(resWOEeval)) return()
+   id =  as.integer(gsub("#","",gWidgets2::svalue(WOElistGUI) ) )
+   
+   #(RE)CULCULATE CONS LR FOR SELECTED HYP
+   mcmcOpt = get("setupMCMC",envir=nnTK)
+   cons = calcCONS(resWOEeval[[id]]$mleHp,resWOEeval[[id]]$mleHd, mcmcOpt$niter,mcmcOpt$delta,mcmcOpt$quantile,mcmcOpt$seed, verbose=TRUE)
+   state <- resWOEeval[[id]]$statementNoWOE #obtain statement without woe value
+   consLR <- LRuse <- cons$consLR
+   bayesLR <- cons$bayesLR
+   
+   #insert woe strength (also possibly as text)
+   LRtxt = signif(10^LRuse,2)
+   useVerbalLR =  get("setupReportOpt",envir=nnTK)["verbalLR"]  #If using verbal LR
+   if(useVerbalLR) {
+     LRverbal = casesolver::number2word(LRuse,L) #obtain verbal LR
+     LRtxt = paste0(LRverbal," (1e",floor(LRuse),")") #add verbal in additon to down-rounded number
+   }
+   state = gsub("$LRtxt",LRtxt,state,fixed=TRUE)
+
+   #INSERT BACK TO OBJECT:
+   s0 = 2
+   resWOEeval[[id]]$statement <- state
+   resWOEeval[[id]]$bayesLR <- resWOEeval$resTable[id,6] <- round(bayesLR,s0) #insert updated values
+   resWOEeval[[id]]$consLR  <- resWOEeval$resTable[id,7] <- round(consLR,s0) #insert updated value
+   
+   assign("resWOEeval",resWOEeval,envir=nnTK) #store object to environment again
+   refreshWOELIST() #refresh table
+ })
+ 
+ gridTab7[1,8] <- gWidgets2::gbutton(text=paste( L$delete , L$selected ),container=gridTab7,handler=function(h) {
+   resWOEeval <- get("resWOEeval",envir=nnTK) 
+   if(is.null(resWOEeval)) return()
+   id =  as.integer(gsub("#","",gWidgets2::svalue(WOElistGUI) ) )
+   
+   #DELETE OBJECTS
+   nHypSets = nrow(resWOEeval$resTable) #number of hypotheses
+   if(nHypSets==1) { #removing only element (set everything as zero)
+     WOElistGUI[] <- resWOEeval <- NULL
+   } else {
+     tmpTable = resWOEeval$resTable[-id,,drop=FALSE] #obtain subset of restable
+     resWOEeval$resTable = NULL #reset table
+     rng1 = id:(nHypSets-1) #indices to insert
+     rng2 = (id+1):nHypSets #indices to obtain
+     resWOEeval[rng1] = resWOEeval[rng2]
+     resWOEeval[[nHypSets]] = NULL
+     resWOEeval$resTable = tmpTable #insert updated table
+   }
+   assign("resWOEeval",resWOEeval,envir=nnTK) #store object to environment again
+   refreshWOELIST() #refresh table
+ })
+ 
+ tabWOELIST = gWidgets2::ggroup(container=tabWOE,expand=TRUE,fill=TRUE)
+ WOElistGUI <- gWidgets2::gtable(items="",multiple = FALSE,container=tabWOELIST, handler=showLRperMarker)
+ gWidgets2::add(tabWOELIST,WOElistGUI,expand=TRUE,fill=TRUE)#add to frame
+ 
+ refreshWOELIST = function() {  #get list of matched elements
+   resTable <- get("resWOEeval",envir=nnTK)$resTable #obtain table
+   if(is.null(resTable)) return() #return if no list found
+   WOElistGUI[] <- casesolver::addRownameTable( resTable ,type=3) #add DC-list
+   gWidgets2::size(WOElistGUI) <- list(column.widths=c(30,150,75,150,rep(50,ncol(WOElistGUI)-4))) 
+ }
+ refreshWOELIST()
+ 
+ #Add tooltips
+ gWidgets2::tooltip(gridTab7[1,1]) <- L$tip.export
+ gWidgets2::tooltip(gridTab7[1,2]) <- L$tip.woe.lrpermarker
+ gWidgets2::tooltip(gridTab7[1,3]) <- L$tip.woe.paramest
+ gWidgets2::tooltip(gridTab7[1,4]) <- L$tip.woe.modelvalid
+ gWidgets2::tooltip(gridTab7[1,5]) <- L$tip.woe.fittedPH
+ gWidgets2::tooltip(gridTab7[1,6]) <- L$tip.woe.statement
+ gWidgets2::tooltip(gridTab7[1,7]) <- L$tip.woe.cons
+ gWidgets2::tooltip(gridTab7[1,8]) <- L$tip.woe.delete
+ 
+ ################################################################################################
+ #Running through all windows to avoid "bleed through"
+ sapply(7:1, function(x) {
+   gWidgets2::svalue(nb) <- x
+  })
  gWidgets2::visible(mainwin) <- TRUE
- gWidgets2::focus(mainwin) <- TRUE
- gWidgets2::svalue(nb) <- 1 #initial start at second tab
-
-} #end funcions
+ setFocus()
+ 
+} #end main function

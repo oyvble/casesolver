@@ -4,39 +4,48 @@
 #' @param DBref A (nR x nL) matrix with reference information. LIST not efficient 
 #' @param matchlist A matrix with overview of what references are matches each of samples (SampleName,Reference)
 #' @param popFreq A list of allele frequencies for a given population.
-#' @param pC A numeric for allele drop-in probability. Default is 0.
+#' @param pC A numeric for allele drop-in probability. Can be a vector.
 #' @param maxC Maximum number of contributors possible to assume. Default is 6.
 #' @param useMinK1 A boolean of whether minimum number of contributors to test should be one.
+#' @param normalize A boolean of whether normalization should be applied or not.
+#' @param minFreq The freq value included for new alleles. Default NULL is using min.observed in popFreq.
+#' @param iterlim0 #max number of iterations in optimization
 #' @export
 
-calcQualLRcomparison = function(DBmix,DBref,matchlist,popFreq,pC=0.05,maxC=6,useMinK1=TRUE) { 
+calcQualLRcomparison = function(DBmix,DBref,matchlist,popFreq,pC=0.05,maxC=6,useMinK1=TRUE,normalize=FALSE,minFreq=NULL, iterlim0=5) { 
   log10LR <- numContr <- rep(NA,nrow(matchlist)) #vector to store LR values and assumed number of contributors
-  locs <- names(popFreq)[toupper(names(popFreq))%in%toupper(names(DBmix[[1]]))] #find loci to consider (only those in evid)
+  
+  locs <-  intersect( names(popFreq), names(DBmix[[1]])) #loci to consider (overlap)
   print(paste0("Calculating QUAL based LR for ",nrow(matchlist)," comparisons..."))
   pDv = c(0.1,0.35,0.7) #Necessary to look for potential better start point than (0.1) to make optimizer more robust
-  iterlim0=5 #max number of iterations in optimization
   
+  #Update drop-in parameter to be per-marker specific
+  if(length(pC)==1) pC = setNames(rep(pC,length(locs)),locs)
+    
   #Model calculation:
   neglikhd <- function(pD) {
        pDhd <-  rep(1/(1+exp(-pD)),nC)
        hdvec <- rep(1,length(locs))
-       for(loc in locs) hdvec[which(loc==locs)] <- forensim::likEvid( Evidlist[[loc]],T=NULL,V=NULL,x=nC,theta=0, prDHet=pDhd, prDHom=pDhd^2, prC=pC, freq=popFreqQ[[loc]])
+       for(loc in locs) hdvec[which(loc==locs)] <- forensim::likEvid( Evidlist[[loc]],T=NULL,V=NULL,x=nC,theta=0, prDHet=pDhd, prDHom=pDhd^2, prC=pC[[loc]], freq=popFreqQ[[loc]])
        return( -sum(log(hdvec)) )
   }
   neglikhp <- function(pD) {
      pDhp <- rep(1/(1+exp(-pD)),nC)
      hpvec <- rep(1,length(locs))
-     for(loc in locs) hpvec[which(loc==locs)] <- forensim::likEvid( Evidlist[[loc]],T=Reflist[[loc]],V=NULL,x=nCList[[loc]],theta=0, prDHet=pDhp, prDHom=pDhp^2, prC=pC, freq=popFreqQ[[loc]])
+     for(loc in locs) hpvec[which(loc==locs)] <- forensim::likEvid( Evidlist[[loc]],T=Reflist[[loc]],V=NULL,x=nCList[[loc]],theta=0, prDHet=pDhp, prDHom=pDhp^2, prC=pC[[loc]], freq=popFreqQ[[loc]])
      return( -sum(log(hpvec)) )
   }
 
+ #Obtain list of reference data: notice that single-alleles are removed from calculation
+ refLIST <- casesolver::tabToListRef(tab=DBref,setEmpty=TRUE) #FORCING 1-alleles to be empty
+  
  systime <- system.time( {
   unEvid <- unique(matchlist[,1]) #get unique evidence 
   for(ss in unEvid) { #for each unique stain we estimate number of contr.
-   # ss = unEvid[39]
+   # ss = unEvid[1]
    #Notice: Empty markers important because of information about allele dropouts.
    sample <- lapply(DBmix[ss],function(x) x[locs]) #extract sample
-   Qset <- euroformix::Qassignate(sample, popFreq[locs],incS=FALSE)
+   Qset <- euroformix::Qassignate(sample, popFreq[locs],incS=FALSE,normalize=normalize,minF=minFreq)
 
    #DATA IS MADE READY FOR OPTIMIZATION
    Evidlist <- popFreqQ <- list()
@@ -47,7 +56,7 @@ calcQualLRcomparison = function(DBmix,DBref,matchlist,popFreq,pC=0.05,maxC=6,use
     if(length(adata)==0) {
       adata=0 #is empty
     } else {
-      adata <- 1:length(adata) #use length
+      adata <- 1:length(adata) #use integer for allele names (LRmix does not handle strings!)
       names(popFreqQ[[loc]]) <- 1:length(popFreqQ[[loc]])
     }
     Evidlist[[loc]] <-adata #evidence to store
@@ -63,6 +72,7 @@ calcQualLRcomparison = function(DBmix,DBref,matchlist,popFreq,pC=0.05,maxC=6,use
    for(nC in nClow:maxC) {
 
      #find suitable optim startpoint
+#     pD=log(pDv/(1-pDv))
   	tmp = Vectorize(neglikhd)( log(pDv/(1-pDv)) )
      pD0 = pDv[which.min(tmp)]
      foohd <- nlm(Vectorize(neglikhd),log(pD0/(1-pD0)), iterlim=iterlim0)
@@ -87,10 +97,11 @@ calcQualLRcomparison = function(DBmix,DBref,matchlist,popFreq,pC=0.05,maxC=6,use
    for(rr in whatR ) { #for each references
     #rr=whatR[1]
     Reflist <- nCList <- list() #create the reflist with encoded alleles
+    
     for(loc in locs) {
     #loc=locs[4]
      freq <- Qset$popFreq[[loc]]
-     refA <- unlist(strsplit(DBref[rownames(DBref)==rr,colnames(DBref)==loc],"/"))  #get alleles
+     refA <- refLIST[[rr]][[loc]]$adata #unlist(strsplit(DBref[rownames(DBref)==rr,colnames(DBref)==loc],"/"))  #get alleles
      if(length(refA)%in%c(0,1)) { #MUST HANDLE THAT REF ON LOCUS CAN BE MISSING OR 1 allele: ADD 1 UNKNOWN + SET TO ZERO
       refA = NULL #set as empty
       nCList[[loc]] <- nC  #number of unknowns = #contributors if missing

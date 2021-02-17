@@ -4,10 +4,12 @@
 \alias{gui}
 \title{gui}
 \usage{
-gui(envirfile = NULL)
+gui(envirfile = NULL, envir = NULL)
 }
 \arguments{
-\item{envirfile}{A file to a saved environment of a project}
+\item{envirfile}{A file to a saved environment of a project (must contain nnTK)}
+
+\item{envir}{A saved environment (nnTK)}
 }
 \description{
 gui (GUI) is a GUI wrapper for CaseSolver

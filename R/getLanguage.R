@@ -8,19 +8,25 @@
 
 getLanguage = function(langSel=NULL,encoding="unknown",langFile="Language",defaultLanguage="English") { 
   bool = require(readxl)
+  if(!bool) {
+    install.packages("readxl") #request installing package
+    if(!require(readxl)) {
+      print("Could not install readxl..")
+      return()
+    }
+  }
+  
   pgkPath <- path.package("casesolver", quiet = FALSE) # Get package path.
   .sep <- .Platform$file.sep # Platform dependent path separator. 
   
   languagefile1 = paste(pgkPath,paste0(langFile,".xlsx"),sep=.sep) #Contains multiple langues
-  languagefile2 = paste(pgkPath,paste0(langFile,".txt"),sep=.sep) #Contains only ENG language (default)
+  
   langTab = NULL
-  if(bool) { 
-    tryCatch( { langTab = readxl::read_xlsx(languagefile1,sheet=1)  }, #try read from language file (in installation folder)
-              error=function(e) { #if not possible to read from file:
-                cat(paste0("Could not open excel language file at: ",pgkPath,"\nPlease make sure this is readable. Using default language...")) 
-    })
-  }
-  if(is.null(langTab)) langTab = read.table(languagefile2,header=TRUE,encoding=encoding,sep="\t",as.is=TRUE,allowEscapes=FALSE) #read from "backup file " (only english)
+  tryCatch( { langTab = readxl::read_xlsx(languagefile1,sheet=1)  }, #try read from language file (in installation folder)
+            error=function(e) { #if not possible to read from file:
+              cat(paste0("Could not open excel language file at: ",pgkPath,"\nPlease make sure this is readable. Using default language...")) 
+  })
+  if(is.null(langTab)) stop("Could not open language file. Program stops!") 
   
   if(is.null(langSel)) return(colnames(langTab)[-1]) #return only language names if language not selected
   nwords = length(langTab$Key) #get total number of words

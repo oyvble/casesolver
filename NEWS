@@ -1,24 +1,59 @@
 Suggestive updates: 
+
+ - Don't re-caclulate all comparisons after clicking "compare" when including new references. 
  - Store name of deselected profile in report.
- - Utilize marker specific settings possible for Euroformix version 3.
- - Make use of the Forward stutter setting for Euroformix version 3. 
- - Better info about working progress.
-  -- Euroformix version 3 can be utilized for this. 
- - Introduce new column for References called "Type": Known (imported), SingleSource (given as Unknown#), DC (Added through Deconvolution), Added (Added manually)
-   OR: Typed,SingleSource (given as unknown),DCed (added after DCing).
-  --  Gives Added option in Report Layout: Optional whether to show SingleSource (unknowns) and DCed profiles in references (these are already separated). 
- - In report: Separate known reference profiles from unknown, deconvolved.
  - Profile manipulation:
   -- Collapse similar Refs (from IBS). Useful for reducing number of unknowns.
  - Possible to change alligning in table values and headers (to left aligning)? 
  - The user can select whether to use plotly or not (can be chosen under "Advanced" somewhere)
 
- - Important issues:
+ - Potential Bugs (issues):
   -- When doing DC after single quanLR calculations and REFERENCE is removed.
   -- Identical references not removed if different names? Example "Case 7154"
-  -- When creating report with QuanLR matchlist but QuanLR not selected as model.
+  -- When creating report with QuanLR matchlist but QuanLR not selected as model.  
+  -- When trying create a report, getting this error in R: Error in plot.window(…) : need finite ‘xlim’ values.
+  -- Crashing when DC with 1 contribution, condition on known contributor with missing markers (Caused by EFM v3.0.4 or earlier).
+ 
+#Changes version 1.8.0 (05.08.2021)
 
+A new module is introduced: WoE evaluations for user-specific hypotheses.
+ - Obtaining LR(mle,bayesian, conservative)
+ - Verbal statements.
+ - Other external results: Per-marker LRs, Parameter estimates, Model validation. 
+ 
+Important updates:
+ - Evid/Ref tables are now adjustable thanks to gpanedgroup function.
+ - Reports can now be exported as word formats: doc (rtf) or docx (officer).
+ - Marker names in report can now be fully customized (Report->'Set marker names')
+ - Now allows that only reference profiles or no data are included in the case (e.g. for reporting purpose only).
+ - Unknowns and deconvolved profiles are now labelled separately under "Extracted profile(s)". Only known references are now shown under References.
+ - Detailed results from deconvoluted profiles can shown with new button and added to the report (RatioToNext=Probability of top ranked genotype divided by the probability of the second ranked genotypes).
+ - Introducing compatibility mode of stored projects (Warning given if project version is outdated).
+ - The table of deconvolved profiles can now also be sorted wrt 'Sample name' or 'similarity' (performs hierarchical clustering).
+ - Options for rare alleles: The user can now set minimum frequency of imputed alleles or select whether to normalize frequencies after imputing. Options are also stored together with selected population frequency data.
+ - Tooltips added to buttons in the GUI. Hover with mouse to obtain helptext (can be edited for different languages).
+ - Profile Sorting assigned by the user are now remembered throughout the session (also in report): This regards the GUI tables from panels "Data", "MatchList(Qual/Quan)", "Matches".
+ - "Change language" and "Change View" does not cause a full restart (all information in project is restored).
 
+Small changes:
+ - Function calcHp changed to calcMLE, and is used for quantiative LR calculation.
+ - Function tabToListRef now either returns zero (empty) or two alleles (homozygous) for situations where reference has only one allele.
+ - Added in getStructured:L203: Print warning if inconsistent length between number of alleles and number of peaks
+ - Only "base part" (path and extension removed) of selected population file is shown in report.
+
+Added functions: 
+ - number2word: Converts large numbers to large verbal equivalent (language dependent)
+ - calcWOEhyps: Wrapper function to define and calculate hypotheses.
+ - textEditor: GUI for text editor
+ - profileSwapperGUI: GUI for profile selector
+ - getModelSettings: Helpfunction for obtaining defined model settings.
+ - setMarkerSettings: Helpfunction for obtaining per-marker settings.
+ - getEnvirKit: Helpfunction for obtaining specified kit.
+ - clusterOrder: Helpfunction for obtaining order of ranking samples by genotype similarity
+ 
+ Fixed issues:
+ - In MatchMatrix panel, values are now truncated when modifying table and "Truncate" option is selected.
+ 
 #Changes version 1.7.3 (21.04.2020)
  Fixed bugs:
  - Create report crashed when trying to print reference profiles when no references were given.

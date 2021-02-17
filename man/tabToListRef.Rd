@@ -4,14 +4,14 @@
 \alias{tabToListRef}
 \title{tabToListRef}
 \usage{
-tabToListRef(tab, ln = NULL, forceDi = TRUE)
+tabToListRef(tab, ln = NULL, setEmpty = FALSE)
 }
 \arguments{
 \item{tab}{A (nR x nL) matrix with rows giving locus specific genotypes (for each column) for references}
 
 \item{ln}{Loci names of return list}
 
-\item{forceDi}{Whether genotypes are restricted to contain 2 alleles or not.}
+\item{setEmpty}{Whether genotypes with one allele is set as empty or not (then set as homozygous)}
 }
 \value{
 List format of references refL[[refname]][[locname]]$adata

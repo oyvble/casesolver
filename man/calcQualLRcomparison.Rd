@@ -5,7 +5,8 @@
 \title{calcQualLRcomparison}
 \usage{
 calcQualLRcomparison(DBmix, DBref, matchlist, popFreq, pC = 0.05,
-  maxC = 6, useMinK1 = TRUE)
+  maxC = 6, useMinK1 = TRUE, normalize = FALSE, minFreq = NULL,
+  iterlim0 = 5)
 }
 \arguments{
 \item{DBmix}{A list with evidence information [[sample]][[loc]] = list(adata,hdata)}
@@ -16,11 +17,17 @@ calcQualLRcomparison(DBmix, DBref, matchlist, popFreq, pC = 0.05,
 
 \item{popFreq}{A list of allele frequencies for a given population.}
 
-\item{pC}{A numeric for allele drop-in probability. Default is 0.}
+\item{pC}{A numeric for allele drop-in probability. Can be a vector.}
 
 \item{maxC}{Maximum number of contributors possible to assume. Default is 6.}
 
 \item{useMinK1}{A boolean of whether minimum number of contributors to test should be one.}
+
+\item{normalize}{A boolean of whether normalization should be applied or not.}
+
+\item{minFreq}{The freq value included for new alleles. Default NULL is using min.observed in popFreq.}
+
+\item{iterlim0}{#max number of iterations in optimization}
 }
 \description{
 Function calculating LR using EuroForMix for remaining matches (from Step 1)

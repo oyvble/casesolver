@@ -13,5 +13,5 @@ createReport(nnTK)
 A function for creating report based on CaseSolver object
 }
 \details{
-The function returns the names of the selected profiles (when window is closed)
+The function generated reports based on case analysis. Can be HTML (R2HTML), DOC (rtf), DOCX (officer/flextable)
 }

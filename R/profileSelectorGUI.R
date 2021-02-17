@@ -31,7 +31,6 @@ profileSelectorGUI = function(env=NULL) {
     bool = gWidgets2::gconfirm("Are you sure you want to continue?")
     if(!bool) return() #
     assign("selected",list(evids=evidSel,refs=refSel),envir=env)
-    assign("refs",refSel,envir=env)
     gWidgets2::dispose(inwin) #close window
     tcltk::tclvalue(flag) <- "destroy" #Destroy wait flag
   })
