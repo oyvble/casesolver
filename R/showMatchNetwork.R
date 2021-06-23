@@ -58,7 +58,7 @@ showMatchNetwork = function(nnTK,action,createInteractive=FALSE,selList=NULL) {
   }
     
   getWeight = function(x) {
-    x[x<1] = 1 #set 1 as minimum score
+    x[x<1 | is.infinite(x)] = 1 #set 1 as minimum score
     return(sqrt(x))
   }
   #rem <- duplicated(tab[,1:2]) #indices to remove

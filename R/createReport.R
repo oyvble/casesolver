@@ -4,10 +4,7 @@
 #' @param nnTK an environment object from stored CaseSolver object
 #' @export
 
-#library(casesolver);load("C:/Users/oyvbl/Dropbox/Forensic/MixtureProj/myDev/CaseSolverDev/TutorialDataCaseSolver/CS2_FUSION.Rdata")
-#library(casesolver);load("C:/Users/oyvbl/Dropbox/Forensic/MixtureProj/myDev/CaseSolverDev/TutorialDataCaseSolver/cs_fusion.Rdata")
-#library(casesolver);load("C:/Users/oyvbl/Dropbox/Forensic/MixtureProj/myDev/CaseSolverDev/TutorialDataCaseSolver/cs_error.Rdata")
-#library(casesolver);load("C:/Users/oyvbl/Dropbox/Forensic/MixtureProj/myDev/CaseSolverDev/Issues/19-01209.Rdata")
+#library(casesolver);
 #source("C:/Users/oyvbl/Dropbox/Forensic/MixtureProj/myDev/CaseSolver/R/createReport.R");
 
 createReport = function(nnTK) { #this function loads data and put them in a HTML script
@@ -325,22 +322,26 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
     WOEdataTABLE = resWOE$resTable #
     nHyps = nrow(WOEdataTABLE) #number of hypotheses
     
-    #Subselect columns (chosen in report options)
-    colRm = (5:9)[!showItem[3:7]] #columns to remove (based on user selection)
-    if(length(colRm)>0) WOEdataTABLE <- WOEdataTABLE[,-colRm,drop=FALSE] #remove columns if any to remove
-  
-    #Create LR per marker table
-    WOEmarkerTABLE = t(sapply(resWOE[1:nHyps],function(x) signif(x$mleLRi,s0)))
+    if(nHyps>0) { #ensure that there are results
+      #Subselect columns (chosen in report options)
+      colRm = (5:9)[!showItem[3:7]] #columns to remove (based on user selection)
+      if(length(colRm)>0) WOEdataTABLE <- WOEdataTABLE[,-colRm,drop=FALSE] #remove columns if any to remove
     
-    #insert rownames and update 
-    rownames(WOEmarkerTABLE) <- rownames(WOEdataTABLE) <- 1:nHyps 
-    colnames(WOEmarkerTABLE) <- locNamesTables[colnames(WOEmarkerTABLE)] #update with new marker names
-    
-    #Create statement and param lists
-    for(id in 1:nHyps) { #for each hypothesis #id
-      hypname = paste0(L$hypothesisset," #",id)
-      WOEstateList[[hypname]] = resWOE[[id]]$statement #insert statement
-      WOEparamList[[hypname]] = resWOE[[id]]$paramTable #insert parameter table
+      #Create LR per marker table
+      WOEmarkerTABLE = t(sapply(resWOE[1:nHyps],function(x) signif(x$mleLRi,s0)))
+      
+      #insert rownames and update 
+      rownames(WOEmarkerTABLE) <- rownames(WOEdataTABLE) <- 1:nHyps 
+      colnames(WOEmarkerTABLE) <- locNamesTables[colnames(WOEmarkerTABLE)] #update with new marker names
+      
+      #Create statement and param lists
+      for(id in 1:nHyps) { #for each hypothesis #id
+        hypname = paste0(L$hypothesisset," #",id)
+        WOEstateList[[hypname]] = resWOE[[id]]$statement #insert statement
+        WOEparamList[[hypname]] = resWOE[[id]]$paramTable #insert parameter table
+      }
+    } else {
+      WOEdataTABLE = NULL
     }
   } 
   WOEtext = paste0("*",L$WOEreporttext) #Create text to add after
@@ -408,7 +409,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
   insTable = function(tab,title=NULL,type=NULL,lvl=2,addRowname=TRUE) {
     if(!is.null(title)) insTitle(title,lvl) #add title name if indicated
     
-    if(!is.null(tab) && nrow(tab)>0) {
+    if(!is.null(tab) && nrow(tab)>0 && ncol(tab)>0) {
       #PRE:
       if(!is.null(type)) tab = casesolver::addRownameTable(tab,type=type,L$samplename) #update table by adding rowname to table
 
@@ -417,9 +418,11 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
       }
       
       tab2 <- tab #copy table
-      if(addRowname) { #if add rowname
+      if(addRowname && !is.null(rownames(tab))) { #if rowname to add: #Fixed v1.8.1 to avoid error
         tab2 = cbind( rownames(tab),tab) #add rownames table
-        colnames(tab2) = c("#",colnames(tab)) 
+        if(!is.null(colnames(tab)) ) { #fixed bug: check if colnames there
+          colnames(tab2) = c("#",colnames(tab)) 
+        }
       }
       tab2 = as.data.frame(tab2)
       if(formatUse[3]) {
@@ -450,6 +453,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
           
       for(ss in selected) { #for each element
         listElem = List[[ss]] #obtain list element
+        if(length(listElem)==0) next #skip if no element
         insTitle(ss,3) #set sub-title with element name
         
         if(is.null(dim(listElem))) { #if not a table
@@ -524,11 +528,11 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
   version =  packageVersion("casesolver") 
   
   #Create report objects:
-  doctxt = paste0("Case ",get("caseID",envir=nnTK)) #Text outside main body
+  titletxt = paste( L$reportforcase,get("caseID",envir=nnTK))  #paste0("Case ",get("caseID",envir=nnTK)) #Text outside main body
   if(formatUse[1]) {
     #cssfile <- "http://www.stat.ucl.ac.be/R2HTML/Pastel.css"
     cssfile <- system.file("samples", "R2HTML.css", package="R2HTML")
-    htmlf <- R2HTML::HTMLInitFile(path2,filename=reportname,CSSFile=cssfile,Title = doctxt)
+    htmlf <- R2HTML::HTMLInitFile(path2,filename=reportname,CSSFile=cssfile,Title = titletxt)
   }
   if(formatUse[2]) {
     template <- system.file(reportTemplate,  package="casesolver") #obtain inbuilt scheme from casesolver
@@ -540,7 +544,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
     rtf <- rtf::RTF(reportfn[3], width=DOCoptions$width, height=DOCoptions$height, omi=c(marg0, marg0, marg0, marg0), font.size=DOCoptions$fontSize)  # this can be an .rtf or a .doc
   }
   #insert main header (always first):
-  insTitle( paste( L$reportforcase,get("caseID",envir=nnTK)) , 1) #insTitle 
+  insTitle( titletxt, 1) #insTitle 
 
   #################################################################
   #OUTER LOOP TO TRAVERSE (NEED FOR PRIORTY-ARRANGEMENT OF LAYOUT)#
@@ -659,7 +663,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
       if(okplot) {  #only add if OK
         netf <- file.path(path2,"matchnetwork.png") #file of picture 
         png(netf,width = WHsize[2], height = WHsize[2],res=WHsize[3])
-        showMatchNetwork(nnTK,"all",createInteractive=FALSE,selList)
+        casesolver::showMatchNetwork(nnTK,"all",createInteractive=FALSE,selList)
         dev.off()
         insIMG(netf,quadratic = TRUE)
       } else { 
@@ -703,7 +707,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
       {insList(WOEstateList,reportitems[21]) #traverses each element in list 
       if(length(WOEstateList)>0) insText(WOEtext)}, #Put woetext at end
       
-      #22: Parmaeter results: List
+      #22: Parameter results: List
       insList(WOEparamList, reportitems[22],type=NULL), #traverses each element in list 
 
       #23: Weight of evidence results: LR per marker

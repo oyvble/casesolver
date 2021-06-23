@@ -24,7 +24,7 @@ getLanguage = function(langSel=NULL,encoding="unknown",langFile="Language",defau
   langTab = NULL
   tryCatch( { langTab = readxl::read_xlsx(languagefile1,sheet=1)  }, #try read from language file (in installation folder)
             error=function(e) { #if not possible to read from file:
-              cat(paste0("Could not open excel language file at: ",pgkPath,"\nPlease make sure this is readable. Using default language...")) 
+              cat(paste0("Could not open excel language file at: ",pgkPath,"\nPlease make sure this is readable. ")) 
   })
   if(is.null(langTab)) stop("Could not open language file. Program stops!") 
   

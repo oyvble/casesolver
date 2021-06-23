@@ -349,9 +349,9 @@ calcWOEhyps = function(nnTK,verbose=TRUE) {
           if(nConds>1) condcheck = paste0(conds,"/") #combine references
           bool1 = resWOEevalBackup$resTable[,1]%in%evid
           bool2 = resWOEevalBackup$resTable[,2]%in%poi
-          bool3 = resWOEevalBackup$resTable[,3]%in%condcheck
+          #bool3 = resWOEevalBackup$resTable[,3]%in%condcheck #removed from v1.8.1
           #bool4 = resWOEevalBackup$resTable[,4]%in%NOC
-          if( any(bool1 & bool2 & bool3 ) ) next #Skip suggested WOE if already calculated
+          if( any(bool1 & bool2 ) ) next #Skip suggested WOE if already calculated
         }
         
         

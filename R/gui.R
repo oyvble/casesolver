@@ -5,6 +5,7 @@
 #' @param envir A saved environment (nnTK)
 #' @export
 
+#envir=NULL
 gui = function(envirfile=NULL, envir=NULL) {
  LUSsymbol <- "_"
  MPSsymbol = ":" #Added in version 1.5.0
@@ -957,7 +958,13 @@ f_reportlay = function(h,...) { #GUI function to set report layout
      } else { #list elements found
        if(all(names(metalist)==names(tmplist))) { #check if containing same elements
          for(elem in names(metalist)) {
-           metalist[[elem]] <- rbind(metalist[[elem]],tmplist[[elem]]) #add to matrix
+          if(length(tmplist[[elem]])>0)  { #check if not empty
+            if( is.matrix(tmplist[[elem]]) ) { #BLOCK MODIFIED (v1.8.1)
+              metalist[[elem]] <- rbind(metalist[[elem]],tmplist[[elem]]) #add to matrix
+            } else {
+              metalist[[elem]] <- c(metalist[[elem]],tmplist[[elem]]) #append to vector
+            }
+          }
          }
        } else {
         print("Metadata did not contain same list elements")        
@@ -2449,7 +2456,7 @@ f_reportlay = function(h,...) { #GUI function to set report layout
    } 
    if(type%in%c("both","ref")) {    #Add ref-table
     refDataTABLE <- get("refDataTABLE",envir=nnTK) #assign to nnTK-environment
-    if(!is.null(refDataTABLE)) {
+    if(!is.null(refDataTABLE) && nrow(refDataTABLE)>0 ) { #make sure that there are data in table
       
      #SORT TABLE:     
      ord = casesolver::orderTableSort(rownames(refDataTABLE),sort=sort)
@@ -2932,19 +2939,23 @@ f_reportlay = function(h,...) { #GUI function to set report layout
  gridTab7[1,8] <- gWidgets2::gbutton(text=paste( L$delete , L$selected ),container=gridTab7,handler=function(h) {
    resWOEeval <- get("resWOEeval",envir=nnTK) 
    if(is.null(resWOEeval)) return()
-   id =  as.integer(gsub("#","",gWidgets2::svalue(WOElistGUI) ) )
+   id =  as.integer(gsub("#","",gWidgets2::svalue(WOElistGUI) ) ) #selected row
    
    #DELETE OBJECTS
    nHypSets = nrow(resWOEeval$resTable) #number of hypotheses
-   if(nHypSets==1) { #removing only element (set everything as zero)
+   if(nHypSets==0) { 
+     next() #return if none
+   } else if(nHypSets==1) { #removing only element (set everything as zero)
      WOElistGUI[] <- resWOEeval <- NULL
    } else {
      tmpTable = resWOEeval$resTable[-id,,drop=FALSE] #obtain subset of restable
-     resWOEeval$resTable = NULL #reset table
-     rng1 = id:(nHypSets-1) #indices to insert
-     rng2 = (id+1):nHypSets #indices to obtain
+     resWOEeval$resTable = NULL #reset table (remove last item)
+     
+     rng1 = 1:(nHypSets-1) #indices to insert
+     rng2 = setdiff( 1:nHypSets, id) #indices to obtain
+     
      resWOEeval[rng1] = resWOEeval[rng2]
-     resWOEeval[[nHypSets]] = NULL
+     resWOEeval[[nHypSets]] = NULL #set last to zero
      resWOEeval$resTable = tmpTable #insert updated table
    }
    assign("resWOEeval",resWOEeval,envir=nnTK) #store object to environment again

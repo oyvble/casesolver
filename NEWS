@@ -16,6 +16,18 @@ Suggestive updates:
  - Known (fixed) issues: 
   -- Crashing when DC with 1 contribution, condition on known contributor with missing markers (caused by EFM v3.0.4 or earlier).
  
+#Changes version 1.8.1 (23.06.2021)
+
+ Modifications:
+ - gui:L961-966: Metadata appending separate the situation of vector and matrix case to avoid wrong appending.
+ - calcWOEhyps:L352: An hypotheses set is no longer suggested if already calculated but differs in conditional references.
+ - createReport:L535: The HTML-title argument when defining the document is now same as the header title.
+ 
+ Fixed bugs:
+ - createMatchNetwork:L61: Avoiding program to crash when LR=inf (or less than 1)
+ - createreport:L417-422: insTable helpfunction caused crash when no rownames or colnames given
+ - gui:L2459: Fixed crash when trying to change order of refs when no data given in data panel
+
 #Changes version 1.8.0 (17.02.2021)
 
 A new module is introduced: WoE evaluations for user-specific hypotheses.
