@@ -1,0 +1,280 @@
+﻿Key;English
+addasref;Add as Ref
+advanced;Advanced
+all;All
+alleles;alleles
+AMEL;Amelogenin
+AMELincluded;AMEL included
+analyticalthreshold;Analytical threshold (AT)
+and;and
+attachments;Attachments
+both;Both
+BWstuttermodel;BW stutter model (EFM)
+calculate;Calculate
+calccons;Calc. CONS
+case;Case
+casefolder;Case Folder
+caseid;Case ID
+changeview;Change view
+compare;Compare
+comparison;Comparison
+comparisons;Comparisons
+Component;Component
+concordance;Concordance
+concordantevidences;Concordance of crime scene profiles
+concordantreferences;Concordance of reference profiles (IBS)
+Conditionals;Conditional(s)
+condref;condRef
+condtionON;Condition on
+consensusprofiles;Consensus profiles
+create;Create
+created;Created
+data;Data
+data.concordance;Calc. Evid concordance
+data.editrefs;Add/Edit Refs
+data.evidref;Evidence profile(s) and Reference profile(s)
+data.select;Selected profile(s)
+data.sortevid;Sort Evids by
+data.sortref;Sort Refs by
+deconvoluted;Deconvoluted
+deconvolution;deconvolution
+deconvolve;Deconvolve
+deconvolvemixtures;Deconvolve all
+degradationmodel;Degradation model (EFM)
+delete;Delete
+deletefrom;Delete from
+delta;Default sampler variation
+dir;Directory
+donttruncate;Don't truncate
+dropinpeakheightlambda;Dropin peak height Lambda (EFM)
+dropinprob;Dropin probability
+empty;Empty
+EPG;EPG
+error;error
+evidence;Evidence
+evidences;Evidence(s)
+export;Export
+expPHplot;Expected PH plot
+extractedprofiles;Extracted profiles
+file;File
+fileexport;File export
+finalmatchlist;Final Match List
+folder;Folder
+forr;for
+fstsetting;Fst/Theta correction (WoE)
+functionalities;Functionalities
+further;Further
+FWstuttermodel;FW stutter model (EFM)
+Genotype;Genotype
+gui;GUI
+header;Header
+hypothesisset;Hypothesis set
+IBS;IBS
+import;Import
+importfun;script with importData function
+importref;Import Ref(s)
+include;Include
+kit;Kit
+language;language
+layout;layout
+list;List
+logLR;log10 LR
+LR;LR
+LRbayes;log10LR (Bayes)
+LRcons;log10LR (Conservative)
+LRmle;log10LR (MLE)
+lrpermarker;LR-per marker (MLE)
+macthreshold;MAC threshold (comparison)
+Marker;Marker
+Markernames;Marker names
+Markers;Markers
+match;Match
+matches;Matches
+matchlist;Match List
+matchmatrix;Match Matrix
+matchnetwork;Match Network
+matchstatus;Match Status
+matrix;Matrix
+maxcontrqual;Maximum contributors in QualLR (LRmix)
+maxcontrquan;Maximum contributors in QuanLR (EFM)
+mcmc;MCMC
+metadata;Metadata
+minFreq;Minimum allele frequency
+minIBSrelative;Minimum IBS for being relative candidate (IBS)
+minLocSSmatch;Minimum loci for being SS match (Import)
+MixProp;MixProp
+mixture;mixture
+mixtures;Mixtures
+model;Model
+Modelparameters;Model parameters
+modelsettings;Model settings
+modeltypes;Model type(s)
+MxPOI;MxPOI
+name;Name
+namingreportfile;Name report file
+network;Network
+nFailed;Num. Failed (Hp/Hd)
+niter;Number of iterations
+no;No
+NOC;NOC
+nocandidates;No candidates
+none;None
+normalizeimpute;Normalize after imputing
+Normalized;Normalized
+notcompleted;Not completed
+numcontr;Num contr.
+numoptim;Number of required optimizes (EFM)
+off;OFF
+on;ON
+open;Open
+openin;Open in
+options;options
+pathcasefolders;path with CASE folders
+plot;plot
+POI;Person of interest (POI)
+popfreq;Population frequencies
+preview;Preview
+probRatioToNext;Prob-ratio to next (Deconvolution)
+probSingleAllele;Prob. single allele (Deconvolution)
+profile;profile
+profileselector;Profile selector (import/report)
+proj;Project
+qualLR;Qual.LR
+qualLRthreshold;Qual. LR threshold (comparison)
+qualmodel;Qualitative (LRmix)
+quanLR;Quan.LR
+quanLRthreshold;Quan. LR threshold (comparison)
+quanmodel;Quantitative (EuroForMix)
+quantile;Conservative LR quantile
+quit;Quit
+quitprog;Exit program
+rarealleles;Rare alleles
+randomibs;Random IBS
+randommatchprob;Random match probabilities
+rank;Rank
+reference;Reference
+references;Reference(s)
+removeselected;Remove selected
+report;Report
+reportforcase;Report for Case 
+reportlayout;Report Layout
+restart;RESTART
+restore;Restore
+RMNE;RMNE
+RMP;RMP
+rotatematrix;Rotate MatchMatrix
+samplename;Sample Name
+save;Save
+seed;Sampler seed
+select;Select
+selected;Selected
+set;Set
+setpermarker;Set per marker
+settings;Settings
+setup;Setup
+show;Show
+showfor;Show for
+showssinmatchlist;Show single sources in Matches
+similarity;Similarity
+singlesources;Single sources
+sort.by;Sort by
+sort.column;Column name
+sort.evid;Evid name
+sort.lr;LR value
+sort.matchval;Match degree
+sort.ref;Ref name
+sort.row;Row name
+statement;statement
+stuttermodel;Stutter model (EFM)
+table;Table
+thresh;Threshold
+threshs;Thresholds
+threshsettings;Threshold settings
+truncate;Truncate
+unknown;Unknown
+unknowns;Unknowns
+useoneaslowestnoc;Start with one contributor when estimating contrs
+user;User
+userinput;User input
+useSNPmodule;Use SNP module (always 3 contributors)
+version;version
+warning;Warning
+withPH;w/PH
+woe;Weight-of-evidence
+woeParams;Model parameters (WOE)
+woeperform;Perform WOE
+woeResult;Weight of evidence results
+woeStatements;Verbal statements (WoE)
+workdir;Work Directory
+yes;Yes
+DCreporttext1;Predicted genotype (allele if below threshold)
+DCreporttext2;The probability ratio between top ranked genotype and second ranked genotype
+WOEreporttext;Unknowns are assumed to be unrelated individuals from the selected population
+msg.addDCprofile;Do you want to add the following deconvoluted profile to the references?
+msg.calculatedLR;The calculated LR was
+msg.calculationconfirmwarning;Are you sure you want to run the calculations? This may take very much time and memory when having many markers!
+msg.deleteprofiles;Are you sure you want to delete the following profiles:
+msg.emptycasedir;The directory to the Case folder was not properly selected. The user may have selected a folder not containing any case folders.
+msg.importfunerror;The file containing the importData function was not properly selected. The user must select this via
+msg.indexinput;Define index of reference profiles to show (use comma, AND/OR minus-)
+msg.kitspecify;Please specify a kit for further comparisons. Go to Settings->Kit selection
+msg.largesampleerror;The number of samples was too large. Please increase the memory in order to proceed
+msg.morecontrwarning;Notice: You have selected more contributors than given in
+msg.nocandidates;No candidates found
+msg.nodata;No data was found when importing
+msg.quit;Are you sure you want to quit?
+msg.refnametaken;Reference name already taken. Please consider a new name!
+msg.restartfirst;Remember to press RESTART before importing a new case!
+msg.saveproj;Do you want to save project?
+msg.selectoneprofile;Please select only one profile to continue
+msg.selectprofile;Please select at least one profile to continue
+msg.setPopFreq;Please select a valid file with population frequencies for further analysis. Go to Setup->Population Frequencies
+msg.sureapplychanges;Are you sure you want to apply the changes in
+msg.suredelete;Are you sure you want to delete
+msg.useresult;Do you want to use the result?
+tip.export;Export table to a textfile
+tip.data.changeview;Change table layout for evidence versus references (horizontal or vertical).
+tip.data.import;Import data from selected case. Alternatively it is also possible to edit name of case and press ENTER.
+tip.data.importref;Import additional reference(s) to session by selecting a textfile (requires EFM/LRmix format)
+tip.data.compare;Triggers the comparisons between Mixtures (and evidence(s) with emtpy MatchStatus) and references. This is an investigatory comparison search where match-candidates are obtained based on thresholds (see threshold settings). The results are shown in the next panels, and the final candidate list is shown under Matches
+tip.data.createreport;Create a report with results conducted in the session. Modify report in Report settings. Different report formats are supported.
+tip.data.selectprofiles;Conduct further analysis with selected (highlighted) profiles (evid/refs): Show, delete, export or perform deconvolution
+tip.data.rmp;Calculate random man not excluded (RMNE) and random match probability (RMP) of reference profiles
+tip.data.ibs;The number of shared alleles between all references are calculated (Identical By State). Only pairs which obtains a value above specified IBS threshold are shown.
+tip.data.conc;The number of shared alleles between all evidences are calculated (concordance). Only pairs which obtains a value above specified MAC threshold are shown.
+tip.data.editref;Edit name or alleles of any of the references. Also possible to add new references.
+tip.data.restart;Restart program session (all panels are cleared).
+tip.matchmatrix.truncate;Truncate cells which has a value below the specified MAC threshold.
+tip.matchlistQual.calc;Calculate the quantitative based LR for all candidates being above the QualLR threshold
+tip.matches.woe;Define and perform weight of evidence calculations based on user-defined hypotheses. The LR values may also take into account theta/Fst-correction.
+tip.matches.dcall;Performing deconvolution of all evidence profiles in the matchlist having at least one unknown. The deconvolution will condition on the matchcandidates.
+tip.dc.exportsel;Export selected profile to a EFM/LRmix supported textfile.
+tip.dc.delete;Delete row in table
+tip.dc.showprobs;Show the ratioToNext='probability of top ranked candidate divided by the probability of the second ranked candidate', where candidates are whole genotypes. Single alleles may be extracted if below specified DC genotype-setting but above allele-setting.
+tip.dc.addasref;Move selected profile (row) to the reference table in the data panel. The user may change the name (followed by ENTER).
+tip.woe.lrpermarker;Show LR per marker (based on MLE calculations)
+tip.woe.paramest;Show estimated parameters
+tip.woe.modelvalid;Show model validation plots
+tip.woe.fittedPH;Show fitted peak height model (either for Hp and Hd). For unknown contributors the genotypes are conducted as the top-ranked genotype (from deconvolution).
+tip.woe.statement;Show and edit statement for selected hypothesis set. It is possible to edit the statement here before creating report.
+tip.woe.cons;(Re)Calculate conservative LR for selected hypothesis set (MCMC)
+tip.woe.delete;Delete selected row
+statementScheme;The evidence ($evidtxt) is $LRtxt times more likely if the DNA came from $hptxt than if it came from $hdtxt
+numword_2;hundred
+numword_3;thousand
+numword_6;million
+numword_9;billion
+numword_12;trillion
+numword_15;quadrillion
+numword_18;quintillion
+numword_21;sextillion
+numword_24;septillion
+numword_27;octillion
+numword_30;nonillion
+numword_33;decillion
+numword_36;undecillion
+numword_39;duodecillion
+numword_42;tredecillion
+numword_45;quattuordecillion
+numword_48;quindecillion
+numwordPlural;s

@@ -5,7 +5,7 @@
 #' @param envir A saved environment (nnTK)
 #' @export
 
-#envir=NULL
+#envir=NULL;envirfile=NULL;library(casesolver)
 gui = function(envirfile=NULL, envir=NULL) {
  LUSsymbol <- "_"
  MPSsymbol = ":" #Added in version 1.5.0
@@ -2944,7 +2944,7 @@ f_reportlay = function(h,...) { #GUI function to set report layout
    #DELETE OBJECTS
    nHypSets = nrow(resWOEeval$resTable) #number of hypotheses
    if(nHypSets==0) { 
-     next() #return if none
+     return() #return if none
    } else if(nHypSets==1) { #removing only element (set everything as zero)
      WOElistGUI[] <- resWOEeval <- NULL
    } else {

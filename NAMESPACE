@@ -3,7 +3,7 @@
   importFrom("graphics", "barplot", "par", "plot","mtext")
   importFrom("stats", "aggregate", "na.omit", "nlm", "setNames","as.dist", "hclust")
   importFrom("utils", "browseURL", "object.size", "packageVersion",
-             "read.table", "write.table","install.packages")
+             "read.table", "write.table","install.packages","read.csv")
   import("euroformix")
   import("gWidgets2")
   import("readxl")

@@ -91,7 +91,7 @@ getStructuredData = function(data,ln,minLoc=10) {
     ord <- !isempty & !impute #markers with heteroyzogous variants
     tmp <- unlist( strsplit( stringEvidSS2[ord],"/") )
     tmp <- t(matrix(tmp ,nrow=2 )) #get genotypes for each markers
-    tmp <- sortGenotypes(tmp) #get sorted genotypes
+    tmp <- sortGenotypes(tmp) #get sorted genotypes for evidence
     stringEvidSS2[ord] <- paste0(tmp[,1],"/",tmp[,2]) #
 
     #update the evid-strings stringEvidSS and stringEvid again:
@@ -136,33 +136,47 @@ getStructuredData = function(data,ln,minLoc=10) {
      print(paste0("Comparing references against SingleSource samples: ",nS*nR," comparisons."))
      matchvec <- rep(NA,nS) #create a vector for finding matches
      for(ss in 1:nS) { #for each sample: We calculate pairwise comparison
-       #ss=1
-       macS <- nLocs <- rep(0,nR) #make vector for all references 
+#ss=1
+       macS <- missmatch <- nLocs <- rep(0,nR) #make vector for all references 
        for(loc in ln) { #for each locus: Vectorizing as much as possible!
         ll=which(loc==ln)
         if(is.na(stringEvidSS2[ss,ll]) || stringEvidSS2[ss,ll]=="NA")  next #skip if no data
-        sttmp <- unlist(strsplit(stringEvidSS2[ss,ll],"/")) #get alleles
+        sttmp <- unlist(strsplit(stringEvidSS2[ss,ll],"/")) #get alleles in single source profile (2 ordered alleles )
         isna <- is.na(stringRef2[,ll]) | stringRef2[,ll]=="NA"  #get which refs are non-zero. Not counted if missing!
-        numWithin <- rep(0,sum(!isna)) #number of unique alleles of reference that are in stain
-        if(length(numWithin)==0) next #skip if no references
+        if(all(isna)) next #skip if no references
+        
         AvecList <- t(matrix(unlist(strsplit(stringRef2[!isna,ll],"/")),nrow=2)) #get alleles of refs (in case of 2)
+        
+        #Used for exact criterion
+        missmatch[!isna] = missmatch[!isna] + as.integer(AvecList[,1]!=sttmp[1]) + as.integer(AvecList[,2]!=sttmp[2])
+        
+        #Used for inclusion criterion
+        numWithin <- rep(0,sum(!isna)) #number of unique alleles of reference that are in stain
         for(aa in unique(sttmp)) numWithin <- numWithin + rowSums(AvecList==aa) #sum up for each alleles in stain 
-	  
- 	   if( sttmp[1]==sttmp[2] ) { #if SS had homozygout genotype
-     	ind <- AvecList[,1]!=AvecList[,2] & numWithin==2 #those not same but got MAC=2
-     	numWithin[ind] <- numWithin[ind] - 1 #subtract 1 because these were not homozygous 
-    	   }
-        macS[!isna] <- macS[!isna] + numWithin #add number of matching alleles
-        nLocs[!isna] <- nLocs[!isna] + 1  #add locus  
-    	  } #end for each locus
-       missmatch = 2*nLocs - macS #get number of missmatches
-       foundind = which(missmatch==0 & nLocs>=minLoc ) #index with zero mismatches AND EVALUATED AT LEAST minLoc
-       if(length(foundind)>0) { #if found a match 
-	   evidMatch[unStringEvidSS[ss]==stringEvid] = refNames[ foundind[which.max(nLocs[foundind])] ]
-        if(length(foundind)>1) {
-         print("Several references matched (SIMILAR REFERENCES). Keeping the one with most loci!")
+        if( sttmp[1]==sttmp[2] ) { #if SS had homozygout genotype
+          ind <- AvecList[,1]!=AvecList[,2] & numWithin==2 #those not same but got MAC=2
+          numWithin[ind] <- numWithin[ind] - 1 #subtract 1 because these were not homozygous 
         }
-       } #else if no match found
+        macS[!isna] <- macS[!isna] + numWithin #add number of matching alleles
+          
+        nLocs[!isna] <- nLocs[!isna] + 1  #add locus  
+    	 } #end for each locus
+       
+       #get number of missmatches based on inclusion criterion
+       missmatch2 = 2*nLocs - macS 
+       
+       foundind = which(missmatch==0 & nLocs>=minLoc ) #index with zero mismatches AND EVALUATED AT LEAST minLoc
+       foundind2 = which(missmatch2==0 & nLocs>=minLoc ) #index with zero mismatches AND EVALUATED AT LEAST minLoc
+       
+       indEvids = unStringEvidSS[ss]==stringEvid #index of evidence that is considered
+       if(length(foundind)>0) { #if found an exact match
+	      evidMatch[indEvids] = refNames[ foundind[which.max(nLocs[foundind])] ]
+        if(length(foundind)>1) print("Several references matched (SIMILAR REFERENCES). Keeping the one with most loci!")
+       } else if( length(foundind2)>0 ) { #if found an inclusion match
+         txt = paste0("NOTE: ",refNames[ foundind2[which.max(nLocs[foundind2])] ]," satisfies inclusion in ",paste0(evidNames[indEvids],collapse="/") )
+         print(txt)
+       }
+       #else if no match found
       } #end for each SS sample
       rm(AvecList ,numWithin,missmatch ) ; gc()
     } #end if having SS samples
