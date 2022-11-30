@@ -6,19 +6,10 @@
 #' @param defaultLanguage Default language
 #' @export
 
+#library(casesolver);langFile="Language";defaultLanguage="English"
 getLanguage = function(langSel=NULL,encoding="unknown",langFile="Language",defaultLanguage="English") { 
-  bool = require(readxl)
-  if(!bool) {
-    install.packages("readxl") #request installing package
-    if(!require(readxl)) {
-      print("Could not install readxl..")
-      return()
-    }
-  }
-  
   pgkPath <- path.package("casesolver", quiet = FALSE) # Get package path.
   .sep <- .Platform$file.sep # Platform dependent path separator. 
-  
   languagefile1 = paste(pgkPath,paste0(langFile,".xlsx"),sep=.sep) #Contains multiple langues
   languagefile2 = paste(pgkPath,paste0(langFile,".csv"),sep=.sep) #Contains default language
   
@@ -28,7 +19,7 @@ getLanguage = function(langSel=NULL,encoding="unknown",langFile="Language",defau
               cat(paste0("Could not open excel language file at: ",pgkPath,"\nPlease make sure this is readable. ")) 
               
               #Import text file as a backup solution:
-              langTab = read.csv(languagefile2,header = TRUE,sep=";")
+              langTab <<- read.csv(languagefile2,header = TRUE,sep=";")
   })
   if(is.null(langTab)) stop("Could not open language file. Program stops!") 
   

@@ -61,10 +61,7 @@ calcQuanLRcomparison = function(DBmix,DBref,matchlist,popFreq,kit,xiBW=0,xiFW=0,
     #Calc. Hp to get LR:
     whatR <- matchlist[which(ss == matchlist[,1]),2] #what refs to consider for particular sample
     for(rr in whatR ) { #for each references
-     #rr=whatR[1]
-     if(!rr%in%rownames(DBref)) { #if reference not found in dataList, we will create list:
-      next #skip if not found
-     }
+     if(!rr%in%rownames(DBref))  next #skip if not found
      refD <- list() #reference list must have other structure than considered here...
      for(loc in locs) refD[[loc]] <- lapply(refLIST[rr],function(x) x[[loc]]$adata) #extract reference
      data <- euroformix::Qassignate(sample, popFreq[locs],refD,incS=FALSE,incR=FALSE,normalize=normalize,minF=minFreq) #popFreq must be given with correct order?

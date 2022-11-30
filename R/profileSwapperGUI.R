@@ -17,8 +17,8 @@ profileSwapperGUI = function(env) {
   
   #event when clicking OK
   f_clickOK = function(h) {
-    bool = gWidgets2::gconfirm("Are you sure you want to continue?")
-    if(!bool) return() #
+    #bool = gWidgets2::gconfirm("Are you sure you want to continue?")
+    #if(!bool) return() #
     assign(objStore,list(items1=tab1GUI[],items2=tab2GUI[]),envir=env)
     gWidgets2::dispose(inwin) #close window
     tcltk::tclvalue(flag) <- "destroy" #Destroy wait flag

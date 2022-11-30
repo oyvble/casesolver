@@ -4,11 +4,7 @@
 #' @param nnTK an environment object from stored CaseSolver object
 #' @param verbose Whether progress should be printed
 #' @export
-#' 
-#library(casesolver);load("C:/Users/oyvbl/Dropbox/Forensic/MixtureProj/myDev/CaseSolverDev/TutorialDataCaseSolver/cs_esx.Rdata")
-#library(casesolver);load("C:/Users/oyvbl/Dropbox/Forensic/MixtureProj/myDev/CaseSolverDev/Issues/19-01208.Rdata")
-#source("C:/Users/oyvbl/Dropbox/Forensic/MixtureProj/myDev/casesolver/R/calcWOEhyps.R"); 
-#verbose=TRUE
+
 calcWOEhyps = function(nnTK,verbose=TRUE) {
   library(gWidgets2)
   matchTable = get("resMatches",envir= nnTK) #obtain match candidates to base calculation on
@@ -140,8 +136,11 @@ calcWOEhyps = function(nnTK,verbose=TRUE) {
       }
       if(verbose) print("calculating MLE under Hp...")
       fithp <- fitMLE(condhp)
+      if(verbose) print(paste0("logLik (Hp): ",fithp$fit$loglik))
+      
       if(verbose) print("calculating MLE under Hd...")
       fithd <- fitMLE(condhd,knownRef=1) #put index of known non-contributor Ref as 1
+      if(verbose) print(paste0("logLik (Hd): ",fithd$fit$loglik))
       
       #Extract certain parameters:
       MxPOI = fithp$fit$thetahat2[1]
@@ -160,29 +159,35 @@ calcWOEhyps = function(nnTK,verbose=TRUE) {
       validHd <- euroformix::validMLEmodel(fithd,kit=kit, createplot=FALSE,alpha=0.01,verbose=FALSE)
       nFailedHp=sum(validHp$Significant)
       nFailedHd=sum(validHd$Significant)
+      if(verbose) print(paste0("log10LR (mle): ",mleLR))
       
-      if(verbose) {
-        print(paste0("log10LR (mle): ",mleLR))
-      }
-      
-      #store table with fitted parameters (Hp vs Hd)
-      s0 = 2 #accuracy
+      #store table with fitted parameters (Hp vs Hd). Also include adjusted logLik
       paramHp = fithp$fit$thetahat2
       paramHd = fithd$fit$thetahat2
-      tab = cbind(paramHp,paramHd)
-      paramTable = round(tab,s0) #round table two 2 decimals
+      tab = cbind(Hp=paramHp,Hd=paramHd)
+      paramTable = round(tab,3) #round table
+      paramTable[NOC+1,] = round(paramTable[NOC+1,]) #don't round PHexp
+      #Also add adjusted logLIk
+      
+      getAdjLogLik = function(mle) mle$fit$loglik - length(mle$fit$thetahat)
+      adjLogLik = round( c(getAdjLogLik(fithp),getAdjLogLik(fithd)),2)
+      paramTable = rbind(paramTable,adjLogLik) #add adj.loglik
       
       #obtain names with mixture proportions for conditional references:
       MxRefs = list(hp=setNames(paramHp[1:NOC],condhpNames),hd=setNames(paramHd[1:NOC],condhdNames))
 
       #If calculating conservative LR
       consLR <- bayesLR <- NA #none by default
+      mcmc = NULL #default mcmc object (NULL if not run)
       if(calcCons) {
         mcmcOpt = get("setupMCMC",envir=nnTK)
         if(verbose) print("Performing MCMC to estimate conservative LR")
-        cons = calcCONS(fithp,fithd, mcmcOpt$niter,mcmcOpt$delta,mcmcOpt$quantile,mcmcOpt$seed, verbose=TRUE)
-        consLR = cons$consLR #extract conservative LR
-        bayesLR = cons$bayesLR # extract  bayesian based LR
+        
+        #verbose=TRUE
+        mcmc = euroformix::calcLRmcmc(fithp,fithd, mcmcOpt$niter,mcmcOpt$delta,mcmcOpt$quantile,mcmcOpt$seed, verbose=TRUE,traceplot=FALSE)
+        #cons = calcCONS(fithp,fithd, mcmcOpt$niter,mcmcOpt$delta,mcmcOpt$quantile,mcmcOpt$seed, verbose=TRUE)
+        consLR = mcmc$log10LRcons #extract conservative LR
+        bayesLR = mcmc$log10LRbayes # extract  bayesian based LR
         if(verbose) {
           print(paste0("log10LR (CONS): ",consLR))
           print(paste0("log10LR (BAYES): ",bayesLR))
@@ -204,11 +209,11 @@ calcWOEhyps = function(nnTK,verbose=TRUE) {
       #Obtain value as text (if )
       useVerbalLR =  get("setupReportOpt",envir=nnTK)["verbalLR"]  #If using verbal LR
       if(useVerbalLR) {
-        LRverbal = casesolver::number2word(LRuse,L) #obtain verbal LR
-        LRtxt = paste0(LRverbal," (1e",floor(LRuse),")") #add verbal in additon to down-rounded number
+        LRverbal = number2word(LRuse,L) #obtain verbal LR
+        LRtxt = paste0(LRverbal[1]," (",LRverbal[2],")") #add verbal in additon to down-rounded number
       }
       state = gsub("$LRtxt",LRtxt,state,fixed=TRUE)
-      
+      # if(length(LRtxt)>1) print(LRtxt)
       
       #statement = paste0("The evidence (",evidtxt,") is ",LRtxt," times more likely if the DNA came from ",hptxt," than if it came from ",hdtxt)
       listcount = listcount + 1 #list element counter
@@ -217,7 +222,8 @@ calcWOEhyps = function(nnTK,verbose=TRUE) {
                                    nFailedHp=nFailedHp,nFailedHd=nFailedHd,
                                    mleLR=mleLR,mleLRi=mleLRi,consLR=consLR,bayesLR=bayesLR,
                                    statement=state,statementNoWOE=state2,
-                                   paramTable=paramTable,MxRefs=MxRefs)
+                                   paramTable=paramTable,MxRefs=MxRefs,
+                                   mcmc = mcmc) #also store MCMC run (this is new)
   
     } #end for each hypothesis
     assign("resWOEeval",evalList2,envir=nnTK)  #store match-results from comparison (those with LR>threshold)
@@ -278,6 +284,16 @@ calcWOEhyps = function(nnTK,verbose=TRUE) {
     }
   }
   
+  #helpfunction for unconditioning all
+  f_selUNCOND = function(h) {
+    if(IDcount>0) {
+      for(id in 1:IDcount) { #traverse all hyps 
+        gWidgets2::svalue(grid[id+1,4]) <- stringNone #set all as "none"
+        evalList[[id]]$cond <<- as.character() #set as not conditional 
+      } 
+    }
+  }
+  
   #Setup:
   IDcount = 0 #counter for hypothesis set
   stringNone = L$none #"none"
@@ -307,6 +323,9 @@ calcWOEhyps = function(nnTK,verbose=TRUE) {
   eval[2,1] = gWidgets2::glabel("CONS:",container=eval)
   eval[2,2] = gWidgets2::gbutton("Select all",container=eval, handler=f_selAllCONS, action=TRUE)
   eval[2,3] = gWidgets2::gbutton("Unselect all",container=eval, handler=f_selAllCONS, action=FALSE)
+  
+  #Possible to "uncondition for all hypotheses" (NEW IN v1.9)
+  eval[2,4] = gWidgets2::gbutton("Uncondition all",container=eval, handler=f_selUNCOND, action=FALSE)
   
   gWidgets2::gseparator(frame,horizontal = T)
   grid = gWidgets2::glayout(spacing=3,container=frame) 

@@ -6,6 +6,8 @@
 #' @return A list with canidate results
 #' @export
 
+#fn = "C:\\Users\\oyvbl\\Dropbox\\Forensic\\MixtureProj\\myDev\\CaseSolverDev\\testTutorialDataCaseSolver\\cs_fusion.Rdata"
+#load(fn);nLarge=10000;mixtureName="mixture"
 calcIBS = function(nnTK,nLarge=10000,mixtureName="mixture") {  #Function to calculate IBS between references
   DBref <- get("refDataTABLE",envir=nnTK) #consider lists
   if(nrow(DBref)>=nLarge) {
@@ -52,6 +54,8 @@ calcIBS = function(nnTK,nLarge=10000,mixtureName="mixture") {  #Function to calc
   #  colnames(mac) <- rownames(mac) <- allrefsn
   locs <- names(allrefs) #get non-empty loci
   
+  #Calculate comparisons
+  
   for(loc in locs) {
     amat <- allrefs[[loc]]
     unmat = unique(amat) #get only unique
@@ -82,14 +86,26 @@ calcIBS = function(nnTK,nLarge=10000,mixtureName="mixture") {  #Function to calc
     indcand = which(mac[r,ext]>=x0) #extract those columns which had above threshold 
     ext = ext[-length(ext)] #remove last index in extraction
     if( length(indcand)>0) tabind = rbind(tabind, cbind(r,indcand) ) #add to matrix
-    
   }
   if(length(tabind)>0) {
 #    tab <- cbind(mac[tabind],paste0(allrefsn[tabind[,1]]," - ",allrefsn[tabind[,2]]))
-    tab <- cbind(mac[tabind], allrefsn[tabind[,1]], allrefsn[tabind[,2]])
-    ord <- order(as.numeric(tab[,1]),decreasing=TRUE)
-    out <- tab[ord,,drop=FALSE]
-    return(out) #return result table
+    tab <- cbind(allrefsn[tabind[,1]], allrefsn[tabind[,2]],mac[tabind])
+    
+    #Obtain overview of registered markers for each candidate
+    match1 = match(tab[,1],allrefsn)
+    match2 = match(tab[,2],allrefsn)
+    nLocsCompared = rep(0,nrow(tab))
+    for(i in seq_along(locs)) {
+      hasMarker = allrefs[[locs[i]]][,1]!=""
+      nLocsCompared = nLocsCompared + as.integer(hasMarker[match1] & hasMarker[match2])
+    }      
+    nMissmatches = 2*nLocsCompared - as.numeric(tab[,3])
+
+    #ord <- order(as.numeric(tab[,1]),decreasing=TRUE)
+    ord <- order(nMissmatches,decreasing=FALSE)
+    tab = cbind(nMissmatches,tab,nLocsCompared)
+    tab <- tab[ord,,drop=FALSE] #update table (ordered)
+    return(tab) #return result table
     
   } else {
     return(NULL)

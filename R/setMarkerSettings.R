@@ -19,7 +19,7 @@ setMarkerSettings = function(nnTK) {
   paramNames = c(L$Marker, L$analyticalthreshold, L$dropinprob, L$dropinpeakheightlambda , L$fstsetting)
   
   popFreq = get("popFreq",envir=nnTK) #get population freqs
-  kit0 = getEnvirKit(nnTK) #get kit
+  kit0 = casesolver::getEnvirKit(nnTK) #get kit
   
   #NEED TO HAVE POPULATION FREQUENCIES SPECIFIED TO PROCEED:
   if(is.null(popFreq)) { 

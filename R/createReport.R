@@ -19,6 +19,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
   createDOC = exp$DOC #Whether to create report based on DOC (simple layout)
   
   reportTemplate = "reportTemplate.docx" #file name of report template
+  systemtime = Sys.time() #obtain system time when creating report
   
   #Report type settings  
   opt = get("setupReportExpOpt",envir=nnTK) #get export options (report and preview)
@@ -36,7 +37,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
 
   #Report options (only boolean)  
   showItem = get("setupReportOpt",envir=nnTK) #get export options (report and preview)
-  #names(showItem)  "MatchStatus"  "MCMCsettings" "mleLR"        "bayesLR"  "consLR"       "Mx"           "validFailed" 
+  #names(showItem)  "MatchStatus","MCMCsettings","mleLR","bayesLR","consLR","Mx","validFailed" ,"headerTime"
   
   #obtain  
   defaultReportName = "report"
@@ -228,8 +229,9 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
   mixTab <- ssTab <- NULL #empty
   if(!is.null(mixDataTABLE)) {    #Add evid-tables
     isMixture = rep(TRUE,nrow(mixDataTABLE)) #assume all is mixtures
-    isMixture[mixDataMATCHSTATUS!="mixture"] = FALSE #these SS
     isMixture[ match(allMixList[allMixList[,3]=="1",1],rownames(mixDataTABLE)) ] = FALSE #ensure that it becomes SS if assigned as 1 contr.
+    isMixture[mixDataMATCHSTATUS!="mixture"] = FALSE #INDICATE AS Single source if MatchStatus is not "mixture" (translated back)
+    isMixture[mixDataMATCHSTATUS=="mixture"] = TRUE #LAST: INDICATE AS Mixture profile if indicated as mixture (forcing user specified as mixture)
     
     if(sum(!isMixture)>0) { #if at least one single source
       ssDataTABLE <-  cbind(mixDataMATCHSTATUS,mixDataTABLE)[!isMixture,,drop=FALSE]
@@ -529,6 +531,11 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
   
   #Create report objects:
   titletxt = paste( L$reportforcase,get("caseID",envir=nnTK))  #paste0("Case ",get("caseID",envir=nnTK)) #Text outside main body
+  
+  if( "headerTime"%in%names(showItem) && showItem['headerTime']) {
+    titletxt = paste0(titletxt, " ("  , format(systemtime, "%d-%m-%y"),")" ) #add some space
+  }
+  
   if(formatUse[1]) {
     #cssfile <- "http://www.stat.ucl.ac.be/R2HTML/Pastel.css"
     cssfile <- system.file("samples", "R2HTML.css", package="R2HTML")
@@ -561,7 +568,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
       {headTxt = c(paste0("CaseSolver ",L$version,": ",version," (euroformix_",packageVersion("euroformix"),")"),
                     R.version.string,
                     paste0( L$user,": ",Sys.getenv("USERNAME")),
-                    paste0( L$created,": ",Sys.time()))
+                    paste0( L$created,": ",systemtime))
       insText( headTxt ,italic=T)},
         
       #2: References (known)
@@ -787,7 +794,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
     #25: Plot EPG figures for single sources
     if( printEPG || sampleType=="LUS" ) { 
       insTitle( reportitems[25], 1)
-      if( nrow(ssDataTABLE)>0 ) {
+      if( !is.null(ssTab) && nrow(ssDataTABLE)>0 ) {
         unREF = unique(ssDataTABLE[,1]) #get unique refs
         refL = getRefL(unREF,forceDi=FALSE) # get relevant references
         

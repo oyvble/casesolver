@@ -1,4 +1,4 @@
-﻿Key;English
+Key;English
 addasref;Add as Ref
 advanced;Advanced
 all;All
@@ -80,9 +80,9 @@ layout;layout
 list;List
 logLR;log10 LR
 LR;LR
-LRbayes;log10LR (Bayes)
-LRcons;log10LR (Conservative)
-LRmle;log10LR (MLE)
+LRbayes;Bayes
+LRcons;Conservative
+LRmle;MLE
 lrpermarker;LR-per marker (MLE)
 macthreshold;MAC threshold (comparison)
 Marker;Marker
@@ -124,6 +124,8 @@ Normalized;Normalized
 notcompleted;Not completed
 numcontr;Num contr.
 numoptim;Number of required optimizes (EFM)
+nummismatch;nMismatch
+nummarkers;nLocs
 off;OFF
 on;ON
 open;Open
@@ -265,16 +267,5 @@ numword_3;thousand
 numword_6;million
 numword_9;billion
 numword_12;trillion
-numword_15;quadrillion
-numword_18;quintillion
-numword_21;sextillion
-numword_24;septillion
-numword_27;octillion
-numword_30;nonillion
-numword_33;decillion
-numword_36;undecillion
-numword_39;duodecillion
-numword_42;tredecillion
-numword_45;quattuordecillion
-numword_48;quindecillion
+numword_more;more than
 numwordPlural;s

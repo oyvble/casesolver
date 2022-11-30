@@ -7,7 +7,7 @@
 number2word(x, L, prefix = "numword_", suffix = "numwordPlural")
 }
 \arguments{
-\item{x}{Number (on log10 scale)}
+\item{x}{LR number (on log10 scale)}
 
 \item{L}{Language object (returned from getLanguage)}
 
@@ -16,7 +16,7 @@ number2word(x, L, prefix = "numword_", suffix = "numwordPlural")
 \item{suffix}{Defined key for end of word when value>1 (plural)}
 }
 \value{
-String
+A vector with two elements (verbal and numeric expression)
 }
 \description{
 Convert number to verbal

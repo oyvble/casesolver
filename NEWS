@@ -18,7 +18,45 @@ Suggestive updates:
   
  - Known (fixed) issues: 
   -- Crashing when DC with 1 contribution, condition on known contributor with missing markers (caused by EFM v3.0.4 or earlier).
-  
+
+CRASH WHEN
+- PlotTopEPG/MPS
+- Selecting too many to condition on (DC). MatchList panel.
+- ISSUE: CANT SHOW MPSplots in report (when LUS+)
+
+
+#Changes version 2.0.0 (29.11.2022)
+ Major changes:
+  - This version requires euroformix v4 to perform additional calculations after importing data.
+	-> The calculations are typically ~4x faster than earlier versions (both qualitative/quantiative models).
+	
+  - In Weight-of-Evidence (WoE) module: 
+	-> In result table: User can now select multiple hypothesis sets.
+	-> In specification panel: User can make all hypothesis sets unconditional (new button).
+	-> If the LR exceeds the defined verbalized numbers: A prefix "at least" is introduced (LR value also modified).
+	-> The BayesFactor and conservative LR calculation now utilizes the calcLRmcmc implementation in EFM v4. This enables both trace plots and extended iterations.
+
+  - When importing data: 
+    -> No longer exluding folders (now considered as a "file"). Possible to separete evid/ref on different folders.
+	-> Name of functions that is imported can have any name (other than importData)
+	
+  - In IBS calculation (Ref-Ref comparison):
+	-> The first column is now the number of missmatch. The table is now sorted with this.
+	-> The IBS and number of markers used in comparisons are now the last columns.
+
+  - In profile selection: Adding a "Select MatchStatus" feature:
+    -> Enables user to modify the MatchStatus for selected evidence profiles.	
+
+  - Now exporting all settings to EuroForMix: 
+   -> Selected kit, population frequency, global or marker specific values of AT, fst and drop-in model.
+
+  Minor changes:
+  - Evids/Refs in match lists are now removed: MatchMatrix,MatchList(qual,quan,final)
+  - Inlcude adj.LogLik to parameter table (last row).  
+  - Modifying number of decimals showing parameter estimates (more pretty).
+  - Separator for storing as csv is now semi-colon instead of comma (easier to open table in excel).
+  - Fixed issue with swapped Yes/No when trying closing program
+  - Fixed crash when creating a report where no single source are included (intent to show EPG for these)
  
 #Changes version 1.8.2 (28.07.2021)
 

@@ -6,7 +6,7 @@
 \usage{
 calcQualLRcomparison(DBmix, DBref, matchlist, popFreq, pC = 0.05,
   maxC = 6, useMinK1 = TRUE, normalize = FALSE, minFreq = NULL,
-  iterlim0 = 5)
+  maxIter = 5)
 }
 \arguments{
 \item{DBmix}{A list with evidence information [[sample]][[loc]] = list(adata,hdata)}
@@ -27,7 +27,7 @@ calcQualLRcomparison(DBmix, DBref, matchlist, popFreq, pC = 0.05,
 
 \item{minFreq}{The freq value included for new alleles. Default NULL is using min.observed in popFreq.}
 
-\item{iterlim0}{#max number of iterations in optimization}
+\item{maxIter}{Maximum number of iterations for nlm}
 }
 \description{
 Function calculating LR using EuroForMix for remaining matches (from Step 1)
