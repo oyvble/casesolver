@@ -24,6 +24,15 @@ CRASH WHEN
 - Selecting too many to condition on (DC). MatchList panel.
 - ISSUE: CANT SHOW MPSplots in report (when LUS+)
 
+#Changes version 2.0.1 (30.03.2023)
+ Major changes:
+  - Fixed issue for exporting docx report files when using new version of officer (from v0.6.0): Major updates in createReport.
+
+ Minor changes:
+  - Adding item number to report layout.
+  - Improving the importing of references from separate text file (made more robust). Markers names was case sensitive.
+  - Fix warning issue in createReport function, when "selected" to inner function insList was a vector.
+  - Included licence file.
 
 #Changes version 2.0.0 (29.11.2022)
  Major changes:

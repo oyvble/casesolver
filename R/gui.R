@@ -393,20 +393,21 @@ gui = function(envirfile=NULL, envir=NULL) {
     reportitems2 = paste( L$show , reportitems) #put "show" in front of each reportitems
     nItems = length(reportitems) #number of items
     itemRange = 0:nItems
-    checkbox[1,1] = gWidgets2::glabel("Report object",container=checkbox)
-    checkbox[1,2] = gWidgets2::glabel("Priority",container=checkbox)
+    checkbox[1,2] = gWidgets2::glabel("Report object",container=checkbox)
+    checkbox[1,3] = gWidgets2::glabel("Priority",container=checkbox)
     for(i in 1:nItems) {
       val = opt$priority[i] #obtain value
-      checkbox[i+1,1] <- gWidgets2::gcheckbox( reportitems2[i] ,checked=val>0,container=checkbox)
-      checkbox[i+1,2] <- gWidgets2::gcombobox(items=itemRange,selected=which(val==itemRange),editable=TRUE,container=checkbox)
-      gWidgets2::size(checkbox[i+1,2]) = 4
+      checkbox[i+1,1] <- gWidgets2::glabel(paste0(i),container=checkbox) #add item number
+      checkbox[i+1,2] <- gWidgets2::gcheckbox( reportitems2[i] ,checked=val>0,container=checkbox)
+      checkbox[i+1,3] <- gWidgets2::gcombobox(items=itemRange,selected=which(val==itemRange),editable=TRUE,container=checkbox)
+      gWidgets2::size(checkbox[i+1,3]) = 4
     } 
     #gWidgets2::add(tabval,checkbox)#,expand=TRUE,fill=TRUE)
     savebut <- gWidgets2::gbutton( L$save ,use.table=FALSE,container=group,handler = function(h, ...) { 
       for(i in 1:nItems) {
        val = 0 #default is not checked
-       checked = gWidgets2::svalue(checkbox[i+1,1]) #indicate if checked
-       if(checked) val= as.integer(gWidgets2::svalue(checkbox[i+1,2])) #obtain value
+       checked = gWidgets2::svalue(checkbox[i+1,2]) #indicate if checked
+       if(checked) val= as.integer(gWidgets2::svalue(checkbox[i+1,3])) #obtain value
        opt$priority[i] = val #update priority variable
       } 
       assign("setupReportLay",opt,envir=nnTK)  #assign user-value to opt-list
@@ -2443,30 +2444,36 @@ gui = function(envirfile=NULL, envir=NULL) {
   tabimportA[1,6] <- gWidgets2::gbutton(text= L$importref ,container=tabimportA,handler = function(h, ...) { #IMPORT REFS
     ff <- mygfile( paste( L$select , L$file) ,type="open")
     if(length(ff)==0) return()
-    tab = euroformix::tableReader(ff) #read table and insert to GUI format: [SampleName,Marker,Allele 1, Allele 2]
-    sn = unique(tab[,1]) 
-    ln = toupper(unique(tab[,2]))
+    tab = euroformix::tableReader(ff) #read table and insert to GUI format
+    
+    #Borrowing code from euroformix::efm L977 (import reference-databases)
+    cn = colnames(tab) #colnames 
+    lind = grep("marker",tolower(cn),fixed=TRUE) #locus col-ind
+    if(length(lind)==0) lind = grep("locus",tolower(cn),fixed=TRUE) #locus col-ind
+    sind = grep("sample",tolower(cn),fixed=TRUE)[1] #sample col-ind
+    aind = grep("allele",tolower(cn),fixed=TRUE)[1:2] #allele col-ind
+    
+    sn = unique(tab[,sind]) 
+    locs = toupper(unique(tab[,lind]))
     if(length(sn)==0) return()
   
     refT <- get("refDataTABLE",envir=nnTK) #store table 
     cn = toupper(colnames(refT))
     if(length(cn)==0) return()
     newsn = c(rownames(refT),sn)
-  
     for(ss in sn) { #for each sample
       newT = rep("",length(cn)) 
-      for(loc in ln) { #for each loci
+      for(loc in locs) { #for each loci
         indins = which( cn==loc )
-        av = unlist(tab[tab[,1]==ss & tab[,2]==loc,3:4])
-      	 if(length(av)==1) av = rep(av,2)
-      	 if(length(av)==2) {
-         newT[indins] <- paste0(av,collapse="/")  #factor(sn, levels= c(sn,levels(guitab[nR,1]) ))#insert name
+        av = unlist(tab[tab[,sind]==ss & toupper(tab[,lind])==loc, aind])
+        av = av[av!=""] #ignore empty
+      	#if(length(av)==1) av = rep(av,2)
+      	if(length(av)==2) av = paste0(av,collapse="/")
+        newT[indins] <- av  #factor(sn, levels= c(sn,levels(guitab[nR,1]) ))#insert name
       }
-     }
-     refT = rbind(refT,newT) #add profiles  
+      refT = rbind(refT,newT) #add profiles  
     }
     rownames(refT) = newsn 
-  
     assign("refDataTABLE",refT,envir=nnTK) #store table 
     
     sortTypes = get("setupSorting",envir=nnTK) #Obtain sort types
