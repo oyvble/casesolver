@@ -4,8 +4,12 @@
 \alias{getLanguage}
 \title{getLanguage}
 \usage{
-getLanguage(langSel = NULL, encoding = "unknown",
-  langFile = "Language", defaultLanguage = "English")
+getLanguage(
+  langSel = NULL,
+  encoding = "unknown",
+  langFile = "Language",
+  defaultLanguage = "English"
+)
 }
 \arguments{
 \item{langSel}{Selected language (NULL returns list of available languages)}

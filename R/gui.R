@@ -5,6 +5,10 @@
 #' @param envir A saved environment (nnTK)
 #' @export
 
+#library(casesolver);gui()
+#library(casesolver);envirfile=NULL; envir=NULL
+#load("C:/Users/oyvbl/Documents/CSproj_20woe.Rdata")
+
 gui = function(envirfile=NULL, envir=NULL) {
   LUSsymbol = "_"
   MPSsymbol = ":" #Added in version 1.5.0
@@ -128,9 +132,10 @@ gui = function(envirfile=NULL, envir=NULL) {
   setupImport = list(importfile=optF[1])
   
   #Advanced options
-  optF = c(4,3,3,"TRUE","FALSE","FALSE","FALSE")
+  optF = c(4,4,3,"TRUE","FALSE","FALSE","FALSE","FALSE","FALSE") #this is default
   if(file.exists(setupFileAdvanced)) optF <- setupRead(file=setupFileAdvanced)
-  setupAdvanced = list(maxC1=as.integer(optF[1]),maxC2=as.integer(optF[2]),nDone=as.integer(optF[3]),useMinK1=optF[4],compSS=optF[5],isSNP=optF[6],selProfiles=optF[7])   
+  if(length(optF)<8) optF = c(optF,rep("FALSE",2)) #include default value (COMPATIBLE FROM VERSION v2.0.2)
+  setupAdvanced = list(maxC1=as.integer(optF[1]),maxC2=as.integer(optF[2]),nDone=as.integer(optF[3]),useMinK1=optF[4],compSS=optF[5],isSNP=optF[6],selProfiles=optF[7],useEFMex=optF[8],useMAC=optF[9])
   
   #Data view (vertical or horizontal)
   optF = c("FALSE")
@@ -246,7 +251,7 @@ gui = function(envirfile=NULL, envir=NULL) {
     
     nnTK0 = nnTK #store environment to make older projects backward compatible
   } else if(is.null(envirfile)) {
-     nnTK = envir #copy environment
+    nnTK = envir #copy environment
   }
     
   #} else { #IF FILE IS GIVEN
@@ -265,10 +270,11 @@ gui = function(envirfile=NULL, envir=NULL) {
     }
     if(outdated) { #notify if stored project version is outdated
       versionTxt = "The loaded project file was outdated:\n"
-      versionTxt = paste0(versionTxt,"Project version: ",projVersion)
-      versionTxt = paste0(versionTxt,"\n\nPlease create a new project file with current CaseSolver version.\n\nWarning: The program may not work properly with an outdated project file.")
-      gWidgets2::gmessage(versionTxt,"Outdated project file", icon="info")
-     
+      versionTxt = paste0(versionTxt,"Project version: ",projVersion,"\n")
+      versionTxt = paste0(versionTxt,"Note: The program may not work properly with an outdated project file.\n")
+      #gWidgets2::gmessage(versionTxt,"Outdated project file", icon="info")
+      cat(versionTxt)
+      
       #Try make loaded project as backward compatible as possible: Use 'default settings' if non-compatible objects
       reqObjs = names(nnTK0) #obtain (all) required objects
       oldObjs = names(nnTK)  #objects from old version
@@ -308,7 +314,7 @@ gui = function(envirfile=NULL, envir=NULL) {
     tabfile  <- mygfile(text= paste( L$save , L$table) ,type="save") #csv is correct format!
     if(fileNotOK(tabfile)) return()
     
-    if(length(unlist(strsplit(tabfile,"\\.")))==1) tabfile = paste0(tabfile,".",sep)
+    if(length(unlist(strsplit(basename(tabfile),"\\.")))==1) tabfile = paste0(tabfile,".",sep)
     if(sep=="txt" | sep=="tab") write.table(tab,file=tabfile,quote=FALSE,sep="\t",row.names=FALSE) 
     if(sep=="csv") write.table(tab,file=tabfile,quote=FALSE,sep=";",row.names=FALSE) 
     print(paste("Table saved in ",tabfile,sep=""))
@@ -366,7 +372,7 @@ gui = function(envirfile=NULL, envir=NULL) {
   f_saveproj = function(h,...) {
     projfile = mygfile(text= paste( L$save , L$proj) ,type="save")
     if(fileNotOK(projfile)) return()
-    if(length(unlist(strsplit(projfile,"\\.")))==1) projfile = paste0(projfile,".Rdata")
+    if(length(unlist(strsplit(basename(projfile),"\\.")))==1) projfile = paste0(projfile,".Rdata")
     print("Size of stored objects (in MB):") #prints size of each stored object
     print(sapply(nnTK,object.size)/1e6) #prints size of each stored object
     save(nnTK,file=projfile,compress="xz",eval.promises=FALSE,precheck=FALSE,compression_level=2)
@@ -596,6 +602,8 @@ gui = function(envirfile=NULL, envir=NULL) {
       opt$minIBS <- as.numeric(gWidgets2::svalue(tabval[5,2])) #number of common alleles for being a relative
       opt$ratio <- as.numeric(gWidgets2::svalue(tabval[6,2])) #ratio of probability (deconvolution candidates)
       opt$probA <- as.numeric(gWidgets2::svalue(tabval[7,2])) #ratio of probability (deconvolution candidates)
+      
+      if(any(is.na(unlist(opt)))) stop("Invalid input given!") #throw error if any input is wrong
       assign("setupThresh",opt,envir=nnTK)  #assign user-value to opt-list
       setupWrite(unlist(opt),file=setupFileThresh)    #save to file in installation folder
       gWidgets2::dispose(setwin)
@@ -605,87 +613,88 @@ gui = function(envirfile=NULL, envir=NULL) {
   
   #GUI for for selecting model settings
   f_modelsel=  function(h,...) {
-   modtypetxt <- c( L$qualmodel , L$quanmodel , L$both )
-   opt <- get("setupModel",envir=nnTK) 
-   setwin <- gWidgets2::gwindow(paste0(  L$modelsettings ),visible=FALSE)
-   tabval = gWidgets2::glayout(spacing=0,container=(setwin)) 
-  
-   tabval[1,1] <- gWidgets2::glabel(text= paste0(L$modeltypes," (",L$compare,")") ,container=tabval) #Model type(s)
-   tabval[1,2] <- gWidgets2::gcombobox(items=modtypetxt,selected=opt$modeltype,horizontal=TRUE,container=tabval)
-   tabval[2,1] <- gWidgets2::glabel(text= L$analyticalthreshold ,container=tabval) #Detection threshold
-   tabval[2,2] <- gWidgets2::gedit(text=opt$threshT,width=w0,container=tabval)
-   tabval[3,1] <- gWidgets2::glabel(text= L$dropinprob ,container=tabval) #Dropin probability
-   tabval[3,2] <- gWidgets2::gedit(text=opt$dropinC,width=w0,container=tabval)
-   tabval[4,1] <- gWidgets2::glabel(text= L$dropinpeakheightlambda ,container=tabval) #Dropin peak height Lambda (EFM)
-   tabval[4,2] <- gWidgets2::gedit(text=opt$dropinL,width=w0,container=tabval)
-   tabval[5,1] <- gWidgets2::glabel(text= L$fstsetting,container=tabval) #Dropin peak height Lambda (EFM)
-   tabval[5,2] <- gWidgets2::gedit(text=opt$fst,width=w0,container=tabval)
-   tabval[6,1] <- gWidgets2::glabel(text= L$degradationmodel ,container=tabval) #Degradation model (EFM)
-   tabval[6,2] <- gWidgets2::gradio(items=radiotxt,selected=opt$degrad,horizontal=TRUE,container=tabval)
-   tabval[7,1] <- gWidgets2::glabel(text= L$BWstuttermodel,container=tabval) #Stutter model (EFM)
-   tabval[7,2] <- gWidgets2::gradio(items=radiotxt,selected=opt$stuttBW,horizontal=TRUE,container=tabval)
-   tabval[8,1] <- gWidgets2::glabel(text= L$FWstuttermodel,container=tabval) #Stutter model (EFM)
-   tabval[8,2] <- gWidgets2::gradio(items=radiotxt,selected=opt$stuttFW,horizontal=TRUE,container=tabval)
-   
-   #helpfunction to set marker specific settings
-   f_setpermarker = function(h) {
-     isok = setPopFreq(giveMessage=FALSE) #set  population frequency from last selected file
-     if(!isok) {
-       print("Specify a frequency file to continue.")
-       return()
-     }
-     gWidgets2::dispose(setwin) #close setup window
-     print("Please be patient (this could take a while)...")
-     casesolver::setMarkerSettings(nnTK) # Obtain updated object
-     
-     #Store object to project and to file:     
-     write(unlist(get("setupMarkers",envir=nnTK)),file=setupFileMarkers)    #save to file in installation folder
-     gWidgets2::gmessage("Marker settings was successfully stored.")
-   }
-   
-   tabval[2,3] <- gWidgets2::gbutton(text= L$setpermarker ,container=tabval, handler=f_setpermarker) #Detection threshold
-   tabval[3,3] <- gWidgets2::gbutton(text= L$setpermarker ,container=tabval, handler=f_setpermarker) #Drop-in
-   tabval[4,3] <- gWidgets2::gbutton(text= L$setpermarker ,container=tabval, handler=f_setpermarker) #dropin lambda
-   tabval[5,3] <- gWidgets2::gbutton(text= L$setpermarker ,container=tabval, handler=f_setpermarker) #fst
-   
-   tabval[9,1] <- gWidgets2::gbutton( L$save , container=tabval,handler = function(h, ...) { 
-    opt$modeltype <- which(gWidgets2::svalue(tabval[1,2])==modtypetxt) #set index 1,2,3
-    opt$threshT <- as.numeric(gWidgets2::svalue(tabval[2,2]))
-    opt$dropinC <- as.numeric(gWidgets2::svalue(tabval[3,2])) 
-    opt$dropinL <- as.numeric(gWidgets2::svalue(tabval[4,2]))
-    opt$fst <- as.numeric(gWidgets2::svalue(tabval[5,2]))
-    opt$degrad <- which(gWidgets2::svalue(tabval[6,2])==radiotxt)  #set index 1,2
-    opt$stuttBW <-  which(gWidgets2::svalue(tabval[7,2])==radiotxt)  #set index 1,2 
-    opt$stuttFW <-  which(gWidgets2::svalue(tabval[8,2])==radiotxt)  #set index 1,2 
-  
-    assign("setupModel",opt,envir=nnTK)  #assign user-value to opt-list
-    setupWrite(unlist(opt),file=setupFileModel)    #save to file in installation folder
+    modtypetxt <- c( L$qualmodel , L$quanmodel , L$both )
+    opt <- get("setupModel",envir=nnTK) 
+    setwin <- gWidgets2::gwindow(paste0(  L$modelsettings ),visible=FALSE)
+    tabval = gWidgets2::glayout(spacing=0,container=(setwin)) 
     
-    #STORE setting INFO IN separate modelSettings Object (not used)
-    assign("modelSettings",NULL,envir=nnTK)  #includes following objects: popFreq,kit,fst,lambda,threshT,xiBW,xiFW,pC (updated when saved)
+    tabval[1,1] <- gWidgets2::glabel(text= paste0(L$modeltypes," (",L$compare,")") ,container=tabval) #Model type(s)
+    tabval[1,2] <- gWidgets2::gcombobox(items=modtypetxt,selected=opt$modeltype,horizontal=TRUE,container=tabval)
+    tabval[2,1] <- gWidgets2::glabel(text= L$analyticalthreshold ,container=tabval) #Detection threshold
+    tabval[2,2] <- gWidgets2::gedit(text=opt$threshT,width=w0,container=tabval)
+    tabval[3,1] <- gWidgets2::glabel(text= L$dropinprob ,container=tabval) #Dropin probability
+    tabval[3,2] <- gWidgets2::gedit(text=opt$dropinC,width=w0,container=tabval)
+    tabval[4,1] <- gWidgets2::glabel(text= L$dropinpeakheightlambda ,container=tabval) #Dropin peak height Lambda (EFM)
+    tabval[4,2] <- gWidgets2::gedit(text=opt$dropinL,width=w0,container=tabval)
+    tabval[5,1] <- gWidgets2::glabel(text= L$fstsetting,container=tabval) #Dropin peak height Lambda (EFM)
+    tabval[5,2] <- gWidgets2::gedit(text=opt$fst,width=w0,container=tabval)
+    tabval[6,1] <- gWidgets2::glabel(text= L$degradationmodel ,container=tabval) #Degradation model (EFM)
+    tabval[6,2] <- gWidgets2::gradio(items=radiotxt,selected=opt$degrad,horizontal=TRUE,container=tabval)
+    tabval[7,1] <- gWidgets2::glabel(text= L$BWstuttermodel,container=tabval) #Stutter model (EFM)
+    tabval[7,2] <- gWidgets2::gradio(items=radiotxt,selected=opt$stuttBW,horizontal=TRUE,container=tabval)
+    tabval[8,1] <- gWidgets2::glabel(text= L$FWstuttermodel,container=tabval) #Stutter model (EFM)
+    tabval[8,2] <- gWidgets2::gradio(items=radiotxt,selected=opt$stuttFW,horizontal=TRUE,container=tabval)
     
-    gWidgets2::dispose(setwin)
-   } )
-   gWidgets2::visible(setwin) <- TRUE
+    #helpfunction to set marker specific settings
+    f_setpermarker = function(h) {
+      isok = setPopFreq(giveMessage=FALSE) #set  population frequency from last selected file
+      if(!isok) {
+        print("Specify a frequency file to continue.")
+        return()
+      }
+      gWidgets2::dispose(setwin) #close setup window
+      print("Please be patient (this could take a while)...")
+      casesolver::setMarkerSettings(nnTK) # Obtain updated object
+      
+      #Store object to project and to file:     
+      write(unlist(get("setupMarkers",envir=nnTK)),file=setupFileMarkers)    #save to file in installation folder
+      gWidgets2::gmessage("Marker settings was successfully stored.")
+    }
+    
+    tabval[2,3] <- gWidgets2::gbutton(text= L$setpermarker ,container=tabval, handler=f_setpermarker) #Detection threshold
+    tabval[3,3] <- gWidgets2::gbutton(text= L$setpermarker ,container=tabval, handler=f_setpermarker) #Drop-in
+    tabval[4,3] <- gWidgets2::gbutton(text= L$setpermarker ,container=tabval, handler=f_setpermarker) #dropin lambda
+    tabval[5,3] <- gWidgets2::gbutton(text= L$setpermarker ,container=tabval, handler=f_setpermarker) #fst
+    
+    tabval[9,1] <- gWidgets2::gbutton( L$save , container=tabval,handler = function(h, ...) { 
+      opt$modeltype <- which(gWidgets2::svalue(tabval[1,2])==modtypetxt) #set index 1,2,3
+      opt$threshT <- as.numeric(gWidgets2::svalue(tabval[2,2]))
+      opt$dropinC <- as.numeric(gWidgets2::svalue(tabval[3,2])) 
+      opt$dropinL <- as.numeric(gWidgets2::svalue(tabval[4,2]))
+      opt$fst <- as.numeric(gWidgets2::svalue(tabval[5,2]))
+      opt$degrad <- which(gWidgets2::svalue(tabval[6,2])==radiotxt)  #set index 1,2
+      opt$stuttBW <-  which(gWidgets2::svalue(tabval[7,2])==radiotxt)  #set index 1,2 
+      opt$stuttFW <-  which(gWidgets2::svalue(tabval[8,2])==radiotxt)  #set index 1,2 
+      
+      if(any(is.na(unlist(opt)))) stop("Invalid input given!") #throw error if any input is wrong
+      assign("setupModel",opt,envir=nnTK)  #assign user-value to opt-list
+      setupWrite(unlist(opt),file=setupFileModel)    #save to file in installation folder
+      
+      #STORE setting INFO IN separate modelSettings Object (not used)
+      assign("modelSettings",NULL,envir=nnTK)  #includes following objects: popFreq,kit,fst,lambda,threshT,xiBW,xiFW,pC (updated when saved)
+      
+      gWidgets2::dispose(setwin)
+    } )
+    gWidgets2::visible(setwin) <- TRUE
   }
   
   #Function for selecting kit
   f_kitsel=  function(h,...) { #GUI function to select kit
-   items0 = c(L$none,euroformix::getKit()) #no kits also possible
-   opt <- get("setupKit",envir=nnTK) 
-   setwin <- gWidgets2::gwindow( paste( L$select ,L$kit) ,visible=FALSE)
-   tabval = gWidgets2::glayout(spacing=0,container=(setwin)) 
-   tabval[1,1] <- gWidgets2::glabel(text= paste0( L$selected ," ", L$kit,colonsymbol) ,container=tabval)
-   tabval[1,2] <- gWidgets2::glabel(text=opt$kitname,container=tabval)
-   tabval[2,1] <- gWidgets2::glabel(text= paste( L$select , L$kit),container=tabval)
-   tabval[2,2] <- gWidgets2::gcombobox(items=items0, width=100, selected=0, editable = FALSE, container = tabval)
-   tabval[3,1] <- gWidgets2::gbutton( L$save , container=tabval,handler = function(h, ...) { 
-    opt$kitname <-gWidgets2::svalue(tabval[2,2]) #get selected
-    assign("setupKit",opt,envir=nnTK)  #assign user-value to opt-list
-    setupWrite(unlist(opt),file=setupFileKit)    #save to file in installation folder
-    gWidgets2::dispose(setwin)
-   } )
-   gWidgets2::visible(setwin) <- TRUE
+    items0 = c(L$none,euroformix::getKit()) #no kits also possible
+    opt <- get("setupKit",envir=nnTK) 
+    setwin <- gWidgets2::gwindow( paste( L$select ,L$kit) ,visible=FALSE)
+    tabval = gWidgets2::glayout(spacing=0,container=(setwin)) 
+    tabval[1,1] <- gWidgets2::glabel(text= paste0( L$selected ," ", L$kit,colonsymbol) ,container=tabval)
+    tabval[1,2] <- gWidgets2::glabel(text=opt$kitname,container=tabval)
+    tabval[2,1] <- gWidgets2::glabel(text= paste( L$select , L$kit),container=tabval)
+    tabval[2,2] <- gWidgets2::gcombobox(items=items0, width=100, selected=0, editable = FALSE, container = tabval)
+    tabval[3,1] <- gWidgets2::gbutton( L$save , container=tabval,handler = function(h, ...) { 
+      opt$kitname <-gWidgets2::svalue(tabval[2,2]) #get selected
+      assign("setupKit",opt,envir=nnTK)  #assign user-value to opt-list
+      setupWrite(unlist(opt),file=setupFileKit)    #save to file in installation folder
+      gWidgets2::dispose(setwin)
+    } )
+    gWidgets2::visible(setwin) <- TRUE
   }
   
   #GUI for importing and modifying population frequency settings
@@ -812,41 +821,49 @@ gui = function(envirfile=NULL, envir=NULL) {
     gWidgets2::visible(setwin) <- TRUE
   }
   
-    #The user can change advanced model settings (nDone,maxContributors)
-    f_advancedoptions = function(h,...) { 
-      opt <- get("setupAdvanced",envir=nnTK) 
-      setwin <- gWidgets2::gwindow( paste( L$advanced , L$options ) ,visible=FALSE)
-      tabval = gWidgets2::glayout(spacing=0,container=(setwin)) 
-      tabval[1,1] <- gWidgets2::glabel(text= L$maxcontrqual ,container=tabval) #"Maximum contributors in QualLR (LRmix)"
-      tabval[1,2] <- gWidgets2::gedit(text=opt$maxC1,width=w0,container=tabval) 
-      tabval[2,1] <- gWidgets2::glabel(text= L$maxcontrquan ,container=tabval) #Maximum contributors in QuanLR (EFM)
-      tabval[2,2] <- gWidgets2::gedit(text=opt$maxC2,width=w0,container=tabval)
-      tabval[3,1] <- gWidgets2::glabel(text= L$numoptim ,container=tabval) #"Number of required optimizes (EFM)"
-      tabval[3,2] <- gWidgets2::gedit(text=opt$nDone,width=w0,container=tabval)
-      tabval[4,1] <- gWidgets2::glabel(text= L$useoneaslowestnoc ,container=tabval) #Start with one contributor when estimating contrs
-      tabval[4,2] <- gWidgets2::gcheckbox(text="",checked=opt$useMinK1=="TRUE",container=tabval)
-      tabval[5,1] <- gWidgets2::glabel(text= L$showssinmatchlist ,container=tabval) #"Compare single sources"
-      tabval[5,2] <- gWidgets2::gcheckbox(text="",checked=opt$compSS=="TRUE",container=tabval)
-      tabval[6,1] <- gWidgets2::glabel(text= L$useSNPmodule ,container=tabval) #Use SNP module
-      tabval[6,2] <- gWidgets2::gcheckbox(text="",checked=opt$isSNP=="TRUE",container=tabval)
-      tabval[7,1] <- gWidgets2::glabel(text= L$profileselector ,container=tabval) #User can select profile when import/report
-      tabval[7,2] <- gWidgets2::gcheckbox(text="",checked=opt$selProfiles=="TRUE",container=tabval)
+  #The user can change advanced model settings (nDone,maxContributors)
+  f_advancedoptions = function(h,...) { 
+    opt <- get("setupAdvanced",envir=nnTK) 
+    setwin <- gWidgets2::gwindow( paste( L$advanced , L$options ) ,visible=FALSE)
+    tabval = gWidgets2::glayout(spacing=0,container=(setwin)) 
+    tabval[1,1] <- gWidgets2::glabel(text= L$maxcontrqual ,container=tabval) #"Maximum contributors in QualLR (LRmix)"
+    tabval[1,2] <- gWidgets2::gedit(text=opt$maxC1,width=w0,container=tabval) 
+    tabval[2,1] <- gWidgets2::glabel(text= L$maxcontrquan ,container=tabval) #Maximum contributors in QuanLR (EFM)
+    tabval[2,2] <- gWidgets2::gedit(text=opt$maxC2,width=w0,container=tabval)
+    tabval[3,1] <- gWidgets2::glabel(text= L$numoptim ,container=tabval) #"Number of required optimizes (EFM)"
+    tabval[3,2] <- gWidgets2::gedit(text=opt$nDone,width=w0,container=tabval)
+    tabval[4,1] <- gWidgets2::glabel(text= L$useoneaslowestnoc ,container=tabval) #Start with one contributor when estimating contrs
+    tabval[4,2] <- gWidgets2::gcheckbox(text="",checked=opt$useMinK1=="TRUE",container=tabval)
+    tabval[5,1] <- gWidgets2::glabel(text= L$showssinmatchlist ,container=tabval) #"Compare single sources"
+    tabval[5,2] <- gWidgets2::gcheckbox(text="",checked=opt$compSS=="TRUE",container=tabval)
+    tabval[6,1] <- gWidgets2::glabel(text= L$useSNPmodule ,container=tabval) #Use SNP module
+    tabval[6,2] <- gWidgets2::gcheckbox(text="",checked=opt$isSNP=="TRUE",container=tabval)
+    tabval[7,1] <- gWidgets2::glabel(text= L$profileselector ,container=tabval) #User can select profile when import/report
+    tabval[7,2] <- gWidgets2::gcheckbox(text="",checked=opt$selProfiles=="TRUE",container=tabval)
+    tabval[8,1] <- gWidgets2::glabel(text= L$useEFMex,container=tabval) #User can select if EFMex to be used
+    tabval[8,2] <- gWidgets2::gcheckbox(text="",checked=opt$useEFMex=="TRUE",container=tabval)
+    tabval[9,1] <- gWidgets2::glabel(text= L$useMAC,container=tabval) #User can select NOC estimate to be based on MAC (maximum allele counts)
+    tabval[9,2] <- gWidgets2::gcheckbox(text="",checked=opt$useMAC=="TRUE",container=tabval)
+    
+    tabval[10,1] <- gWidgets2::gbutton( L$save , container=tabval,handler = function(h, ...) { 
+      opt2 = list() #avoid wrong order 
+      opt2$maxC1 <- as.numeric(gWidgets2::svalue(tabval[1,2]))  #max number of contributors in LRmix model
+      opt2$maxC2 <- as.numeric(gWidgets2::svalue(tabval[2,2]))  #max number of contributors in EFM model
+      opt2$nDone <- as.numeric(gWidgets2::svalue(tabval[3,2]))  #iterations in optimizer
+      opt2$useMinK1 <- as.character(gWidgets2::svalue(tabval[4,2])==TRUE)  #should K=1 be used as start contr?
+      opt2$compSS <- as.character(gWidgets2::svalue(tabval[5,2])==TRUE)  #Should single source profiles be compared?
+      opt2$isSNP <- as.character(gWidgets2::svalue(tabval[6,2])==TRUE)  #Should SNP module be used (all evid samples are mixtures)
+      opt2$selProfiles  <- as.character(gWidgets2::svalue(tabval[7,2])==TRUE)   #User can select profile when import/report
+      opt2$useEFMex  <- as.character(gWidgets2::svalue(tabval[8,2])==TRUE)   #User can select profile if EFMex should be used
+      opt2$useMAC  <- as.character(gWidgets2::svalue(tabval[9,2])==TRUE)   #User can select profile if EFMex should be used
       
-      tabval[8,1] <- gWidgets2::gbutton( L$save , container=tabval,handler = function(h, ...) { 
-        opt2 = list() #avoid wrong order 
-        opt2$maxC1 <- as.numeric(gWidgets2::svalue(tabval[1,2]))  #max number of contributors in LRmix model
-        opt2$maxC2 <- as.numeric(gWidgets2::svalue(tabval[2,2]))  #max number of contributors in EFM model
-        opt2$nDone <- as.numeric(gWidgets2::svalue(tabval[3,2]))  #iterations in optimizer
-        opt2$useMinK1 <- as.character(gWidgets2::svalue(tabval[4,2])==TRUE)  #should K=1 be used as start contr?
-        opt2$compSS <- as.character(gWidgets2::svalue(tabval[5,2])==TRUE)  #Should single source profiles be compared?
-        opt2$isSNP <- as.character(gWidgets2::svalue(tabval[6,2])==TRUE)  #Should SNP module be used (all evid samples are mixtures)
-        opt2$selProfiles  <- as.character(gWidgets2::svalue(tabval[7,2])==TRUE)   #User can select profile when import/report
-        assign("setupAdvanced",opt2,envir=nnTK)  #assign user-value to opt-list
-        setupWrite(unlist(opt2),file=setupFileAdvanced)    #save to file in installation folder
-        gWidgets2::dispose(setwin)
-      } )
-      gWidgets2::visible(setwin) <- TRUE
-    }
+      if(any(is.na(unlist(opt2)))) stop("Invalid input given!") #throw error if any input is wrong
+      assign("setupAdvanced",opt2,envir=nnTK)  #assign user-value to opt-list
+      setupWrite(unlist(opt2),file=setupFileAdvanced)    #save to file in installation folder
+      gWidgets2::dispose(setwin)
+    } )
+    gWidgets2::visible(setwin) <- TRUE
+  }
   
   #The user can change MCMC settings (niter,delta,seed)
   f_mcmcoptions = function(h,...) { 
@@ -954,7 +971,7 @@ gui = function(envirfile=NULL, envir=NULL) {
      data2 <- importData(ff) #import data for selected case. Structure of markers must be given inside this function and returned by "markers".
      data$mix <-  rbind(data$mix,data2$mix) #add data to table
      data$ref <-  rbind(data$ref,data2$ref) #add data to table
-     markers <- data2$markers #get marker order from costumized importData file
+     if(length(markers)==0 && length(data2$markers)>0) markers <- data2$markers #get marker order from costumized importData file
      consdata <- rbind(consdata,data2$cons) #add data to table (consensus data)
   
      #Add metadata (assumed to be matrix/dataframes:
@@ -1889,59 +1906,59 @@ gui = function(envirfile=NULL, envir=NULL) {
   
   #function which takes all matches (with LR>threshold) and create a list to double click on (showing confirming under all conded)
   createMatchlist = function(modtype) { #directly after calculations are done
-  #modtype: 0=MAConly(noLR), 1=All Qual LR, 2=All Quan LR, 3=Original Qual LR, but some updated with Quan LR
-  threshLR <- get("setupThresh",envir=nnTK)$LRthresh1 #QualLR used by default
-  tab <- get("resCompLR1",envir=nnTK) #QualLR used by default
-  if(modtype==2)  { 
-    threshLR <- get("setupThresh",envir=nnTK)$LRthresh2 #QuanLR used if type 2
-    tab <- get("resCompLR2",envir=nnTK)
-  }
-  if(modtype==0)  { #if only MAC were used
-    threshMAC <- get("setupThresh",envir=nnTK)$MACthresh #MAC used if type 0
-    tab <- get("resCompMAC",envir=nnTK)$MatchList
-    tab <- tab[as.numeric(tab[,3])>=threshMAC,,drop=FALSE] #combinations to consider (all above MAC treshold AND above threshold used in Compare)
-  } else { #IF LR was calculated (MAC also stored here)
-    score <- as.numeric(tab[,4])
-    tab <- tab[score>=log10(threshLR),,drop=FALSE] #combinations to consider (all above LR treshold)
-  }
-  if(nrow(tab)==0) return()
-  if(modtype==3) {
-    threshLR2 <- get("setupThresh",envir=nnTK)$LRthresh2 #QualLR used if type 1
-    tab2 <- get("resCompLR2",envir=nnTK) #must create a concensus table of Qual/Quan based (using both thresholds)
-    if(nrow(tab2)>0) {
-     for(rr in 1:nrow(tab2)) { #for each row
-       checkind = which( tab[,1]==tab2[rr,1] & tab[,2]==tab2[rr,2]) #find corresponding comparison
-       if(length(checkind)==0) {
-          if(as.numeric(tab2[rr,4])>=log10(threshLR2)) tab = rbind(tab,tab2[rr,])  #if not found AND it is above threshold, we add it to the list      
-       } else {
-        	if( as.numeric(tab2[rr,4])<log10(threshLR2)) {
-         	 tab = tab[-checkind,,drop=FALSE] #remove from list
-       	} else {
-           tab[checkind,4:5] = tab2[rr,4:5] #update tab if still keeped
-        	}
-       }
-     } #end for each rr
-    } #if any QUAN based LRs
-  } #end model type =3
-  unEvid <- unique(tab[,1]) #get unique evidence
-  unRef <- unique(tab[,2]) #get unique references
-  if(length(unEvid)>0) { #if any matches
-   resMatches <- numeric() #create match table
-   for(evid in unEvid) { #for each evidence we condition on all evidence 
-    evidind <- tab[,1]==evid
-    refs <- tab[evidind,2] #get references
-    if(modtype==0) {
-     nC <- sapply(get("mixDataLIST",envir=nnTK)[evid],function(elem) { ceiling(max(sapply(elem,function(x) length(x$adata)))/2) })
+    #modtype: 0=MAConly(noLR), 1=All Qual LR, 2=All Quan LR, 3=Original Qual LR, but some updated with Quan LR
+    threshLR <- get("setupThresh",envir=nnTK)$LRthresh1 #QualLR used by default
+    tab <- get("resCompLR1",envir=nnTK) #QualLR used by default
+    if(modtype==2)  { 
+      threshLR <- get("setupThresh",envir=nnTK)$LRthresh2 #QuanLR used if type 2
+      tab <- get("resCompLR2",envir=nnTK)
+    }
+    if(modtype==0)  { #if only MAC were used
+      threshMAC <- get("setupThresh",envir=nnTK)$MACthresh #MAC used if type 0
+      tab <- get("resCompMAC",envir=nnTK)$MatchList
+      tab <- tab[as.numeric(tab[,3])>=threshMAC,,drop=FALSE] #combinations to consider (all above MAC treshold AND above threshold used in Compare)
+    } else { #IF LR was calculated (MAC also stored here)
+      score <- as.numeric(tab[,4])
+      tab <- tab[score>=log10(threshLR),,drop=FALSE] #combinations to consider (all above LR treshold)
+    }
+    if(nrow(tab)==0) return()
+    if(modtype==3) {
+      threshLR2 <- get("setupThresh",envir=nnTK)$LRthresh2 #QualLR used if type 1
+      tab2 <- get("resCompLR2",envir=nnTK) #must create a concensus table of Qual/Quan based (using both thresholds)
+      if(nrow(tab2)>0) {
+       for(rr in 1:nrow(tab2)) { #for each row
+         checkind = which( tab[,1]==tab2[rr,1] & tab[,2]==tab2[rr,2]) #find corresponding comparison
+         if(length(checkind)==0) {
+            if(as.numeric(tab2[rr,4])>=log10(threshLR2)) tab = rbind(tab,tab2[rr,])  #if not found AND it is above threshold, we add it to the list      
+         } else {
+          	if( as.numeric(tab2[rr,4])<log10(threshLR2)) {
+           	 tab = tab[-checkind,,drop=FALSE] #remove from list
+         	} else {
+             tab[checkind,4:5] = tab2[rr,4:5] #update tab if still keeped
+          	}
+         }
+       } #end for each rr
+      } #if any QUAN based LRs
+    } #end model type =3
+    unEvid <- unique(tab[,1]) #get unique evidence
+    unRef <- unique(tab[,2]) #get unique references
+    if(length(unEvid)>0) { #if any matches
+     resMatches <- numeric() #create match table
+     for(evid in unEvid) { #for each evidence we condition on all evidence 
+      evidind <- tab[,1]==evid
+      refs <- tab[evidind,2] #get references
+      if(modtype==0) {
+       nC <- sapply(get("mixDataLIST",envir=nnTK)[evid],function(elem) { ceiling(max(sapply(elem,function(x) length(x$adata)))/2) })
+      } else {
+       nC <- as.numeric(tab[evidind,5][1]) #get number of contributors (equal for all)
+      }  
+      resMatches <- rbind(resMatches, c(evid,paste0(refs,collapse="/"),nC) )
+     }
     } else {
-     nC <- as.numeric(tab[evidind,5][1]) #get number of contributors (equal for all)
-    }  
-    resMatches <- rbind(resMatches, c(evid,paste0(refs,collapse="/"),nC) )
-   }
-  } else {
-   resMatches =  matrix(nrow=0,ncol=3)
-  }
-  colnames(resMatches) <- c( L$evidence , L$references , L$numcontr )
-  assign("resMatches",resMatches,envir=nnTK) 
+     resMatches =  matrix(nrow=0,ncol=3)
+    }
+    colnames(resMatches) <- c( L$evidence , L$references , L$numcontr )
+    assign("resMatches",resMatches,envir=nnTK) 
   }
   
   #Show matches in a graph:
@@ -1966,94 +1983,94 @@ gui = function(envirfile=NULL, envir=NULL) {
   #STEP 1) CALCULATE MATCHING ALLELES#
   #Function executed when clicking "Comparison"
   getMatchesMAC = function(locs=NULL) { #Compare only alleles (given selection of loci
-  DBmix <- get("mixDataTABLE",envir=nnTK) #consider lists
-  DBref <- get("refDataTABLE",envir=nnTK) #consider lists
-  DBmixmatch <- get("mixDataMATCHSTATUS",envir=nnTK) #consider lists
-  
-  #Add evidence profiles as "mixture" OR considered as unknown 
-  #ONLY EVALUATE PROFILES WHICH HAS NOT MATCHED A REFERENCE (Mixtures and EMpty)
-  indUse = DBmixmatch=="mixture" | DBmixmatch==""  #not L$mixture ?
-  #if(get("setupAdvanced",envir=nnTK)$compSS=="TRUE")  indUse = indUse | TRUE # grepl("Unknown ",DBmixmatch) #search only those with matchstatus "Unknown"
-  DBmix <- DBmix[indUse,,drop=FALSE] #All evidences must be mixtures OR assigned to unknown
-  
-  if(!is.null(locs)) {
-   keep = toupper(colnames(DBmix))%in%toupper(locs)
-   DBmix <- DBmix[,keep,drop=FALSE] #use relevant loci
-   DBref <- DBref[,keep,drop=FALSE] #use relevant loci
-  }
-  
-  #Perform the Matching allele counting algorithm-> Output is score for all comparisons
-  matchMAC <- calcMACcomparison(DBmix=DBmix,DBref=DBref,threshMAC=get("setupThresh",envir=nnTK)$MACthresh) #calculating the score=normalized number of allele match counting for all combinations
-  #  colnames(samplename
-  
-  #Post-process: Remove candidates that are same profile (early stage): BASEDO ON MATCH STATUS???
-  if(!is.null(matchMAC) && nrow(matchMAC$MatchList)>0) { #if any comparison results
-   DBmixmatchConsider = DBmixmatch[grepl( L$unknown ,DBmixmatch)] #profiles to consider
-   DBmixmatchConsiderEvid = names( DBmixmatchConsider)
-   rmind = rep(FALSE,nrow(matchMAC$MatchList)) #indices to remove
-   for(i in 1:length(DBmixmatchConsider) ) {
-    ind = DBmixmatchConsiderEvid[i] == matchMAC$MatchList[,1] &  DBmixmatchConsider[i] == matchMAC$MatchList[,2] 
-    rmind[ind] = TRUE #index to remove 
-   }
-   matchMAC$MatchList = matchMAC$MatchList[!rmind,,drop=FALSE] #remove matches
-  } #end If comparison results
-  assign("resCompMAC",matchMAC,envir=nnTK)  #store match-matrix in environment 
+    DBmix <- get("mixDataTABLE",envir=nnTK) #consider lists
+    DBref <- get("refDataTABLE",envir=nnTK) #consider lists
+    DBmixmatch <- get("mixDataMATCHSTATUS",envir=nnTK) #consider lists
+
+    #Add evidence profiles as "mixture" OR considered as unknown 
+    #ONLY EVALUATE PROFILES WHICH HAS NOT MATCHED A REFERENCE (Mixtures and EMpty)
+    indUse = DBmixmatch=="mixture" | DBmixmatch==""  #not L$mixture ?
+    #if(get("setupAdvanced",envir=nnTK)$compSS=="TRUE")  indUse = indUse | TRUE # grepl("Unknown ",DBmixmatch) #search only those with matchstatus "Unknown"
+    DBmix <- DBmix[indUse,,drop=FALSE] #All evidences must be mixtures OR assigned to unknown
+    
+    if(!is.null(locs)) {
+     keep = toupper(colnames(DBmix))%in%toupper(locs)
+     DBmix <- DBmix[,keep,drop=FALSE] #use relevant loci
+     DBref <- DBref[,keep,drop=FALSE] #use relevant loci
+    }
+    
+    #Perform the Matching allele counting algorithm-> Output is score for all comparisons
+    matchMAC <- calcMACcomparison(DBmix=DBmix,DBref=DBref,threshMAC=get("setupThresh",envir=nnTK)$MACthresh) #calculating the score=normalized number of allele match counting for all combinations
+    #  colnames(samplename
+    
+    #Post-process: Remove candidates that are same profile (early stage): BASEDO ON MATCH STATUS???
+    if(!is.null(matchMAC) && nrow(matchMAC$MatchList)>0) { #if any comparison results
+     DBmixmatchConsider = DBmixmatch[grepl( L$unknown ,DBmixmatch)] #profiles to consider
+     DBmixmatchConsiderEvid = names( DBmixmatchConsider)
+     rmind = rep(FALSE,nrow(matchMAC$MatchList)) #indices to remove
+     for(i in 1:length(DBmixmatchConsider) ) {
+      ind = DBmixmatchConsiderEvid[i] == matchMAC$MatchList[,1] &  DBmixmatchConsider[i] == matchMAC$MatchList[,2] 
+      rmind[ind] = TRUE #index to remove 
+     }
+     matchMAC$MatchList = matchMAC$MatchList[!rmind,,drop=FALSE] #remove matches
+    } #end If comparison results
+    assign("resCompMAC",matchMAC,envir=nnTK)  #store match-matrix in environment 
   } #end MAC comparison
   
   ############################################
   #STEP 2) CALCULATE LR FOR REMAINING MATCHES#
   getMatchesLR = function(type="quan") { #Calculate LR for individuals in MatchList 
-  #type={"qual","quan"} 
-  Clist <- get("resCompMAC",envir=nnTK)$MatchList  #list to consider for calculating LR
-  
-  if(type=="quan" && !is.null(get("resCompLR1",envir=nnTK)) ) {
-   Clist <- get("resCompLR1",envir=nnTK)  #list to consider for calculating LR (based on qualLR)
-   Clist <- Clist[as.numeric(Clist[,4])>=log10(get("setupThresh",envir=nnTK)$LRthresh1),,drop=FALSE] #keep only variants above thrshold AND COLUMNS in MAC
-  }
-  DBmix <- get("mixDataLIST",envir=nnTK)[unique(Clist[,1])] #get relevant evidence
-  DBref <- get("refDataTABLE",envir=nnTK)
-  DBref = DBref[rownames(DBref)%in%unique(Clist[,2]),,drop=FALSE] #get only relevant references
-  
-  mod <- casesolver::getModelSettings(nnTK)  #object for model settings
-  
-  #matchlist=Clist;popFreq=mod$popFreq;pC=mod$pC; maxC=get("setupAdvanced",envir=nnTK)$maxC1;useMinK1=as.logical(get("setupAdvanced",envir=nnTK)$useMinK1);normalize=mod$normalize;minFreq=mod$minFreq
-  suppressWarnings({
-   if(type=="qual")  matchLRres <- casesolver::calcQualLRcomparison(DBmix,DBref,matchlist=Clist,popFreq=mod$popFreq,pC=mod$pC, maxC=get("setupAdvanced",envir=nnTK)$maxC1,useMinK1=as.logical(get("setupAdvanced",envir=nnTK)$useMinK1),normalize=mod$normalize,minFreq=mod$minFreq)
-   if(type=="quan") {
-     
-      nContr = NULL #Number of contributors to use (default is the max(nA)/2 rule)
-      if(ncol(Clist)==5) nContr = Clist[,5] #number of contributors given in last column if qualLR calculated
-  
-      #use "Rule of three" for EFM model when applied to SNPs
-      if(!is.null(get("setupAdvanced",envir=nnTK)$isSNP) && get("setupAdvanced",envir=nnTK)$isSNP=="TRUE")  nContr = rep("3",nrow(Clist))
-  #matchlist=Clist[,1:3,drop=FALSE];popFreq=mod$popFreq;kit=mod$kit;xiBW=mod$xiBW;xiFW=mod$xiFW;pC=mod$pC;lambda=mod$lambda;threshT=mod$threshT;nDone=mod$nDone;maxC=get("setupAdvanced",envir=nnTK)$maxC2;normalize=mod$normalize;minFreq=mod$minFreq
-      matchLRres <- casesolver::calcQuanLRcomparison(DBmix,DBref,matchlist=Clist[,1:3,drop=FALSE],popFreq=mod$popFreq,kit=mod$kit,xiBW=mod$xiBW,xiFW=mod$xiFW,pC=mod$pC,lambda=mod$lambda,threshT=mod$threshT,nDone=mod$nDone,maxC=get("setupAdvanced",envir=nnTK)$maxC2,nContr=nContr, normalize=mod$normalize,minFreq=mod$minFreq) 
-   }
-  })
-  matchlist <- matchLRres$MatchList
-  matchlist2 = cbind(matchlist,type) #Added in v1.2.1
-  assign("resCompLR",matchlist2,envir=nnTK)  #store results from comparison
-  
-  if(type=="qual") {
-   #sort the matchlist with respect to the LRs:  
-   LRcol <- which(colnames(matchlist)=="log10LR") #get column where LR is
-   LRval <- as.numeric(matchlist[,LRcol])
-   ord <- order( LRval,decreasing=TRUE)
-   matchlist[,LRcol] <- round(LRval,2) #round to 2 dec
-   #matchlist[ord,] #sort list by LR
-   assign("resCompLR1", matchlist[ord,,drop=FALSE],envir=nnTK)  #store sorted matchlist 
-  }
-  if(type=="quan") {
-   assign("storedFitHp",matchLRres$storedFitHp,envir=nnTK)  #store model results under Hp
-  
-   #sort the matchlist with respect to the LRs:  
-   LRcol <- which(colnames(matchlist)=="log10LR") #get column where LR is
-   LRval <- as.numeric(matchlist[,LRcol])
-   ord <- order( LRval,decreasing=TRUE)
-   matchlist[,LRcol] <- round(LRval,2) #round to 2 dec
-   #matchlist[ord,] #sort list by LR
-   assign("resCompLR2", matchlist[ord,,drop=FALSE],envir=nnTK)  #store sorted matchlist 
-  }
+    #type={"qual","quan"} 
+    Clist <- get("resCompMAC",envir=nnTK)$MatchList  #list to consider for calculating LR
+    
+    if(type=="quan" && !is.null(get("resCompLR1",envir=nnTK)) ) {
+     Clist <- get("resCompLR1",envir=nnTK)  #list to consider for calculating LR (based on qualLR)
+     Clist <- Clist[as.numeric(Clist[,4])>=log10(get("setupThresh",envir=nnTK)$LRthresh1),,drop=FALSE] #keep only variants above thrshold AND COLUMNS in MAC
+    }
+    DBmix <- get("mixDataLIST",envir=nnTK)[unique(Clist[,1])] #get relevant evidence
+    DBref <- get("refDataTABLE",envir=nnTK)
+    DBref = DBref[rownames(DBref)%in%unique(Clist[,2]),,drop=FALSE] #get only relevant references
+    
+    mod <- casesolver::getModelSettings(nnTK)  #object for model settings
+    
+    #matchlist=Clist;popFreq=mod$popFreq;pC=mod$pC; maxC=get("setupAdvanced",envir=nnTK)$maxC1;useMinK1=as.logical(get("setupAdvanced",envir=nnTK)$useMinK1);normalize=mod$normalize;minFreq=mod$minFreq
+    suppressWarnings({
+     if(type=="qual")  matchLRres <- casesolver::calcQualLRcomparison(DBmix,DBref,matchlist=Clist,popFreq=mod$popFreq,pC=mod$pC, maxC=get("setupAdvanced",envir=nnTK)$maxC1,useMinK1=as.logical(get("setupAdvanced",envir=nnTK)$useMinK1),normalize=mod$normalize,minFreq=mod$minFreq, useMAC=as.logical(get("setupAdvanced",envir=nnTK)$useMAC))
+     if(type=="quan") {
+        nContr = NULL #Number of contributors to use (default is the max(nA)/2 rule)
+        if(ncol(Clist)==5) nContr = Clist[,5] #number of contributors given in last column if qualLR calculated
+    
+        #use "Rule of three" for EFM model when applied to SNPs
+        if(!is.null(get("setupAdvanced",envir=nnTK)$isSNP) && get("setupAdvanced",envir=nnTK)$isSNP=="TRUE")  nContr = rep("3",nrow(Clist))
+        useEFMex = get("setupAdvanced",envir=nnTK)$useEFMex=="TRUE"
+    #matchlist=Clist[,1:3,drop=FALSE];popFreq=mod$popFreq;kit=mod$kit;xiBW=mod$xiBW;xiFW=mod$xiFW;pC=mod$pC;lambda=mod$lambda;threshT=mod$threshT;nDone=mod$nDone;maxC=get("setupAdvanced",envir=nnTK)$maxC2;normalize=mod$normalize;minFreq=mod$minFreq
+        matchLRres <- calcQuanLRcomparison(DBmix,DBref,matchlist=Clist[,1:3,drop=FALSE],popFreq=mod$popFreq,kit=mod$kit,xiBW=mod$xiBW,xiFW=mod$xiFW,pC=mod$pC,lambda=mod$lambda,threshT=mod$threshT,nDone=mod$nDone,maxC=get("setupAdvanced",envir=nnTK)$maxC2,nContr=nContr, normalize=mod$normalize,minFreq=mod$minFreq,useEFMex=useEFMex) 
+     }
+    })
+    matchlist <- matchLRres$MatchList
+    matchlist2 = cbind(matchlist,type) #Added in v1.2.1
+    assign("resCompLR",matchlist2,envir=nnTK)  #store results from comparison
+    
+    if(type=="qual") {
+      #sort the matchlist with respect to the LRs:  
+      LRcol <- which(colnames(matchlist)=="log10LR") #get column where LR is
+      LRval <- as.numeric(matchlist[,LRcol])
+      ord <- order( LRval,decreasing=TRUE)
+      matchlist[,LRcol] <- round(LRval,2) #round to 2 dec
+      #matchlist[ord,] #sort list by LR
+      assign("resCompLR1", matchlist[ord,,drop=FALSE],envir=nnTK)  #store sorted matchlist 
+    }
+    if(type=="quan") {
+      assign("storedFitHp",matchLRres$storedFitHp,envir=nnTK)  #store model results under Hp
+      
+      #sort the matchlist with respect to the LRs:  
+      LRcol <- which(colnames(matchlist)=="log10LR") #get column where LR is
+      LRval <- as.numeric(matchlist[,LRcol])
+      ord <- order( LRval,decreasing=TRUE)
+      matchlist[,LRcol] <- round(LRval,2) #round to 2 dec
+      #matchlist[ord,] #sort list by LR
+      assign("resCompLR2", matchlist[ord,,drop=FALSE],envir=nnTK)  #store sorted matchlist 
+    }
   } #end LR comparison
   
   
@@ -2237,13 +2254,12 @@ gui = function(envirfile=NULL, envir=NULL) {
    if(!ok) return() #retun from function if not frequencies are set.
   
    #perform WOE calculation (returns from function when closed/finished)
-   casesolver::calcWOEhyps(nnTK) 
+   calcWOEhyps(nnTK) 
    #Update with WoE table when done evaluated
    #length( get("resWOEeval",envir=nnTK) )
    resList = get("resWOEeval",envir=nnTK) #obtain results
    #object.size(resWOEeval)/1e6 #size of object
-   
-   if(length(resList)==0) return() #return if no elements
+   if(length(resList)==0 || !is.null(resList$resTable)) return(NULL) #return if no elements
    extractrow = function(x) {
      s0 = 2
      evidtxt = paste0(x$evid,collapse="/")
@@ -2467,6 +2483,7 @@ gui = function(envirfile=NULL, envir=NULL) {
         indins = which( cn==loc )
         av = unlist(tab[tab[,sind]==ss & toupper(tab[,lind])==loc, aind])
         av = av[av!=""] #ignore empty
+        if(length(av)==0) next #skip if not found
       	#if(length(av)==1) av = rep(av,2)
       	if(length(av)==2) av = paste0(av,collapse="/")
         newT[indins] <- av  #factor(sn, levels= c(sn,levels(guitab[nR,1]) ))#insert name
@@ -2693,12 +2710,16 @@ gui = function(envirfile=NULL, envir=NULL) {
   gridTab3[1,1] <- gWidgets2::gbutton(text= L$export ,container=gridTab3,handler=f_exporttable,action="qual")  
   gWidgets2::tooltip(gridTab3[1,1]) <- L$tip.export 
   
-  gridTab3[1,2] <- gWidgets2::gbutton(text= paste( L$calculate , L$all, L$quanLR) ,container=gridTab3,handler=f_calcQuanLRall)  
+  gridTab3[1,2] <- gWidgets2::gbutton(text= paste( L$calculate , L$all, L$quanLR) ,container=gridTab3,handler=f_calcQuanLRall)
   gWidgets2::tooltip(gridTab3[1,2]) <- L$tip.matchlistQual.calc
   
-  gridTab3[1,3] <- gWidgets2::gcombobox(items=sortMathListTablesTxt,selected=1,container=gridTab3,handler=
+  #gridTab3[1,3] <- gWidgets2::gbutton(text= paste("Calc with EFMex") ,container=gridTab3,handler=f_calcQuanLRall,action="EFMex")
+  #gWidgets2::tooltip(gridTab3[1,3]) <- L$tip.matchlistQual.calc
+  
+  
+  gridTab3[1,4] <- gWidgets2::gcombobox(items=sortMathListTablesTxt,selected=1,container=gridTab3,handler=
    function(h,...) {
-     sortval = which(gWidgets2::svalue(gridTab3[1,3])==sortMathListTablesTxt)
+     sortval = which(gWidgets2::svalue(gridTab3[1,4])==sortMathListTablesTxt)
      resave_Sorting(3,sortval) #resaving to setupSorting object
      refreshTabLIST1(sort=sortval) #change sorted order
    }

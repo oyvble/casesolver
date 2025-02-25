@@ -10,10 +10,11 @@
 #' @param normalize A boolean of whether normalization should be applied or not.
 #' @param minFreq The freq value included for new alleles. Default NULL is using min.observed in popFreq.
 #' @param maxIter Maximum number of iterations for nlm
+#' @param useMAC Whether to use maximum allele counter (MAC) as the estimated NOC
 #' @export
 
 #library(casesolver);gui()
-calcQualLRcomparison = function(DBmix,DBref,matchlist,popFreq,pC=0.05,maxC=6,useMinK1=TRUE,normalize=FALSE,minFreq=NULL, maxIter=5) { 
+calcQualLRcomparison = function(DBmix,DBref,matchlist,popFreq,pC=0.05,maxC=6,useMinK1=TRUE,normalize=FALSE,minFreq=NULL, maxIter=5, useMAC=FALSE) { 
   #DBmix<<-DBmix;DBref<<-DBref;matchlist<<-matchlist;popFreq<<-popFreq;
   #pC=0.05;maxC=5;useMinK1=TRUE;normalize=TRUE;minFreq=NULL; maxIter=5
   Qallele = "99"
@@ -35,26 +36,28 @@ systime <- system.time( {
     #Notice: Empty markers important because of information about allele dropouts.
     sample <- lapply(DBmix[ss],function(x) x[locs]) #extract sample
     Qset <- euroformix::Qassignate(sample, popFreq[locs],incS=FALSE,normalize=normalize,minF=minFreq)
+    maxCsample = maxC #store upper limit of NOC to traverse (may depend on sample)
     
     #traverse number of contr under Hd.
     if(useMinK1) { #TRUE if K=1 contributors should be lower number of contributors
-     nClow <- 1 
+      nClow <- 1 
     } else {
-     nClow <- ceiling(max(sapply(sample[[1]],function(x) length(x$adata)))/2) #get lower boundary of #contr
+      nClow <- ceiling(max(sapply(sample[[1]],function(x) length(x$adata)))/2) #get lower boundary of #contr
+      if(useMAC) maxCsample = nClow #dont iterate higher NOC than this if method to use
     }
     bestfoo <- NULL
-    for(nC in nClow:maxC) {
+    for(nC in nClow:maxCsample) {
       foohd <- euroformix::calcQualMLE(nC,Qset$samples,Qset$popFreq, prC=pC,fst=0, maxIter = maxIter)
       if(is.null(bestfoo)) {
         bestfoo <- foohd
       } else { #if not first
         if( (foohd$min+1) < bestfoo$min ) { #if new max was more than 1 better (AIC criterion)
-        bestfoo <- foohd
-      }else {
-        break; #stop if not better
+          bestfoo <- foohd
+        } else {
+          break; #stop if not better
+        }
       }
-     }
-     bestfoo$nC = nC 
+      bestfoo$nC = nC 
     }
     loghd <- -bestfoo$min #maximum
     nC <- bestfoo$nC  #number of contr to use

@@ -4,9 +4,18 @@
 \alias{calcQualLRcomparison}
 \title{calcQualLRcomparison}
 \usage{
-calcQualLRcomparison(DBmix, DBref, matchlist, popFreq, pC = 0.05,
-  maxC = 6, useMinK1 = TRUE, normalize = FALSE, minFreq = NULL,
-  maxIter = 5)
+calcQualLRcomparison(
+  DBmix,
+  DBref,
+  matchlist,
+  popFreq,
+  pC = 0.05,
+  maxC = 6,
+  useMinK1 = TRUE,
+  normalize = FALSE,
+  minFreq = NULL,
+  maxIter = 5
+)
 }
 \arguments{
 \item{DBmix}{A list with evidence information [[sample]][[loc]] = list(adata,hdata)}

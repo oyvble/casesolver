@@ -4,8 +4,16 @@
 \alias{calcQuanMLE}
 \title{calcQuanMLE}
 \usage{
-calcQuanMLE(evidData, refData, condOrder, NOC, nnTK, isWOE = FALSE,
-  verbose = FALSE, knownRef = NULL)
+calcQuanMLE(
+  evidData,
+  refData,
+  condOrder,
+  NOC,
+  nnTK,
+  isWOE = FALSE,
+  verbose = FALSE,
+  knownRef = NULL
+)
 }
 \arguments{
 \item{evidData}{A list with evidence data evidData[[sample]][[locus]]}

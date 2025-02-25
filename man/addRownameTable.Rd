@@ -9,7 +9,7 @@ addRownameTable(tab, type = 1, samplename = "SampleName")
 \arguments{
 \item{tab}{The table to modify}
 
-\item{type}{The type of modification: {0,3}=First column is indices, 1=First column is rownames, 2=1st column is indices AND 2nd column is rownames, 4=1st column is rownames AND collesponding column named "samplename"}
+\item{type}{The type of modification: 0=First column is indices, 1=First column is rownames, 2=1st column is indices AND 2nd column is rownames, 4=1st column is rownames AND collesponding column named "samplename"}
 
 \item{samplename}{Stringname for "SampleName" (may be in another language)}
 }

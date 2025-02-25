@@ -4,8 +4,7 @@
 \alias{showMatchNetwork}
 \title{showMatchNetwork}
 \usage{
-showMatchNetwork(nnTK, action, createInteractive = FALSE,
-  selList = NULL)
+showMatchNetwork(nnTK, action, createInteractive = FALSE, selList = NULL)
 }
 \arguments{
 \item{nnTK}{an environment object from stored CaseSolver object (includes data)}

@@ -1,271 +1,273 @@
-Key;English
-addasref;Add as Ref
-advanced;Advanced
-all;All
-alleles;alleles
-AMEL;Amelogenin
-AMELincluded;AMEL included
-analyticalthreshold;Analytical threshold (AT)
-and;and
-attachments;Attachments
-both;Both
-BWstuttermodel;BW stutter model (EFM)
-calculate;Calculate
-calccons;Calc. CONS
-case;Case
-casefolder;Case Folder
-caseid;Case ID
-changeview;Change view
-compare;Compare
-comparison;Comparison
-comparisons;Comparisons
-Component;Component
-concordance;Concordance
-concordantevidences;Concordance of crime scene profiles
-concordantreferences;Concordance of reference profiles (IBS)
-Conditionals;Conditional(s)
-condref;condRef
-condtionON;Condition on
-consensusprofiles;Consensus profiles
-create;Create
-created;Created
-data;Data
-data.concordance;Calc. Evid concordance
-data.editrefs;Add/Edit Refs
-data.evidref;Evidence profile(s) and Reference profile(s)
-data.select;Selected profile(s)
-data.sortevid;Sort Evids by
-data.sortref;Sort Refs by
-deconvoluted;Deconvoluted
-deconvolution;deconvolution
-deconvolve;Deconvolve
-deconvolvemixtures;Deconvolve all
-degradationmodel;Degradation model (EFM)
-delete;Delete
-deletefrom;Delete from
-delta;Default sampler variation
-dir;Directory
-donttruncate;Don't truncate
-dropinpeakheightlambda;Dropin peak height Lambda (EFM)
-dropinprob;Dropin probability
-empty;Empty
-EPG;EPG
-error;error
-evidence;Evidence
-evidences;Evidence(s)
-export;Export
-expPHplot;Expected PH plot
-extractedprofiles;Extracted profiles
-file;File
-fileexport;File export
-finalmatchlist;Final Match List
-folder;Folder
-forr;for
-fstsetting;Fst/Theta correction (WoE)
-functionalities;Functionalities
-further;Further
-FWstuttermodel;FW stutter model (EFM)
-Genotype;Genotype
-gui;GUI
-header;Header
-hypothesisset;Hypothesis set
-IBS;IBS
-import;Import
-importfun;script with importData function
-importref;Import Ref(s)
-include;Include
-kit;Kit
-language;language
-layout;layout
-list;List
-logLR;log10 LR
-LR;LR
-LRbayes;Bayes
-LRcons;Conservative
-LRmle;MLE
-lrpermarker;LR-per marker (MLE)
-macthreshold;MAC threshold (comparison)
-Marker;Marker
-Markernames;Marker names
-Markers;Markers
-match;Match
-matches;Matches
-matchlist;Match List
-matchmatrix;Match Matrix
-matchnetwork;Match Network
-matchstatus;Match Status
-matrix;Matrix
-maxcontrqual;Maximum contributors in QualLR (LRmix)
-maxcontrquan;Maximum contributors in QuanLR (EFM)
-mcmc;MCMC
-metadata;Metadata
-minFreq;Minimum allele frequency
-minIBSrelative;Minimum IBS for being relative candidate (IBS)
-minLocSSmatch;Minimum loci for being SS match (Import)
-MixProp;MixProp
-mixture;mixture
-mixtures;Mixtures
-model;Model
-Modelparameters;Model parameters
-modelsettings;Model settings
-modeltypes;Model type(s)
-MxPOI;MxPOI
-name;Name
-namingreportfile;Name report file
-network;Network
-nFailed;Num. Failed (Hp/Hd)
-niter;Number of iterations
-no;No
-NOC;NOC
-nocandidates;No candidates
-none;None
-normalizeimpute;Normalize after imputing
-Normalized;Normalized
-notcompleted;Not completed
-numcontr;Num contr.
-numoptim;Number of required optimizes (EFM)
-nummismatch;nMismatch
-nummarkers;nLocs
-off;OFF
-on;ON
-open;Open
-openin;Open in
-options;options
-pathcasefolders;path with CASE folders
-plot;plot
-POI;Person of interest (POI)
-popfreq;Population frequencies
-preview;Preview
-probRatioToNext;Prob-ratio to next (Deconvolution)
-probSingleAllele;Prob. single allele (Deconvolution)
-profile;profile
-profileselector;Profile selector (import/report)
-proj;Project
-qualLR;Qual.LR
-qualLRthreshold;Qual. LR threshold (comparison)
-qualmodel;Qualitative (LRmix)
-quanLR;Quan.LR
-quanLRthreshold;Quan. LR threshold (comparison)
-quanmodel;Quantitative (EuroForMix)
-quantile;Conservative LR quantile
-quit;Quit
-quitprog;Exit program
-rarealleles;Rare alleles
-randomibs;Random IBS
-randommatchprob;Random match probabilities
-rank;Rank
-reference;Reference
-references;Reference(s)
-removeselected;Remove selected
-report;Report
-reportforcase;Report for Case 
-reportlayout;Report Layout
-restart;RESTART
-restore;Restore
-RMNE;RMNE
-RMP;RMP
-rotatematrix;Rotate MatchMatrix
-samplename;Sample Name
-save;Save
-seed;Sampler seed
-select;Select
-selected;Selected
-set;Set
-setpermarker;Set per marker
-settings;Settings
-setup;Setup
-show;Show
-showfor;Show for
-showssinmatchlist;Show single sources in Matches
-similarity;Similarity
-singlesources;Single sources
-sort.by;Sort by
-sort.column;Column name
-sort.evid;Evid name
-sort.lr;LR value
-sort.matchval;Match degree
-sort.ref;Ref name
-sort.row;Row name
-statement;statement
-stuttermodel;Stutter model (EFM)
-table;Table
-thresh;Threshold
-threshs;Thresholds
-threshsettings;Threshold settings
-truncate;Truncate
-unknown;Unknown
-unknowns;Unknowns
-useoneaslowestnoc;Start with one contributor when estimating contrs
-user;User
-userinput;User input
-useSNPmodule;Use SNP module (always 3 contributors)
-version;version
-warning;Warning
-withPH;w/PH
-woe;Weight-of-evidence
-woeParams;Model parameters (WOE)
-woeperform;Perform WOE
-woeResult;Weight of evidence results
-woeStatements;Verbal statements (WoE)
-workdir;Work Directory
-yes;Yes
-DCreporttext1;Predicted genotype (allele if below threshold)
-DCreporttext2;The probability ratio between top ranked genotype and second ranked genotype
-WOEreporttext;Unknowns are assumed to be unrelated individuals from the selected population
-msg.addDCprofile;Do you want to add the following deconvoluted profile to the references?
-msg.calculatedLR;The calculated LR was
-msg.calculationconfirmwarning;Are you sure you want to run the calculations? This may take very much time and memory when having many markers!
-msg.deleteprofiles;Are you sure you want to delete the following profiles:
-msg.emptycasedir;The directory to the Case folder was not properly selected. The user may have selected a folder not containing any case folders.
-msg.importfunerror;The file containing the importData function was not properly selected. The user must select this via
-msg.indexinput;Define index of reference profiles to show (use comma, AND/OR minus-)
-msg.kitspecify;Please specify a kit for further comparisons. Go to Settings->Kit selection
-msg.largesampleerror;The number of samples was too large. Please increase the memory in order to proceed
-msg.morecontrwarning;Notice: You have selected more contributors than given in
-msg.nocandidates;No candidates found
-msg.nodata;No data was found when importing
-msg.quit;Are you sure you want to quit?
-msg.refnametaken;Reference name already taken. Please consider a new name!
-msg.restartfirst;Remember to press RESTART before importing a new case!
-msg.saveproj;Do you want to save project?
-msg.selectoneprofile;Please select only one profile to continue
-msg.selectprofile;Please select at least one profile to continue
-msg.setPopFreq;Please select a valid file with population frequencies for further analysis. Go to Setup->Population Frequencies
-msg.sureapplychanges;Are you sure you want to apply the changes in
-msg.suredelete;Are you sure you want to delete
-msg.useresult;Do you want to use the result?
-tip.export;Export table to a textfile
-tip.data.changeview;Change table layout for evidence versus references (horizontal or vertical).
-tip.data.import;Import data from selected case. Alternatively it is also possible to edit name of case and press ENTER.
-tip.data.importref;Import additional reference(s) to session by selecting a textfile (requires EFM/LRmix format)
-tip.data.compare;Triggers the comparisons between Mixtures (and evidence(s) with emtpy MatchStatus) and references. This is an investigatory comparison search where match-candidates are obtained based on thresholds (see threshold settings). The results are shown in the next panels, and the final candidate list is shown under Matches
-tip.data.createreport;Create a report with results conducted in the session. Modify report in Report settings. Different report formats are supported.
-tip.data.selectprofiles;Conduct further analysis with selected (highlighted) profiles (evid/refs): Show, delete, export or perform deconvolution
-tip.data.rmp;Calculate random man not excluded (RMNE) and random match probability (RMP) of reference profiles
-tip.data.ibs;The number of shared alleles between all references are calculated (Identical By State). Only pairs which obtains a value above specified IBS threshold are shown.
-tip.data.conc;The number of shared alleles between all evidences are calculated (concordance). Only pairs which obtains a value above specified MAC threshold are shown.
-tip.data.editref;Edit name or alleles of any of the references. Also possible to add new references.
-tip.data.restart;Restart program session (all panels are cleared).
-tip.matchmatrix.truncate;Truncate cells which has a value below the specified MAC threshold.
-tip.matchlistQual.calc;Calculate the quantitative based LR for all candidates being above the QualLR threshold
-tip.matches.woe;Define and perform weight of evidence calculations based on user-defined hypotheses. The LR values may also take into account theta/Fst-correction.
-tip.matches.dcall;Performing deconvolution of all evidence profiles in the matchlist having at least one unknown. The deconvolution will condition on the matchcandidates.
-tip.dc.exportsel;Export selected profile to a EFM/LRmix supported textfile.
-tip.dc.delete;Delete row in table
-tip.dc.showprobs;Show the ratioToNext='probability of top ranked candidate divided by the probability of the second ranked candidate', where candidates are whole genotypes. Single alleles may be extracted if below specified DC genotype-setting but above allele-setting.
-tip.dc.addasref;Move selected profile (row) to the reference table in the data panel. The user may change the name (followed by ENTER).
-tip.woe.lrpermarker;Show LR per marker (based on MLE calculations)
-tip.woe.paramest;Show estimated parameters
-tip.woe.modelvalid;Show model validation plots
-tip.woe.fittedPH;Show fitted peak height model (either for Hp and Hd). For unknown contributors the genotypes are conducted as the top-ranked genotype (from deconvolution).
-tip.woe.statement;Show and edit statement for selected hypothesis set. It is possible to edit the statement here before creating report.
-tip.woe.cons;(Re)Calculate conservative LR for selected hypothesis set (MCMC)
-tip.woe.delete;Delete selected row
-statementScheme;The evidence ($evidtxt) is $LRtxt times more likely if the DNA came from $hptxt than if it came from $hdtxt
-numword_2;hundred
-numword_3;thousand
-numword_6;million
-numword_9;billion
-numword_12;trillion
-numword_more;more than
-numwordPlural;s
+﻿Key;English;Norwegian;Spanish
+addasref;Add as Ref;Legg til som ref.;Añadir como Ref.
+advanced;Advanced;Avansert;Avanzado
+all;All;Alle;Todos
+alleles;alleles;alleler;alelos
+AMEL;Amelogenin;Amelogenin;Amel (amelogenina)
+AMELincluded;AMEL included;AMEL included;AMEL included
+analyticalthreshold;Analytical threshold (AT);Analytisk grense (AT);Umbral analítico (AT)
+and;and;og;e
+attachments;Attachments;Tilleggsopplysninger;adjuntos
+both;Both;Begge;ambos
+BWstuttermodel;BW stutter model (EFM);BW stuttermodel (EFM);Modelar BW Stutter (EFM)
+calculate;Calculate;Beregn;calcular
+calccons;Calc. CONS;Beregn. CONS;Calc. CONS
+case;Case;Sak;caso
+casefolder;Case Folder;Saksmappe;Carpeta del caso
+caseid;Case ID;Saksnr;Número de caso
+changeview;Change view;Endre visning;cambiar vista
+compare;Compare;Sammenlign;Comparar
+comparison;Comparison;Sammenligning;Comparación
+comparisons;Comparisons;Sammenligninger;Comparaciones
+Component;Component;Component;Componente
+concordance;Concordance;Samsvar;Concordancia  
+concordantevidences;Concordance of crime scene profiles;Spor-Spor sammenligning;Evidencias Concordantes
+concordantreferences;Concordance of reference profiles (IBS);Referanse-mot-referanse sammenligning (IBS);Referencias Concordantes (IBS)
+Conditionals;Conditional(s);Betingede;Condicional(es)
+condref;condRef;CondRef;condicionar a referencia
+condtionON;Condition on;Beting på;condicionar a
+consensusprofiles;Consensus profiles;Konsensusprofiler;Perfiles consenso
+create;Create;Lag;crear
+created;Created;Laget;creado
+data;Data;Data;Datos
+data.concordance;Calc. Evid concordance;Beregn Spor-Spor;Concordancia entre evidencias
+data.editrefs;Add/Edit Refs;Legg til/endre Refs;Añadir/Editar refs.
+data.evidref;Evidence profile(s) and Reference profile(s);Sporprofile(r) og Referanseprofile(r);Perfiles de evidencias y perfiles de referencia
+data.select;Selected profile(s);Valgte profile(r);Perfiles seleccionados
+data.sortevid;Sort Evids by;Sorter Spor mhp;Ord. evids por
+data.sortref;Sort Refs by;Sorter Refs mhp;Ord. refs por
+deconvoluted;Deconvoluted;Dekonvolvert;Perfiles Separados
+deconvolution;deconvolution;Dekonvolusjon;Separación de perfiles
+deconvolve;Deconvolve;Dekonvolver;Separar perfiles
+deconvolvemixtures;Deconvolve all;Dekonvolver alt;Separar todas las mezclas 
+degradationmodel;Degradation model (EFM);Degraderingsmodell (EFM);Modelar degradación (EFM)
+delete;Delete;Fjerne;Borrar
+deletefrom;Delete from;Fjerne fra;Borrar de
+delta;Default sampler variation;Sampler-variasjon;Default sampler variation
+dir;Directory;Område;Directorio
+donttruncate;Don't truncate;Ikke trunker;No truncar
+dropinpeakheightlambda;Dropin peak height Lambda (EFM);Dropinhøydesannsynlighet (EFM);Lambda de altura de pico drop-in (EFM)
+dropinprob;Dropin probability;Dropinsannsynlighet;Probabilidad de Drop-in
+empty;Empty;Tom;vacío
+EPG;EPG;Elektropherogram;Electro
+error;error;feil;error
+evidence;Evidence;Spor;Evidencia
+evidences;Evidence(s);Spor;Evidencia(s)
+export;Export;Eksporter;exportar
+expPHplot;Expected PH plot;Forventet høydefigur;Gráfico de alturas alélicas esperadas
+extractedprofiles;Extracted profiles;Ekstraherte profiler;Extracted profiles
+file;File;Fil;Archivo
+fileexport;File export;Fileksportering;Exportar archivo
+finalmatchlist;Final Match List;Endelig Matchlist;Lista de Matches final
+folder;Folder;Mappe;Carpeta
+forr;for;for;para 
+fstsetting;Fst/Theta correction (WoE);Fst/Theta korreksjon (bevisvekting);Corrección Fst/Theta (WoE)
+functionalities;Functionalities;Funksjonaliteter;Funcionalidades
+further;Further;Videre;más
+FWstuttermodel;FW stutter model (EFM);FW stutter model (EFM);Modelar FW Stutter (EFM)
+Genotype;Genotype;Genotype;Genotipo
+gui;GUI;GUI;gui
+header;Header;Overskrift;Encabezado
+hypothesisset;Hypothesis set;Hypotesesett;Hipótesis
+IBS;IBS;Ref-Ref;IBS (idéntico por estado)
+import;Import;Importer;importar
+importfun;script with importData function;skript med importData funksjon;ImportData function (script para importar datos)
+importref;Import Ref(s);Importer Refs;Importar Ref(s)
+include;Include;Legg til;Incluir
+kit;Kit;Kit;kit
+language;language;Språk;idioma
+layout;layout;visning;Diseño
+list;List;Liste;Lista
+logLR;log10 LR;log10 LR;log10 LR
+LR;LR;LR;LR
+LRbayes;Bayes;Bayes;Bayes
+LRcons;Conservative;Konservativ;Conservative
+LRmle;MLE;MLE;MLE
+lrpermarker;LR-per marker (MLE);LR-per markør (MLE);LR-per marker (MLE)
+macthreshold;MAC threshold (comparison);Allele-sammenligningsterskel;Umbral de match
+Marker;Marker;Markør;Marcador
+Markernames;Marker names;Markørnavn;Nombres de marcadores
+Markers;Markers;Markører;Marcadores
+match;Match;Treff;Match
+matches;Matches;Treff;Matches
+matchlist;Match List;Treffliste;Lista de Matches
+matchmatrix;Match Matrix;Treffmatrise;Matriz de Matches
+matchnetwork;Match Network;Treffnettverk;Gráfico de Matches
+matchstatus;Match Status;Treffstatus;Status de Matches
+matrix;Matrix;Matrise;Matriz
+maxcontrqual;Maximum contributors in QualLR (LRmix);Maks antall bidragsytere for kval(LRmix);Máximo num. contribuyentes en CualLR (LRmix)
+maxcontrquan;Maximum contributors in QuanLR (EFM);Maks antall bidragsytere for kvan(EFM);Máximo num. contribuyentes en CuanLR (EFM)
+mcmc;MCMC;MCMC;MCMC
+metadata;Metadata;Andre opplysninger;metadato
+minFreq;Minimum allele frequency;Minimum allelefrekvens;Minimum frequency
+minIBSrelative;Minimum IBS for being relative candidate (IBS);Minste alleleoverlapp for å være slekning (IBS);minIBSparentesco (IBS mínimo para parentesco)
+minLocSSmatch;Minimum loci for being SS match (Import);Minste markørantall for å treffe ren profil (importering);minLocIndivMatch (Loci mínimos para matches de perfiles individuales)
+MixProp;MixProp;Bl.forhold.;MixProp
+mixture;mixture;blanding;mezcla
+mixtures;Mixtures;Blandinger;Mezclas
+model;Model;Modell;Modelo
+Modelparameters;Model parameters;Modellparametre;Parámetros del modelo
+modelsettings;Model settings;Modellinstillinger;Modelos
+modeltypes;Model type(s);Modeltyper;Tipo(s) de modelo
+MxPOI;MxPOI;MxPOI;MxPOI
+name;Name;Navn;Nombre
+namingreportfile;Name report file;Navngi rapportfil;Nombrar archivo del informe
+network;Network;Nettverk;Red
+nFailed;Num. Failed (Hp/Hd);Ant. Feilet (Hp/Hd);Num. Fallos (Hp/Hd)
+niter;Number of iterations;Antall iterasjoner;Num. Iteraciones
+no;No;Nei;No
+NOC;NOC;Ant.bidrag;NOC
+nocandidates;No candidates;Ingen kandidater;Sin candidatos
+none;None;Ingen;Ninguno
+normalizeimpute;Normalize after imputing;Normaliser frekvenser;Normalizar tras entrada
+Normalized;Normalized;Normalisert;Normalizados
+notcompleted;Not completed;Ikke utført;No completado
+numcontr;Num contr.;Ant.bidrag;Num. Contr.
+numoptim;Number of required optimizes (EFM);Antall optimaliseringer (EFM);Número de optimizaciones requeridas (EFM)
+nummismatch;nMismatch;Ant.Missmatch;Num.Mis.
+nummarkers;nLocs;Ant.Markører;Num.Mark.
+off;OFF;AV;Off
+on;ON;PÅ;On
+open;Open;Åpne;Abrir
+openin;Open in;Åpne i;Abrir en
+options;options;valg;opciones
+pathcasefolders;path with CASE folders;sti til saksmappene;rutaCarpetasCaso
+plot;plot;plott;gráfico
+POI;Person of interest (POI);Person av interesse (POI);PDI (persona de interés)
+popfreq;Population frequencies;Populasjonsfrekvenser;Frecuencias poblacionales (popfrec)
+preview;Preview;Forhåndsvis;Preview
+probRatioToNext;Prob-ratio to next (Deconvolution);Terskelkrav for dekonvolusjon (genotyper);Prob-ratio al siguiente (separación de perfiles)
+probSingleAllele;Prob. single allele (Deconvolution);Terskelkrav for dekonvolusjon (alleler);Prob. Alelo (separación de perfiles)
+profile;profile;profil;Perfil
+profileselector;Profile selector (import/report);Velg profiler (import/rapport);Profile selector (import/report)
+proj;Project;Prosjekt;Proyecto
+qualLR;Qual.LR;Kval.LR;LR cualitativo
+qualLRthreshold;Qual. LR threshold (comparison);Kvalitativ LR-terskel (sammenligning);Umbral LR Cual.
+qualmodel;Qualitative (LRmix);Kvalitativ (LRmix);Cualitativo (LRmix)
+quanLR;Quan.LR;Kvan.LR;LR cuantitativo
+quanLRthreshold;Quan. LR threshold (comparison);Kvantitativ LR-terskel (sammenligning);Umbral LR Cuan.
+quanmodel;Quantitative (EuroForMix);Kvantitativ (EuroForMix);Cuantitativo (EuroForMix)
+quantile;Conservative LR quantile;Konservativ LR-kvantil;Cuantil LR conservativo
+quit;Quit;Avslutt;Cerrar
+quitprog;Exit program;Avslutt program;Cerrar programa 
+rarealleles;Rare alleles;Sjeldne alleler;Alelos raros
+randomibs;Random IBS;Tilfeldig IBS;IBS al azar
+randommatchprob;Random match probabilities;Sannsynligheter for tilfeldig treff;Random match probabilities
+rank;Rank;Rangering;Rango
+reference;Reference;Referanse;Referencia
+references;Reference(s);Referanse(r);Referencia(s)
+removeselected;Remove selected;Fjern valgt;Eliminar seleccionados
+report;Report;Rapport;Informe
+reportforcase;Report for Case ;Rapport for sak;Informe del caso
+reportlayout;Report Layout;Rapportvisning;Diseño del informe
+restart;RESTART;RESTART;reiniciar
+restore;Restore;Gjenopprett;Restore
+RMNE;RMNE;RMNE;RMNE
+RMP;RMP;RMP;RPM
+rotatematrix;Rotate MatchMatrix;Roter tabell;Rotar Matriz
+samplename;Sample Name;Profilnavn;Número de muestra
+save;Save;Lagre;Guardar
+seed;Sampler seed;Samplerfrø;Semilla del sampler
+select;Select;Velg;Seleccionar
+selected;Selected;Valgt;Seleccionado
+set;Set;Sett;Definir
+setpermarker;Set per marker;Velg per markør;Establecer por marcador
+settings;Settings;Innstillinger;Parametros
+setup;Setup;Oppsett;Preparar
+show;Show;Vis;Mostrar
+showfor;Show for;Vis for;Mostrar
+showssinmatchlist;Show single sources in Matches;Vis rene profiler i Treffliste;Mostrar perfiles individuales en Matches final
+similarity;Similarity;Likhet;Similarity
+singlesources;Single sources;Rene profiler;Perfiles individuales
+sort.by;Sort by;Sorter mhp;Ord. por
+sort.column;Column name;Kolonnenavn;nombre de columna
+sort.evid;Evid name;Spornavn;Nombre
+sort.lr;LR value;LR-verdi;valor del LR
+sort.matchval;Match degree;Treffgrad;Match degree
+sort.ref;Ref name;Referansenavn;Nombre
+sort.row;Row name;Radnavn;nombre de fila
+statement;statement;utsagn;conclusión
+stuttermodel;Stutter model (EFM);Stuttermodell (EFM);Modelar Stutter (EFM)
+table;Table;Tabell;Tabla
+thresh;Threshold;Terskel;Umbral
+threshs;Thresholds;Terskler;Umbrales
+threshsettings;Threshold settings;Terskelinnstillinger;Umbrales
+truncate;Truncate;Trunker;Truncar
+unknown;Unknown;Ukjent;Desconocido
+unknowns;Unknowns;Ukjente;Desconocidos
+useEFMex;Whether to use EFMex method;Bruke EFMex metoden;Whether to use EFMex
+useMAC;Whether to use MAC (NOC);Bruke MAC (NOC);Whether to use MAC (NOC)
+useoneaslowestnoc;Start est. NOC as 1;Start est. NOC med 1;Empezar con un contribuyente cuando se estimen los contribuyentes
+user;User;Bruker;Usuario
+userinput;User input;Input fra bruker;Entrada del usuario
+useSNPmodule;Use SNP module (always NOC=3);Bruk SNP modul (alltid NOC=3);Usar módulo SNP (siempre NOC=3)
+version;version;versjon;versión
+warning;Warning;Advarsel;Advertencia
+withPH;w/PH;m/høyde;con altura alélica
+woe;Weight-of-evidence;Bevisvekting;Weight-of-evidence
+woeParams;Model parameters (WOE);Model parameters (bevisvekting);Parámetros del modelo (WOE)
+woeperform;Perform WOE;Utfør bevisvekting;Ejecutar WOE
+woeResult;Weight of evidence results;Resultater fra bevisvekting;Resultados de WOE
+woeStatements;Verbal statements (WoE);Verbal bevisvekting;Conclusiones (WoE)
+workdir;Work Directory;Arbeidsområde;Directorio de trabajo
+yes;Yes;Ja;Sí
+DCreporttext1;Predicted genotype (allele if below threshold);Foreslått profil (kun allele hvis under terskel);Genotipo inferido (alelo si bajo umbral)
+DCreporttext2;The probability ratio between top ranked genotype and second ranked genotype;Sannsynlighet av mest sannsynlig profil delt på sannsynligheten av nest-mest sannsynlig profil;Ratio de probabilidad entre el genotipo más probable y el segundo genotipo más probable
+WOEreporttext;Unknowns are assumed to be unrelated individuals from the selected population;Ukjente individer er antatt ubeslektede fra valgt populasjon;Se asume que los desconocidos son individuos no relacionados de la población seleccionada
+msg.addDCprofile;Do you want to add the following deconvoluted profile to the references?;Vil du legge til følgende dekonvolverte profil til referanser?;Quiere añadir a la lista de referencias los siguientes perfiles separados?
+msg.calculatedLR;The calculated LR was;Den beregnede LR verdien var;El LR calculado es
+msg.calculationconfirmwarning;Are you sure you want to run the calculations? This may take very much time and memory when having many markers!;Er du sikker på at du vil kjøre beregningene? Mye minne kreves ved mange markører!;Está seguro de que quiere realizar los cálculos? Con tantos marcadores, esto tardará mucho y utilizará mucha menoria
+msg.deleteprofiles;Are you sure you want to delete the following profiles:;Er du sikker på at du vil slette følgende profiler:;Está seguro de que desea eliminar los siguientes perfiles?:
+msg.emptycasedir;The directory to the Case folder was not properly selected. The user may have selected a folder not containing any case folders.;Saksmappen har ikke blitt riktig spesifisert. Brukeren må spesifisere mappen med saksmapper for å gå videre. Gå til;El directorio de carpetas del caso elegido es incorrecto. El usuario puede haber seleccionado una carpeta que no contiene carpetas de casos.
+msg.importfunerror;The file containing the importData function was not properly selected. The user must select this via;Filen med importData funksjonen har ikke blitt riktig spesifisert. Gå til ;El archivo que contiene la función para importar (importData function) no se ha seleccionado correctamente.
+msg.indexinput;Define index of reference profiles to show (use comma, AND/OR minus-);Definer indekser til profiler som du vil vise (bruk komma, OG/eller minus-);Defina el índice de perfiles de referencia a mostrar (use coma Y/O símbolo guión medio -)
+msg.kitspecify;Please specify a kit for further comparisons. Go to Settings->Kit selection;Vennligst spessifiser et kit for videre sammenligning. Gå til ;Por favor, especifique un kit para poder realizar las comparaciones. Vaya a Preparar->Seleccionar kit
+msg.largesampleerror;The number of samples was too large. Please increase the memory in order to proceed;Antall sampler var for høyt. Vennligst øk minnet for å fortsette;El número de muestras es demasiado elevado. Por favor, aumente la memoria de su ordenador para proceder
+msg.morecontrwarning;Notice: You have selected more contributors than given in;Merk: Du har valg flere bidragsytere enn det som er gitt i;Aviso: ha seleccionado más contribuyentes que los que hay en
+msg.nocandidates;No candidates found;Ingen kandidater ble funnet;No se han encontrado candidatos
+msg.nodata;No data was found when importing;Ingen data ble funnet ved importering;No se han encontrado datos para importar
+msg.quit;Are you sure you want to quit?;Er du sikker på at du vil avslutte programmet?;Está seguro de que quiere salir?
+msg.refnametaken;Reference name already taken. Please consider a new name!;Referansenavnet var alt tatt. Vennligst velg et nytt navn!;Nombre de muestra de referencia ya utilizado. Por favor, utilice otro nombre!
+msg.restartfirst;Remember to press RESTART before importing a new case!;Husk å trykk RESTART før importering av ny sak!;Recuerde hacer click en REINICIAR antes de importar un caso nuevo!
+msg.saveproj;Do you want to save project?;Vil du lagre prosjektet?;Quiere guardar el proyecto?
+msg.selectoneprofile;Please select only one profile to continue;Vennligst velg kun én profil for å fortsette;Por favor, seleccione sólo un perfil para continuar
+msg.selectprofile;Please select at least one profile to continue;Vennligst velg minst en profil for å fortsette;Por favor, seleccione al menos un perfil para continuar
+msg.setPopFreq;Please select a valid file with population frequencies for further analysis. Go to Setup->Population Frequencies;Vennligst velg en gyldig fil med populasjonsfrekvenser for å fortsette analysen. Gå til ;Por favor, seleccione un archivo de frecuencias poblacionales válido. Vaya a 
+msg.sureapplychanges;Are you sure you want to apply the changes in;Er du sikker på at du vil gjøre forandringer i;Está seguro de que quiere aplicar los cambios en
+msg.suredelete;Are you sure you want to delete;Er du sikker på at du vil fjerne;Está seguro de que quiere borrar
+msg.useresult;Do you want to use the result?;Vil du bruke resultatet;Quiere utlizar los resultados?
+tip.export;Export table to a textfile;Eksporter tabell til tekstfil (csv);Exportar tabla a archivo de texto
+tip.data.changeview;Change table layout for evidence versus references (horizontal or vertical).;Endre tabell-utforming av bevis vs referanser;Cambiar diseño tabla a evidencias versus referencias (horizontal o vertical).
+tip.data.import;Import data from selected case. Alternatively it is also possible to edit name of case and press ENTER.;Importer data fra valgt sak;Importar datos del caso seleccionado. Alternativamente, también es posible editar el nombre del caso y hacer click en ENTER
+tip.data.importref;Import additional reference(s) to session by selecting a textfile (requires EFM/LRmix format);Importer tilleggsreferanser;Importar referecia(s) adicionales a la sesión seleccionando un archivo de texto (requiere formato EFM/LRmix)
+tip.data.compare;Triggers the comparisons between Mixtures (and evidence(s) with emtpy MatchStatus) and references. This is an investigatory comparison search where match-candidates are obtained based on thresholds (see threshold settings). The results are shown in the next panels, and the final candidate list is shown under Matches;Utfører sammenligning mellom blandinger og referanser;Activar comparaciones entre mezclas (y evidencia/s con MatchStatus vacío) y referencias. Es una búsqueda que compara con el fin de investigar, en la que se obtienen candidatos basándose en umbrales (ver ajustes de umbrales). Los resultados se muestran en los paneles siguientes, y la lista final de candidatos se muestra en Matches. 
+tip.data.createreport;Create a report with results conducted in the session. Modify report in Report settings. Different report formats are supported.;Lag rapport;Crear un informe con los resultados realizados en la sesión. Se puede modificar el informe en “Ajustes del Informe”. Se pueden crear informes de distintos formatos (html, doc,…).
+tip.data.selectprofiles;Conduct further analysis with selected (highlighted) profiles (evid/refs): Show, delete, export or perform deconvolution;Utfør andre funksjoner på valgte profiler;Levar a cabo más análisis con los perfiles seleccionados (evid/refs): mostrar, borrar, exportar o llevar a cabo separación de perfiles (deconvolution)
+tip.data.rmp;Calculate random man not excluded (RMNE) and random match probability (RMP) of reference profiles;Beregn profilsannsynligheter;Calcular la random match probability de los perfiles de referencia
+tip.data.ibs;The number of shared alleles between all references are calculated (Identical By State). Only pairs which obtains a value above specified IBS threshold are shown.;Beregner antall delte alleler mellom alle referanser;Calcula el número de alelos compartidos entre todas las referencias (idéntico por estado, IBS). Sólo se muestran los pares que ofrecen un valor por encima del umbral IBS especificado.
+tip.data.conc;The number of shared alleles between all evidences are calculated (concordance). Only pairs which obtains a value above specified MAC threshold are shown.;Antall delte alleler mellom spor;Calcula el número de alelos compartidos entre todas las evidencias (concordancia). Sólo se muestran los pares en los que se obtiene un valor por encima del umbral de MAC especificado. 
+tip.data.editref;Edit name or alleles of any of the references. Also possible to add new references.;Endre navn til referanser;Editar nombre o alelo de cualquiera de las referencias. También es posible añadir referencias nuevas. 
+tip.data.restart;Restart program session (all panels are cleared).;Restart;Reiniciar la session (todos los paneles se borran)
+tip.matchmatrix.truncate;Truncate cells which has a value below the specified MAC threshold.;Trunker celler som har verdi lavere enn spessifisert MAC terskel;Truncar las casillas que tienen un valor por debajo del umbral de MAC especificado
+tip.matchlistQual.calc;Calculate the quantitative based LR for all candidates being above the QualLR threshold;Beregn kvantiative LR basert på alle kandidater over kval.LR-terskel;Calcular el LR cuantitativo para todos los candidatos que estén por encima del umbral Qual.LR.  
+tip.matches.woe;Define and perform weight of evidence calculations based on user-defined hypotheses. The LR values may also take into account theta/Fst-correction.;Definer and utfør bevisvekt for bruker-definerte hypoteser. Modellen benytter seg av definert theta/Fst-korreksjon.;Define y calcula el peso de la evidencia basado en las hipótesis definidas por el usuario. Los valores de LR también pueden tener en cuenta la corrección theta/Fst.
+tip.matches.dcall;Performing deconvolution of all evidence profiles in the matchlist having at least one unknown. The deconvolution will condition on the matchcandidates.;Utfører dekonvolusjon av alle sporprofiler i treff-kandidatlisten som har minst én ukjent. Dekonvolusjonen vil betinge på alle treffkandidater.;Separar todos los perfiles de evidencias de la matchlist que tengan al menos un perfil desconocido. La separación (deconvolution) se condicionará a los matches candidatos.
+tip.dc.exportsel;Export selected profile to a EFM/LRmix supported textfile.;Eksporter valgte profiler til EFM/LRmix teksfilformat.;Exportar el perfil seleccionado a EFM/LRmix en formato txt.
+tip.dc.delete;Delete row in table;Slett rad i tabellen;Borrar fila en la tabla
+tip.dc.showprobs;Show the ratioToNext='probability of top ranked candidate divided by the probability of the second ranked candidate', where candidates are whole genotypes. Single alleles may be extracted if below specified DC genotype-setting but above allele-setting.;Vis ratioToNext='sannsynligheten for mest sannsynlige kandidat delt på sannsynlighenten for den med nest høyest sannsynlighet', der kandidatene er genotyper. Enkelte alleler kan allikevel trekkes ut dersom denne disse ligger over terskel for allele-sannsynlighet.;Mostrar “ratioToNext”= probabilidad del candidato mejor clasificado dividido por la probabilidad del segundo candidato mejor clasificado, donde los candidatos son genotipos (no alelos). Se pueden extraer alelos si se encuentran por debajo del ajuste especificado para separar genotipos (DC-genotype) pero por encima del ajuste de alelo.
+tip.dc.addasref;Move selected profile (row) to the reference table in the data panel. The user may change the name (followed by ENTER).;Flytt valgt profil (rad) til referansetabellen I datapanelet. Brukeren kan endre navn (etterfulgt av ENTER).;Mover el perfil seleccionado (la fila) a la tabla de referencias en la pestaña Datos. El usuario puede cambiar el nombre (pulsando ENTER a continuación).
+tip.woe.lrpermarker;Show LR per marker (based on MLE calculations);Vis LR per markør (basert på MLE beregninger);Mostrar el LR por marcador (basado en calculos EFM)
+tip.woe.paramest;Show estimated parameters;Vis estimerte parametre;Mostrar parámetros estimados
+tip.woe.modelvalid;Show model validation plots;Vis modellvalideringsplott;Mostrar gráfica de validacion del modelo (tanto para Hp como para Hd)
+tip.woe.fittedPH;Show fitted peak height model (either for Hp and Hd). For unknown contributors the genotypes are conducted as the top-ranked genotype (from deconvolution).;Vis tilpasset høydemodell (enten for Hp eller Hd). Genotypen for ukjente bidragsytere er basert på de mest sannsynlige genotype (fra dekonvolusjon).;Mostrar el modelo de altura de pico ajustado (bien para Hp). Los genotipos de contribuyentes desconocidos se tratan como el genotipo mejor clasificado (de la separación).
+tip.woe.statement;Show and edit statement for selected hypothesis set. It is possible to edit the statement here before creating report.;Vis og endre verbalt utsagn for valgt hypotesesett. Det er mulig å endre teksten før rapport blir generert. ;Mostrar y editar el texto del conjunto de hipótesis seleccionado. Es posible editar el texto aquí, antes de generar el informe.
+tip.woe.cons;(Re)Calculate conservative LR for selected hypothesis set (MCMC);Beregn Conservative LR for valgt hypotesesett (MCMC);Recalcular el LR conservador para el conjunto de hipótesis seleccionado (MCMC)
+tip.woe.delete;Delete selected row;Slett valgt rad;Borrar fila en la tabla
+statementScheme;The evidence ($evidtxt) is $LRtxt times more likely if the DNA came from $hptxt than if it came from $hdtxt;Sporet ($evidtxt) er $LRtxt ganger mer sannsynlig hvis DNA-et kommer fra $hptxt enn hvis det kom fra $hdtxt;La edidencia ($evidtxt) es $LRtxt veces más probable de ocurrir si el ADN procede de $hptxt que si procede de $hdtxt.
+numword_2;hundred;hundre;cientos
+numword_3;thousand;tusen;miles
+numword_6;million;million;millones
+numword_9;billion;milliard;miles de millones
+numword_12;trillion;billion;billones
+numword_more;more than;mer enn;más que
+numwordPlural;s;er;es

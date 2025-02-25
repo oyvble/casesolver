@@ -1,7 +1,7 @@
 #' @title addRownameTable
 #' @description Helpfunction for CaseSolver to set rownames as first column in table (modification)
 #' @param tab The table to modify
-#' @param type The type of modification: {0,3}=First column is indices, 1=First column is rownames, 2=1st column is indices AND 2nd column is rownames, 4=1st column is rownames AND collesponding column named "samplename"
+#' @param type The type of modification: 0=First column is indices, 1=First column is rownames, 2=1st column is indices AND 2nd column is rownames, 4=1st column is rownames AND collesponding column named "samplename"
 #' @param samplename Stringname for "SampleName" (may be in another language)
 #' @return A modified table (wrt rownames)
 #' @export

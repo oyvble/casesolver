@@ -11,6 +11,10 @@ calcMACcomparison = function(DBmix,DBref,threshMAC) {
    locs <- colnames(DBmix) #get loci
    nL <- length(locs)
 
+   #Ensure that these are matrix and not list
+   DBmix = as.matrix(DBmix)
+   DBref = as.matrix(DBref)
+   
    #Find loci for refs having only 1 allele:
    isNA <- is.na(DBref) #get loci which is NA
    isHom <- matrix(sapply(strsplit( DBref, "/"),length),nrow=nrow(DBref ))==1  

@@ -4,9 +4,24 @@
 \alias{calcQuanLRcomparison}
 \title{calcQuanLRcomparison}
 \usage{
-calcQuanLRcomparison(DBmix, DBref, matchlist, popFreq, kit, xiBW = 0,
-  xiFW = 0, pC = 0.05, lambda = 0.01, threshT = 50, nDone = 4,
-  maxC = 3, nContr = NULL, normalize = FALSE, minFreq = NULL)
+calcQuanLRcomparison(
+  DBmix,
+  DBref,
+  matchlist,
+  popFreq,
+  kit,
+  xiBW = 0,
+  xiFW = 0,
+  pC = 0.05,
+  lambda = 0.01,
+  threshT = 50,
+  nDone = 4,
+  maxC = 3,
+  nContr = NULL,
+  normalize = FALSE,
+  minFreq = NULL,
+  useEFMex = FALSE
+)
 }
 \arguments{
 \item{DBmix}{A list with evidence information [[sample]][[loc]] = list(adata,hdata)}
@@ -38,6 +53,8 @@ calcQuanLRcomparison(DBmix, DBref, matchlist, popFreq, kit, xiBW = 0,
 \item{normalize}{A boolean of whether normalization should be applied or not.}
 
 \item{minFreq}{The freq value included for new alleles. Default NULL is using min.observed in popFreq.}
+
+\item{useEFMex}{Whether the exhaustive method should be used}
 }
 \description{
 Function calculating LR using EuroForMix for remaining matches (from Step 1)

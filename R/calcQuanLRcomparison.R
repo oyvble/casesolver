@@ -16,9 +16,10 @@
 #' @param nContr A vector of number of contributors for each of the row in the matchlist. If NULL (default), the max(nA)/2 rule is applied.
 #' @param normalize A boolean of whether normalization should be applied or not.
 #' @param minFreq The freq value included for new alleles. Default NULL is using min.observed in popFreq.
+#' @param useEFMex Whether the exhaustive method should be used
 #' @export
 
-calcQuanLRcomparison = function(DBmix,DBref,matchlist,popFreq,kit,xiBW=0,xiFW=0,pC=0.05,lambda=0.01,threshT=50,nDone=4,maxC=3,nContr=NULL,normalize=FALSE,minFreq=NULL) { 
+calcQuanLRcomparison = function(DBmix,DBref,matchlist,popFreq,kit,xiBW=0,xiFW=0,pC=0.05,lambda=0.01,threshT=50,nDone=4,maxC=3,nContr=NULL,normalize=FALSE,minFreq=NULL,useEFMex=FALSE) { 
   #Output 1=matchlist: Unique Match matrix (normalized number of allele match counting) for all combinations
   #Output 2=storedFitHp: Stored fit under Hp
   #Aim: Calcualate LR for all situations in matchlist
@@ -34,8 +35,9 @@ calcQuanLRcomparison = function(DBmix,DBref,matchlist,popFreq,kit,xiBW=0,xiFW=0,
   #Obtain list of reference data: notice that single-alleles are removed from calculation
   refLIST <- casesolver::tabToListRef(tab=DBref,setEmpty=TRUE) #FORCING 1-alleles to be empty
   
-  print(paste0("Calculating QUAN based LR for ",nrow(matchlist)," comparisons... this may take a while (hours)"))
-  systime <- system.time( {
+  print(paste0("Calculating QUAN based LR for ",nrow(matchlist)," comparisons... this may take a while..."))
+  
+  runtime <- system.time( { #calculate the time
   unEvid <- unique(matchlist[,1]) #get unique evidence 
   for(ss in unEvid) { #for each unique stain we estimate number of contr.
     # ss = unEvid[1]
@@ -52,32 +54,55 @@ calcQuanLRcomparison = function(DBmix,DBref,matchlist,popFreq,kit,xiBW=0,xiFW=0,
     nC <- min(nClow,maxC) #assumed number of contributors: Restrict to 3 unknowns by default can be changed in GUI
     print(paste0("Assumed number of contributors for sample ",ss,": ",nC))
     
-    #Calc Lik(E|Hd):   
-    fitHd <- calcMLE()  #euroformix::contLikMLE(nC,sample,data$popFreq,xi=xi,xiFW=xiFW,prC=pC,lambda=lambda,nDone=nDone,threshT=threshT,kit=kit,verbose=FALSE)
+    #Obtain refs to be considered for particular sample
+    whatRefs <- matchlist[which(ss == matchlist[,1]),2] #obtain which references to consider
     
-   #NOTICE: These values can be stored for later for deconvolution
-    loghd <- fitHd$fit$loglik #used under all combination for this stain.
-   
-    #Calc. Hp to get LR:
-    whatR <- matchlist[which(ss == matchlist[,1]),2] #what refs to consider for particular sample
-    for(rr in whatR ) { #for each references
-     if(!rr%in%rownames(DBref))  next #skip if not found
-     refD <- list() #reference list must have other structure than considered here...
-     for(loc in locs) refD[[loc]] <- lapply(refLIST[rr],function(x) x[[loc]]$adata) #extract reference
-     data <- euroformix::Qassignate(sample, popFreq[locs],refD,incS=FALSE,incR=FALSE,normalize=normalize,minF=minFreq) #popFreq must be given with correct order?
-  
-     #Calc Lik(E|Hp)   
-     fitHp <- calcMLE(cond=1) #euroformix::contLikMLE(nC,sample,data$popFreq,data$refData,condOrder=1,xi=xi,prC=pC,lambda=lambda,nDone=nDone,threshT=threshT,kit=kit,verbose=FALSE)
-     insind <- matchlist[,1]==ss &  matchlist[,2]==rr #index to insert
-     log10LR[insind]  <-  (fitHp$fit$loglik  - loghd)/log(10)  #insert LR on log10 scale
-     numContr[insind] <- nC
-     storedFitHp[insind] <- list(fitHp) #store object
-    } #end for each references given unique stain
-    ii <- which(ss==unEvid)  
-    print(paste0(round(ii/length(unEvid)* 100), "% LR quan calculation complete...")) 
+    if(useEFMex) {
+      nPOI = length(whatRefs) #number of POI
+      refData = refLIST[whatRefs]
+      #if(length(whatRefs)>1) print(paste0("NOTE: The 'exhaustive' method is turned ON which may affect the results"))
+      calc = EFMex::calculateExhaustive(sample,refData, popFreq, nC, kit, #  condRefNames = NULL, #data settings
+                                        modelSetting = list(AT=threshT,fst=0, pC=pC, lambda=lambda), #model settings
+                                        modelConfig = list(degrade=!is.null(kit), stutterBW=is.null(xiBW),stutterFW=is.null(xiFW),priorBWS = NULL,priorFWS = NULL), #model config
+                                        optimConfig = list(seed=NULL,nDone=nDone, steptol=1e-4, minF=minFreq, normalize=normalize,adjQbp=FALSE),
+                                        storeModelFit = TRUE, verbose = FALSE, LRthresh=1)
+      #post-processing to insert LR
+      for(ref in whatRefs ) { #for each references
+        insind <- matchlist[,1]==ss &  matchlist[,2]==ref #index to insert
+        log10LR[insind]  <- calc$LRtable[ref,"GLR"] #Obtain exhaustive based (second column)
+        numContr[insind] <- nC
+        #hypIdx = min(which(calc$hypCalcs[,ref]==1)) #obtain situation where only ref conditioned on
+        POIinHyp = calc$hypCalcs[,ref]>0 #obtain whether POI is considered
+        POIinHypIdx = which(POIinHyp)
+        logliks = calc$hypCalcs[,nPOI+1] #this is logLik columns
+        hypIdx = POIinHypIdx[which.max(logliks[POIinHyp])]
+        fitHp = calc$mleFit[[hypIdx]] #obtain corresponding MLE fit
+        storedFitHp[insind] <- list(fitHp) #store object
+      }
+      
+    } else { #if not using EFMex
+      fitHd <- calcMLE()  #euroformix::contLikMLE(nC,sample,data$popFreq,xi=xi,xiFW=xiFW,prC=pC,lambda=lambda,nDone=nDone,threshT=threshT,kit=kit,verbose=FALSE)
+      loghd <- fitHd$fit$loglik #used under all combination for this stain.
+      
+      #Calc. Hp to get LR:
+      for(ref in whatRefs ) { #for each references
+        if(!ref%in%rownames(DBref))  next #skip if not found
+        refD <- list() #reference list must have other structure than considered here...
+        for(loc in locs) refD[[loc]] <- lapply(refLIST[ref],function(x) x[[loc]]$adata) #extract reference
+        data <- euroformix::Qassignate(sample, popFreq[locs],refD,incS=FALSE,incR=FALSE,normalize=normalize,minF=minFreq) #popFreq must be given with correct order?
+        
+        #Calc Lik(E|Hp)   
+        fitHp <- calcMLE(cond=1) #euroformix::contLikMLE(nC,sample,data$popFreq,data$refData,condOrder=1,xi=xi,prC=pC,lambda=lambda,nDone=nDone,threshT=threshT,kit=kit,verbose=FALSE)
+        insind <- matchlist[,1]==ss &  matchlist[,2]==ref #index to insert
+        log10LR[insind]  <-  (fitHp$fit$loglik  - loghd)/log(10)  #insert LR on log10 scale
+        numContr[insind] <- nC
+        storedFitHp[insind] <- list(fitHp) #store object
+      } #end for each references given unique stain
+    }
+    print(paste0(round(which(ss==unEvid)/length(unEvid)* 100), "% LR quan calculation complete...")) 
  } #end for each stains
  })[3]
- print(paste0("FINISHED: Calculating Quan LR took ",ceiling(systime), " seconds"))
+ print(paste0("FINISHED: Calculating Quan LR took ",ceiling(runtime), " seconds"))
 
  #Add score to match list:
  matchlist <- cbind(matchlist,log10LR,numContr)
