@@ -31,6 +31,10 @@ Error in structure(.External(.C_dotTclObjv, objv), class = "tclObj") :
   [tcl] bad window path name ".8.5.1.1.1.3".
 
 
+Changes version 2.1.1 (10.10.2025) 
+=============================================
+- Fixed bug in createReport when modifying values in "Set report Export Option" under "Report".
+
 Changes version 2.1.0 (30.01.2025) 
 =============================================
 - EFMex included as a method for calculating multiple POIs in an "exhaustive" approach

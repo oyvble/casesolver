@@ -5,15 +5,15 @@
 #' @export
 
 createReport = function(nnTK) { #this function loads data and put them in a HTML script
-
+  
   #################################
   #Obtain options from environment:
   exp = get("setupReportExpTyp",envir=nnTK) #get export options (report and preview)
   formatNames = c("HTML","DOCX","DOC") #names(exp) #
   ext = c("html","docx","doc")  #extension of reportnames
-  createHTML = exp$HTML #whether to create report based on HTML
-  createDOCX = exp$DOCX #Whether to create report based on DOCX (advanced layout). 
-  createDOC = exp$DOC #Whether to create report based on DOC (simple layout)
+  createHTML = as.logical(exp$HTML) #whether to create report based on HTML
+  createDOCX = as.logical(exp$DOCX) #Whether to create report based on DOCX (advanced layout). 
+  createDOC = as.logical(exp$DOC) #Whether to create report based on DOC (simple layout)
   
   reportTemplate = "reportTemplate.docx" #file name of report template
   systemtime = Sys.time() #obtain system time when creating report
@@ -21,17 +21,21 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
   #Report type settings  
   opt = get("setupReportExpOpt",envir=nnTK) #get export options (report and preview)
   WHsize = opt$PNG #obtain PNG settings (Number of pixels (width,height) and resolution of png figs)
-  if(is.null(WHsize)) WHsize = c( 1920,1080,120 )
+  if(is.null(WHsize)) {
+    WHsize = c( 1920,1080,120 )
+  }  else {
+    WHsize = as.numeric(WHsize) #make sure to be numbers
+  }
   HTMLoptions = list(brdt1=1, brdt2=NULL) #inner/outer bord type 
   
   vals = opt$DOC  #obtain DOC settings (width,height, margin)
   if(is.null(vals)) vals = c(11,8.5,0.1,6,9) #Options for RT format (put in landscape)
-  DOCoptions= list(width=vals[1],height=vals[2],margin=vals[3],tableSize=vals[4], fontSize=vals[5])  
-   
+  DOCoptions= list(width=as.numeric(vals[1]),height=as.numeric(vals[2]),margin=as.numeric(vals[3]),tableSize=as.numeric(vals[4]), fontSize=as.numeric(vals[5]))  
+  
   vals = opt$DOCX  #obtain DOC settings (width,height, margin)
   if(is.null(vals)) vals = c(6,11) #Options for RT format (put in landscape)
-  DOCXoptions= list(tableSize=vals[1],fontSize=vals[2])   
-
+  DOCXoptions= list(tableSize=as.numeric(vals[1]),fontSize=as.numeric(vals[2]))   
+  
   #Report options (only boolean)  
   showItem = get("setupReportOpt",envir=nnTK) #get export options (report and preview)
   #names(showItem)  "MatchStatus","MCMCsettings","mleLR","bayesLR","consLR","Mx","validFailed" ,"headerTime"
@@ -128,12 +132,12 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
   locNamesTables = setNames(locNamesReport[locs], locs) #insert modified marker names and ordinary marker names
   insNA = is.na(locNamesTables)
   locNamesTables[insNA] = locs[insNA] #insert ordinary marker names for those missing
-
+  
   #INSERT MODIFIED MARKER NAMES AS NEW COLNAMES TO ESSENTIAL TABLES
   if(!is.null(mixDataTABLE)) colnames(mixDataTABLE) <-  locNamesTables #update marker names
   if(!is.null(refDataTABLE)) colnames(refDataTABLE) <-  locNamesTables #update marker names
-
-    
+  
+  
   selList = NULL #default is no selection
   if( setupAdvanced$selProfiles=="TRUE" ) {
     print("-------USER SELECTION-------") #the user may select a subset of samples to import
@@ -155,7 +159,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
     mixDataTABLE = mixDataTABLE[rownames(mixDataTABLE)%in%EVIDS,,drop=FALSE] 
     refDataTABLE = refDataTABLE[rownames(refDataTABLE)%in%REFS,,drop=FALSE] 
     DCdataTABLE = DCdataTABLE[rownames(DCdataTABLE)%in%REFS,,drop=FALSE] 
-
+    
     mixDataMATCHSTATUS = mixDataMATCHSTATUS[names(mixDataMATCHSTATUS)%in%EVIDS]
     mixDataMATCHSTATUS[mixDataMATCHSTATUS%in%REFSrm] = L$none #indicate no match if removed
     
@@ -169,8 +173,8 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
       }
       return(retList)
     } #end helpe function
-
-        
+    
+    
     #Helpfunction for match lists (resMatches, allMixList)
     getMatchList = function(matchList) {
       retList = NULL #return list
@@ -332,7 +336,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
       #Subselect columns (chosen in report options)
       colRm = (5:9)[!showItem[3:7]] #columns to remove (based on user selection)
       if(length(colRm)>0) WOEdataTABLE <- WOEdataTABLE[,-colRm,drop=FALSE] #remove columns if any to remove
-    
+      
       #Create LR per marker table
       WOEmarkerTABLE = t(sapply(resWOE[1:nHyps],function(x) signif(x$mleLRi,s0)))
       
@@ -351,7 +355,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
     }
   } 
   WOEtext = paste0("*",L$WOEreporttext) #Create text to add after
-    
+  
   #Prepare reference data (split up in known vs extracted)
   #Separate References and Estimated References (unknown and DC estimated)
   refTabKnown <- refTabExtracted <- NULL #empty by default
@@ -360,7 +364,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
     isUnknown = substr(refNames,1,nchar(L$unknown))==L$unknown #indicate which refs that are "unknown"
     isDCed = refNames%in%rownames(DCdataTABLE) #indicate which refs that are "DCed"
     isExtracted = isUnknown | isDCed #indicate which references are extracted
-
+    
     if(any(!isExtracted)) {
       refTab = refDataTABLE[!isExtracted,,drop=F] #obtain known references
       ord = casesolver::orderTableSort(rownames(refTab),sort=sortTypes[2]) #obtain selected sorted order for refs
@@ -372,7 +376,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
       refTabExtracted <- addRownameTable(refTab[ord,,drop=FALSE],type=4,L$samplename)
     }
   }
-
+  
   
   ################################################### 
   #Helpfunctions to ease the insertion result tables#
@@ -520,9 +524,9 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
   kit0 <- get("setupKit",envir=nnTK)$kitname
   sampleType = casesolver::getSampleType2(mixLIST,kit0) #get sample type
   
-###################
-###GENERATE REPORT#
-###################
+  ###################
+  ###GENERATE REPORT#
+  ###################
   
   graphics.off() #close all plots before running..
   .sep <- .Platform$file.sep # Platform dependent path separator. 
@@ -531,7 +535,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
   path2 <- paste0(path,.sep,"report")
   dir.create(path2, showWarnings = FALSE) #create folder if not existing
   reportfn <-  paste0(path2,.sep,reportname,".",ext)#obtain full path of report names
-
+  
   #obtain CS version:
   version =  packageVersion("casesolver") 
   
@@ -551,7 +555,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
   if(formatUse[2]) {
     template <- system.file(reportTemplate,  package="casesolver") #obtain inbuilt scheme from casesolver
     docx <- officer::read_docx(path = template) #init new docx object
-#  styles_info(docx)  #print stylings
+    #  styles_info(docx)  #print stylings
   }
   if(formatUse[3]) { 
     marg0 = DOCoptions$margin
@@ -571,303 +575,303 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
     
     switch(pos,
            
-      #1: HEADER    
-      {headTxt = c(paste0("CaseSolver ",L$version,": ",version," (euroformix_",packageVersion("euroformix"),")"),
-                  R.version.string,
-                  paste0( L$user,": ",Sys.getenv("USERNAME")),
-                  paste0( L$created,": ",systemtime))
-      docx <- insText( headTxt ,italic=TRUE,obj=docx)},
-      
-      #2: References (known)
-      {docx <- insTable(refTabKnown, reportitems[2],obj=docx)},
-      
-      #3, References (extracted)
-      {docx <- insTable(refTabExtracted, reportitems[3],obj=docx)},
-      
-      #4: Single source profiles (alleles)
-      {docx <- insTable(ssTab, reportitems[4],obj=docx)},
-      
-      #5: Mix profiles (alleles)
-      {docx <- insTable(mixTab, reportitems[5],obj=docx)},
-      
-      #6: Show consensus profiles (alleles)
-      {consDataOUT = NULL
-      if(!is.null(consDataTABLE)) {
-       sn <- unique(consDataTABLE[,1]) #get sample names
-       consDataOUT <- matrix(ncol=length(locs)+1,nrow=length(sn))
-       consDataOUT[,1] <- sn
-       for(ss in sn) { #for each samples
-         for(loc in locs) { #for each locus
-           consDataOUT[which(sn==ss),which(locs==loc)+1] <- consDataTABLE[consDataTABLE[,1]==ss &consDataTABLE[,2]==loc,3]
-         }
-       }
-       colnames(consDataOUT) <- c(L$samplename ,locs)
-      }
-      docx <- insTable(consDataOUT, reportitems[6],obj=docx)},
-      
-      
-      ###############
-      ###SHOW W/PH###
-      ###############
-      
-      #7: Single source profiles (w/PH)
-      {selected = "NONE"
-      if(!is.null(ssTab)) selected = ssTab[,1] #already sorted
-      docx <- insList(allTabLIST, reportitems[7], selected,obj=docx)},
-      
-      #8:  Mixture profiles (w/PH)
-      {selected = "NONE"
-      if(!is.null(mixTab)) selected = mixTab[,1]  #already sorted
-      docx <- insList(allTabLIST, reportitems[8], selected,obj=docx)},
-      
-      #9; Metadata
-      {selected = "NONE"
-      if(!is.null(metaDataList) && length(metaDataList)>0 ) selected = names(metaDataList) #must contain elements
-      docx <- insList(metaDataList,reportitems[9], selected,obj=docx)},
-      
-      #################
-      ###COMPARISONS###
-      #################
-      #if(any(checked[9:12])) insTitle(  L$comparisons, 1 )
-      
-      #10: Provide match matrix:
-      {docx <- insTitle( reportitems[10], 2,obj=docx)
-      if( !is.null(resCompMAC) ) { #if completed
-       if(nrow(resCompMAC)>0) {
-         ind <- as.numeric(resCompMAC)<setupThresh$MAC #get smaller indices
-         resCompMAC[ind] <- "" #show only greater than threshold
-         docx <- insTable(resCompMAC,type=4,obj=docx)
-       }
-      } else {
-       docx <- insText( L$notcompleted,italic=TRUE,obj=docx)
-      }},
-      
-      #11: Provide match list 1 (qual based):
-      {docx <- insTitle( reportitems[11], 2,obj=docx)
-      if(!is.null(resCompLR1) ) { #if completed
-       resCompLR1 <- resCompLR1[as.numeric(resCompLR1[,4])>=log10(setupThresh$LRthresh1),,drop=FALSE]
-       ordComp1 = casesolver::orderTableSort(resCompLR1[,1],resCompLR1[,2],sortTypes[3]) #obtain selected sorted order for MatchListQual
-       docx <- insTable(resCompLR1[ordComp1,,drop=FALSE],type=0,obj=docx)
-      } else {
-       docx <- insText( L$notcompleted,italic=TRUE,obj=docx)
-      }},
-      
-      #12: Provide match list 2 (quan based):
-      {docx <- insTitle( reportitems[12], 2,obj=docx)
-      if(!is.null(resCompLR2) ) { #if completed
-       resCompLR2 <- resCompLR2[as.numeric(resCompLR2[,4])>=log10(setupThresh$LRthresh2),,drop=FALSE]
-       ordComp2 = casesolver::orderTableSort(resCompLR2[,1],resCompLR2[,2],sortTypes[4]) #obtain selected sorted order for MatchListQuan
-       docx <- insTable(resCompLR2[ordComp2,,drop=FALSE],type=0,obj=docx)
-      } else {
-       docx <- insText( L$notcompleted,italic=TRUE,obj=docx)
-      }},
-      
-      #13: Provide match list Final:
-      {docx <- insTitle( reportitems[13], 2,obj=docx)
-      if(!is.null(allMixList) && nrow(allMixList)>0) {
-       ordMatches = casesolver::orderTableSort(allMixList[,1],allMixList[,2],sortTypes[5]) #obtain selected sorted order for Matches
-       docx <- insTable(allMixList[ordMatches,,drop=FALSE],type=0,obj=docx)
-      } else {
-       docx <- insText( L$none,obj=docx )
-      }},
-      
-      #14: Match network fig is generated as a separet file
-      {docx <- insTitle( reportitems[14], 2,obj=docx)
-      okplot <- !is.null(resCompLR)
-      if(okplot) {  #only add if OK
-       netf <- file.path(path2,"matchnetwork.png") #file of picture 
-       png(netf,width = WHsize[2], height = WHsize[2],res=WHsize[3])
-       casesolver::showMatchNetwork(nnTK,"all",createInteractive=FALSE,selList)
-       dev.off()
-       docx <- insIMG(netf,quadratic = TRUE,obj=docx)
-      } else { 
-       docx <- insText( L$notcompleted,obj=docx )
-      }},
-      
-      ##############
-      ###RMP/RMNE###
-      ##############
-      
-      #store random match prob results (to be shown in report)
-      #if(any(checked[14:15])) insTitle( L$randommatchprob, 1)
-      #15: RMNE
-      {docx <- insTable(resRMP$evid,reportitems[15],obj=docx)},
-      
-      #16: RMP
-      {docx <- insTable(resRMP$ref,reportitems[16],obj=docx)},
-      
-      ##################
-      ###IBS/evidConc###
-      ##################
-      
-      #17: Evidence concordance 
-      {docx <- insTable(resEvidConc, reportitems[17],obj=docx)},
-      
-      #18:  IBS table
-      {docx <- insTable(resIBS, reportitems[18],obj=docx)},
-      
-      ##################
-      #ADVANCED RESULTS#
-      ##################
-      
-      #19: DECONVOLUTION
-      {docx <- insList(DCdataList, reportitems[19],type=NULL,obj=docx)
-      if(length(DCdataList)>0) docx <- insText(DCtext,obj=docx)},  #include text only if results
-      
-      #20: Weight of evidence results: Table
-      {docx <- insTable(WOEdataTABLE,reportitems[20],obj=docx)}, #ADDING #ID FIRST
-      
-      #21: Statement results: List
-      {docx <- insList(WOEstateList,reportitems[21],obj=docx) #traverses each element in list 
-      if(length(WOEstateList)>0) docx <- insText(WOEtext,obj=docx)}, #Put woetext at end
-      
-      #22: Parameter results: List
-      {docx <- insList(WOEparamList, reportitems[22],type=NULL,obj=docx)}, #traverses each element in list 
-      
-      #23: Weight of evidence results: LR per marker
-      {docx <- insTable(WOEmarkerTABLE,reportitems[23],obj=docx)},  #ADDING #ID FIRST
-      
-      ##############
-      ###Settings###
-      ##############
-      
-      #24: settings 
-      { docx <- insTitle( reportitems[24],1,obj=docx )
-       docx <- insTitle( L$threshs,2,obj=docx )
-       docx <- insText( paste0( L$macthreshold ,colonsymbol,setupThresh$MACthresh),obj=docx )    
-       docx <- insText( paste0( L$qualLRthreshold ,colonsymbol,setupThresh$LRthresh1),obj=docx )
-       docx <- insText( paste0( L$quanLRthreshold ,colonsymbol,setupThresh$LRthresh2),obj=docx )
-       docx <- insText( paste0( L$minLocSSmatch ,colonsymbol,setupThresh$minLociSS),obj=docx )
-       docx <- insText( paste0( L$minIBSrelative ,colonsymbol,setupThresh$minIBS),obj=docx )
-       docx <- insText( paste0( L$probRatioToNext ,colonsymbol,setupThresh$ratio),obj=docx )
-       docx <- insText( paste0( L$probSingleAllele ,colonsymbol,setupThresh$probA),obj=docx )
-       
-       #Obtain model params
-       threshT = setupModel$threshT #analytical/detection threshold
-       dropinC = setupModel$dropinC #dropin probability
-       dropinL = setupModel$dropinL #dropin PH, lambda 
-       fst = setupModel$fst #fst correction
-       
-       markers = NULL #reset
-       if(!is.null(setupMarkers)) {
-         vec = function(x) paste0(x,collapse="/")
-         markers = vec(setupMarkers[[1]]) #obtain markers
-         threshT = vec(setupMarkers[[2]]) #analytical/detection threshold
-         dropinC = vec(setupMarkers[[3]]) #dropin probability
-         dropinL = vec(setupMarkers[[4]]) #dropin PH, lambda 
-         fst = vec(setupMarkers[[5]]) #fst correction
-       }
-       
-       #Include params
-       docx <- insTitle( L$Modelparameters , 2,obj=docx)
-       if(!is.null(markers)) docx <- insText( paste0( L$Markers, colonsymbol,markers),obj=docx )
-       docx <- insText( paste0( L$analyticalthreshold, colonsymbol,threshT),obj=docx )
-       docx <- insText( paste0( L$dropinprob ,colonsymbol,dropinC),obj=docx )
-       docx <- insText( paste0( L$dropinpeakheightlambda, colonsymbol,dropinL),obj=docx )
-       docx <- insText( paste0(L$fst,colonsymbol,fst),obj=docx )
-       
-       #Inlcude population frequency settings
-       docx <- insTitle(  L$popfreq , 2,obj=docx)
-       popfile = basename(setupPop$popfile) #obtain basename of selected population file 
-       popfile = strsplit(popfile,"\\.")[[1]][1] #remove extention
-       docx <- insText( paste0( L$file ,colonsymbol, popfile),obj=docx )
-       docx <- insText( paste0( L$AMELincluded ,colonsymbol, ifelse(setupPop$amel=="TRUE",L$yes,L$no) ),obj=docx )
-       docx <- insText( paste0( L$Normalized ,colonsymbol, ifelse(as.logical(setupRare$normalize),L$yes,L$no)),obj=docx )
-       if(!is.na(setupRare$minFreq) && setupRare$minFreq!="") docx <- insText( paste0( L$minFreq ,colonsymbol, setupRare$minFreq),obj=docx ) #include minimum freq if set
-       
-       #Settings or quantitative model:
-       docx <- insTitle( L$quanmodel , 2,obj=docx)
-       kit1 = kit0
-       if(is.null(kit1) || kit1=="") kit1 = L$none #indicate if not selected kit
-       docx <- insText( paste0( L$kit ,colonsymbol,kit1),obj=docx )
-       docx <- insText( paste0( L$degradationmodel, colonsymbol, radiotxt[setupModel$degrad] ),obj=docx )
-       docx <- insText( paste0( L$BWstuttermodel,colonsymbol, radiotxt[setupModel$stuttBW]),obj=docx )
-       docx <- insText( paste0( L$FWstuttermodel,colonsymbol, radiotxt[setupModel$stuttFW]),obj=docx )
-       docx <- insText( paste0( "EFMex",colonsymbol,ifelse(setupAdvanced$useEFMex=="TRUE",L$yes,L$no) ),obj=docx )
-       
-       #ADD MCMC SETTINGS:
-       if(showItem[2]) {
-         docx <- insTitle( paste(L$mcmc ,L$settings), 2,obj=docx)
-         for(item in names(setupMCMC)) docx <- insText( paste0( L[[item]], colonsymbol,setupMCMC[[item]]),obj=docx ) #include all setings
-       }
-      },  #END SETTINGS
-      
-      
-      ################
-      ###ATTACHMENT###
-      ################
-      #if(any(checked[18:19]))  insTitle( L$attachments , 1)
-      
-      #25: Plot EPG figures for single sources
-      {if( printEPG || sampleType=="LUS" ) { 
-        docx <- insTitle( reportitems[25], 1,obj=docx)
-        if( !is.null(ssTab) && nrow(ssDataTABLE)>0 ) {
-         unREF = unique(ssDataTABLE[,1]) #get unique refs
-         refL = getRefL(unREF,forceDi=FALSE) # get relevant references
-         for(i in 1:nrow(ssDataTABLE)) { #for each single source profiles
-           evid <- rownames(ssDataTABLE)[i]
-           ref <- ssDataTABLE[i,1]
+           #1: HEADER    
+           {headTxt = c(paste0("CaseSolver ",L$version,": ",version," (euroformix_",packageVersion("euroformix"),")"),
+                        R.version.string,
+                        paste0( L$user,": ",Sys.getenv("USERNAME")),
+                        paste0( L$created,": ",systemtime))
+           docx <- insText( headTxt ,italic=TRUE,obj=docx)},
            
-           if(evid == L$empty) {
-             docx <- insText( L$none ,obj=docx)
-           } else {
-             condref <- refL[ref] #extract reference
-             if(length(condref)==0) condref = NULL
-             
-             tryCatch({ suppressWarnings({
-               epgf <- file.path(path2,paste0("epg_",gsub(.Platform$file.sep,"_",evid),".png")) #file of picture
-               png(epgf ,width =WHsize[1], height = WHsize[2],res=WHsize[3])
-               if(sampleType=="EPG") euroformix::plotEPG(mixLIST[evid],refcond=condref,kitname=kit0, showPH = TRUE,threshT=setupModel$threshT)
-               if(sampleType=="LUS") euroformix::plotLUS(mixLIST[evid],sn=evid,condref,threshT=setupModel$threshT,LUSsymbol=LUSsymbol)
-               dev.off()
-               
-               docx <- insIMG(epgf,obj=docx) #Insert fig to report
-               
-             }) })
-           } #end if not empty
-           docx <- insTitle( paste0("#",i," - ",evid), 3,obj=docx)
-         } #end for each samples
-        } else {
-          docx <- insText( L$none,obj=docx)
-        }#end if
-      }}, #end if plot EPG
-      
-      #26: Plot EPG figures for mixtures?
-      {if((printEPG || sampleType=="LUS")) { 
-        docx <- insTitle( reportitems[26], 1,obj=docx)
-        if(nrow(mixDataTABLE)>0) {
-         if(!is.null(resMatches) && nrow(resMatches)>0) { #require match table
-           unREF = unique(unlist(strsplit(resMatches[,2],"/"))) #get unique refs
-           refL = getRefL(unREF,forceDi=FALSE) # get relevant references
-         }
-         
-         for(i in 1:nrow(mixDataTABLE)) { #for each single source profiles
-           evid <- rownames(mixDataTABLE)[i]
-           condref = NULL
-           if(!is.null(resMatches) && nrow(resMatches)>0) { #require match table
-             ind <- resMatches[,1]%in%evid
-             if(any(ind)) {
-               refs <- unlist(strsplit(resMatches[ind,2],"/")) #get refs
-               condref <- refL[refs]
-               if(length(condref)==0) condref = NULL
+           #2: References (known)
+           {docx <- insTable(refTabKnown, reportitems[2],obj=docx)},
+           
+           #3, References (extracted)
+           {docx <- insTable(refTabExtracted, reportitems[3],obj=docx)},
+           
+           #4: Single source profiles (alleles)
+           {docx <- insTable(ssTab, reportitems[4],obj=docx)},
+           
+           #5: Mix profiles (alleles)
+           {docx <- insTable(mixTab, reportitems[5],obj=docx)},
+           
+           #6: Show consensus profiles (alleles)
+           {consDataOUT = NULL
+           if(!is.null(consDataTABLE)) {
+             sn <- unique(consDataTABLE[,1]) #get sample names
+             consDataOUT <- matrix(ncol=length(locs)+1,nrow=length(sn))
+             consDataOUT[,1] <- sn
+             for(ss in sn) { #for each samples
+               for(loc in locs) { #for each locus
+                 consDataOUT[which(sn==ss),which(locs==loc)+1] <- consDataTABLE[consDataTABLE[,1]==ss &consDataTABLE[,2]==loc,3]
+               }
              }
+             colnames(consDataOUT) <- c(L$samplename ,locs)
            }
-           tryCatch({ suppressWarnings({
-             epgf <- file.path(path2,paste0("epg_",gsub(.Platform$file.sep,"_",evid),".png")) #file of picture
-             png(epgf ,width =WHsize[1], height = WHsize[2],res=WHsize[3])
-             if(sampleType=="EPG") euroformix::plotEPG(mixLIST[evid],refcond=condref,kitname=kit0, showPH = TRUE,threshT=setupModel$threshT)
-             if(sampleType=="LUS") euroformix::plotLUS(mixLIST[evid],sn=evid,condref,threshT=setupModel$threshT,LUSsymbol=LUSsymbol)
+           docx <- insTable(consDataOUT, reportitems[6],obj=docx)},
+           
+           
+           ###############
+           ###SHOW W/PH###
+           ###############
+           
+           #7: Single source profiles (w/PH)
+           {selected = "NONE"
+           if(!is.null(ssTab)) selected = ssTab[,1] #already sorted
+           docx <- insList(allTabLIST, reportitems[7], selected,obj=docx)},
+           
+           #8:  Mixture profiles (w/PH)
+           {selected = "NONE"
+           if(!is.null(mixTab)) selected = mixTab[,1]  #already sorted
+           docx <- insList(allTabLIST, reportitems[8], selected,obj=docx)},
+           
+           #9; Metadata
+           {selected = "NONE"
+           if(!is.null(metaDataList) && length(metaDataList)>0 ) selected = names(metaDataList) #must contain elements
+           docx <- insList(metaDataList,reportitems[9], selected,obj=docx)},
+           
+           #################
+           ###COMPARISONS###
+           #################
+           #if(any(checked[9:12])) insTitle(  L$comparisons, 1 )
+           
+           #10: Provide match matrix:
+           {docx <- insTitle( reportitems[10], 2,obj=docx)
+           if( !is.null(resCompMAC) ) { #if completed
+             if(nrow(resCompMAC)>0) {
+               ind <- as.numeric(resCompMAC)<setupThresh$MAC #get smaller indices
+               resCompMAC[ind] <- "" #show only greater than threshold
+               docx <- insTable(resCompMAC,type=4,obj=docx)
+             }
+           } else {
+             docx <- insText( L$notcompleted,italic=TRUE,obj=docx)
+           }},
+           
+           #11: Provide match list 1 (qual based):
+           {docx <- insTitle( reportitems[11], 2,obj=docx)
+           if(!is.null(resCompLR1) ) { #if completed
+             resCompLR1 <- resCompLR1[as.numeric(resCompLR1[,4])>=log10(setupThresh$LRthresh1),,drop=FALSE]
+             ordComp1 = casesolver::orderTableSort(resCompLR1[,1],resCompLR1[,2],sortTypes[3]) #obtain selected sorted order for MatchListQual
+             docx <- insTable(resCompLR1[ordComp1,,drop=FALSE],type=0,obj=docx)
+           } else {
+             docx <- insText( L$notcompleted,italic=TRUE,obj=docx)
+           }},
+           
+           #12: Provide match list 2 (quan based):
+           {docx <- insTitle( reportitems[12], 2,obj=docx)
+           if(!is.null(resCompLR2) ) { #if completed
+             resCompLR2 <- resCompLR2[as.numeric(resCompLR2[,4])>=log10(setupThresh$LRthresh2),,drop=FALSE]
+             ordComp2 = casesolver::orderTableSort(resCompLR2[,1],resCompLR2[,2],sortTypes[4]) #obtain selected sorted order for MatchListQuan
+             docx <- insTable(resCompLR2[ordComp2,,drop=FALSE],type=0,obj=docx)
+           } else {
+             docx <- insText( L$notcompleted,italic=TRUE,obj=docx)
+           }},
+           
+           #13: Provide match list Final:
+           {docx <- insTitle( reportitems[13], 2,obj=docx)
+           if(!is.null(allMixList) && nrow(allMixList)>0) {
+             ordMatches = casesolver::orderTableSort(allMixList[,1],allMixList[,2],sortTypes[5]) #obtain selected sorted order for Matches
+             docx <- insTable(allMixList[ordMatches,,drop=FALSE],type=0,obj=docx)
+           } else {
+             docx <- insText( L$none,obj=docx )
+           }},
+           
+           #14: Match network fig is generated as a separet file
+           {docx <- insTitle( reportitems[14], 2,obj=docx)
+           okplot <- !is.null(resCompLR)
+           if(okplot) {  #only add if OK
+             netf <- file.path(path2,"matchnetwork.png") #file of picture 
+             png(netf,width = WHsize[2], height = WHsize[2],res=WHsize[3])
+             casesolver::showMatchNetwork(nnTK,"all",createInteractive=FALSE,selList)
              dev.off()
-             
-             docx <- insIMG(epgf,obj=docx) #Insert fig to report
-             docx <- insTitle( paste0("#",i," - ",evid), 3,obj=docx)
-           }) })
-         } #end for each samples
-       } else {
-         docx <- insText( L$none ,obj=docx)
-       }#end if
-      }} #end if plot EPG
-    
+             docx <- insIMG(netf,quadratic = TRUE,obj=docx)
+           } else { 
+             docx <- insText( L$notcompleted,obj=docx )
+           }},
+           
+           ##############
+           ###RMP/RMNE###
+           ##############
+           
+           #store random match prob results (to be shown in report)
+           #if(any(checked[14:15])) insTitle( L$randommatchprob, 1)
+           #15: RMNE
+           {docx <- insTable(resRMP$evid,reportitems[15],obj=docx)},
+           
+           #16: RMP
+           {docx <- insTable(resRMP$ref,reportitems[16],obj=docx)},
+           
+           ##################
+           ###IBS/evidConc###
+           ##################
+           
+           #17: Evidence concordance 
+           {docx <- insTable(resEvidConc, reportitems[17],obj=docx)},
+           
+           #18:  IBS table
+           {docx <- insTable(resIBS, reportitems[18],obj=docx)},
+           
+           ##################
+           #ADVANCED RESULTS#
+           ##################
+           
+           #19: DECONVOLUTION
+           {docx <- insList(DCdataList, reportitems[19],type=NULL,obj=docx)
+           if(length(DCdataList)>0) docx <- insText(DCtext,obj=docx)},  #include text only if results
+           
+           #20: Weight of evidence results: Table
+           {docx <- insTable(WOEdataTABLE,reportitems[20],obj=docx)}, #ADDING #ID FIRST
+           
+           #21: Statement results: List
+           {docx <- insList(WOEstateList,reportitems[21],obj=docx) #traverses each element in list 
+           if(length(WOEstateList)>0) docx <- insText(WOEtext,obj=docx)}, #Put woetext at end
+           
+           #22: Parameter results: List
+           {docx <- insList(WOEparamList, reportitems[22],type=NULL,obj=docx)}, #traverses each element in list 
+           
+           #23: Weight of evidence results: LR per marker
+           {docx <- insTable(WOEmarkerTABLE,reportitems[23],obj=docx)},  #ADDING #ID FIRST
+           
+           ##############
+           ###Settings###
+           ##############
+           
+           #24: settings 
+           { docx <- insTitle( reportitems[24],1,obj=docx )
+           docx <- insTitle( L$threshs,2,obj=docx )
+           docx <- insText( paste0( L$macthreshold ,colonsymbol,setupThresh$MACthresh),obj=docx )    
+           docx <- insText( paste0( L$qualLRthreshold ,colonsymbol,setupThresh$LRthresh1),obj=docx )
+           docx <- insText( paste0( L$quanLRthreshold ,colonsymbol,setupThresh$LRthresh2),obj=docx )
+           docx <- insText( paste0( L$minLocSSmatch ,colonsymbol,setupThresh$minLociSS),obj=docx )
+           docx <- insText( paste0( L$minIBSrelative ,colonsymbol,setupThresh$minIBS),obj=docx )
+           docx <- insText( paste0( L$probRatioToNext ,colonsymbol,setupThresh$ratio),obj=docx )
+           docx <- insText( paste0( L$probSingleAllele ,colonsymbol,setupThresh$probA),obj=docx )
+           
+           #Obtain model params
+           threshT = setupModel$threshT #analytical/detection threshold
+           dropinC = setupModel$dropinC #dropin probability
+           dropinL = setupModel$dropinL #dropin PH, lambda 
+           fst = setupModel$fst #fst correction
+           
+           markers = NULL #reset
+           if(!is.null(setupMarkers)) {
+             vec = function(x) paste0(x,collapse="/")
+             markers = vec(setupMarkers[[1]]) #obtain markers
+             threshT = vec(setupMarkers[[2]]) #analytical/detection threshold
+             dropinC = vec(setupMarkers[[3]]) #dropin probability
+             dropinL = vec(setupMarkers[[4]]) #dropin PH, lambda 
+             fst = vec(setupMarkers[[5]]) #fst correction
+           }
+           
+           #Include params
+           docx <- insTitle( L$Modelparameters , 2,obj=docx)
+           if(!is.null(markers)) docx <- insText( paste0( L$Markers, colonsymbol,markers),obj=docx )
+           docx <- insText( paste0( L$analyticalthreshold, colonsymbol,threshT),obj=docx )
+           docx <- insText( paste0( L$dropinprob ,colonsymbol,dropinC),obj=docx )
+           docx <- insText( paste0( L$dropinpeakheightlambda, colonsymbol,dropinL),obj=docx )
+           docx <- insText( paste0(L$fst,colonsymbol,fst),obj=docx )
+           
+           #Inlcude population frequency settings
+           docx <- insTitle(  L$popfreq , 2,obj=docx)
+           popfile = basename(setupPop$popfile) #obtain basename of selected population file 
+           popfile = strsplit(popfile,"\\.")[[1]][1] #remove extention
+           docx <- insText( paste0( L$file ,colonsymbol, popfile),obj=docx )
+           docx <- insText( paste0( L$AMELincluded ,colonsymbol, ifelse(setupPop$amel=="TRUE",L$yes,L$no) ),obj=docx )
+           docx <- insText( paste0( L$Normalized ,colonsymbol, ifelse(as.logical(setupRare$normalize),L$yes,L$no)),obj=docx )
+           if(!is.na(setupRare$minFreq) && setupRare$minFreq!="") docx <- insText( paste0( L$minFreq ,colonsymbol, setupRare$minFreq),obj=docx ) #include minimum freq if set
+           
+           #Settings or quantitative model:
+           docx <- insTitle( L$quanmodel , 2,obj=docx)
+           kit1 = kit0
+           if(is.null(kit1) || kit1=="") kit1 = L$none #indicate if not selected kit
+           docx <- insText( paste0( L$kit ,colonsymbol,kit1),obj=docx )
+           docx <- insText( paste0( L$degradationmodel, colonsymbol, radiotxt[setupModel$degrad] ),obj=docx )
+           docx <- insText( paste0( L$BWstuttermodel,colonsymbol, radiotxt[setupModel$stuttBW]),obj=docx )
+           docx <- insText( paste0( L$FWstuttermodel,colonsymbol, radiotxt[setupModel$stuttFW]),obj=docx )
+           docx <- insText( paste0( "EFMex",colonsymbol,ifelse(setupAdvanced$useEFMex=="TRUE",L$yes,L$no) ),obj=docx )
+           
+           #ADD MCMC SETTINGS:
+           if(showItem[2]) {
+             docx <- insTitle( paste(L$mcmc ,L$settings), 2,obj=docx)
+             for(item in names(setupMCMC)) docx <- insText( paste0( L[[item]], colonsymbol,setupMCMC[[item]]),obj=docx ) #include all setings
+           }
+           },  #END SETTINGS
+           
+           
+           ################
+           ###ATTACHMENT###
+           ################
+           #if(any(checked[18:19]))  insTitle( L$attachments , 1)
+           
+           #25: Plot EPG figures for single sources
+           {if( printEPG || sampleType=="LUS" ) { 
+             docx <- insTitle( reportitems[25], 1,obj=docx)
+             if( !is.null(ssTab) && nrow(ssDataTABLE)>0 ) {
+               unREF = unique(ssDataTABLE[,1]) #get unique refs
+               refL = getRefL(unREF,forceDi=FALSE) # get relevant references
+               for(i in 1:nrow(ssDataTABLE)) { #for each single source profiles
+                 evid <- rownames(ssDataTABLE)[i]
+                 ref <- ssDataTABLE[i,1]
+                 
+                 if(evid == L$empty) {
+                   docx <- insText( L$none ,obj=docx)
+                 } else {
+                   condref <- refL[ref] #extract reference
+                   if(length(condref)==0) condref = NULL
+                   
+                   tryCatch({ suppressWarnings({
+                     epgf <- file.path(path2,paste0("epg_",gsub(.Platform$file.sep,"_",evid),".png")) #file of picture
+                     png(epgf ,width =WHsize[1], height = WHsize[2],res=WHsize[3])
+                     if(sampleType=="EPG") euroformix::plotEPG(mixLIST[evid],refcond=condref,kitname=kit0, showPH = TRUE,threshT=setupModel$threshT)
+                     if(sampleType=="LUS") euroformix::plotLUS(mixLIST[evid],sn=evid,condref,threshT=setupModel$threshT,LUSsymbol=LUSsymbol)
+                     dev.off()
+                     
+                     docx <- insIMG(epgf,obj=docx) #Insert fig to report
+                     
+                   }) })
+                 } #end if not empty
+                 docx <- insTitle( paste0("#",i," - ",evid), 3,obj=docx)
+               } #end for each samples
+             } else {
+               docx <- insText( L$none,obj=docx)
+             }#end if
+           }}, #end if plot EPG
+           
+           #26: Plot EPG figures for mixtures?
+           {if((printEPG || sampleType=="LUS")) { 
+             docx <- insTitle( reportitems[26], 1,obj=docx)
+             if(nrow(mixDataTABLE)>0) {
+               if(!is.null(resMatches) && nrow(resMatches)>0) { #require match table
+                 unREF = unique(unlist(strsplit(resMatches[,2],"/"))) #get unique refs
+                 refL = getRefL(unREF,forceDi=FALSE) # get relevant references
+               }
+               
+               for(i in 1:nrow(mixDataTABLE)) { #for each single source profiles
+                 evid <- rownames(mixDataTABLE)[i]
+                 condref = NULL
+                 if(!is.null(resMatches) && nrow(resMatches)>0) { #require match table
+                   ind <- resMatches[,1]%in%evid
+                   if(any(ind)) {
+                     refs <- unlist(strsplit(resMatches[ind,2],"/")) #get refs
+                     condref <- refL[refs]
+                     if(length(condref)==0) condref = NULL
+                   }
+                 }
+                 tryCatch({ suppressWarnings({
+                   epgf <- file.path(path2,paste0("epg_",gsub(.Platform$file.sep,"_",evid),".png")) #file of picture
+                   png(epgf ,width =WHsize[1], height = WHsize[2],res=WHsize[3])
+                   if(sampleType=="EPG") euroformix::plotEPG(mixLIST[evid],refcond=condref,kitname=kit0, showPH = TRUE,threshT=setupModel$threshT)
+                   if(sampleType=="LUS") euroformix::plotLUS(mixLIST[evid],sn=evid,condref,threshT=setupModel$threshT,LUSsymbol=LUSsymbol)
+                   dev.off()
+                   
+                   docx <- insIMG(epgf,obj=docx) #Insert fig to report
+                   docx <- insTitle( paste0("#",i," - ",evid), 3,obj=docx)
+                 }) })
+               } #end for each samples
+             } else {
+               docx <- insText( L$none ,obj=docx)
+             }#end if
+           }} #end if plot EPG
+           
     ) #end switch-case
   } #end outer for-loop (priority)
   ##################################################################################
