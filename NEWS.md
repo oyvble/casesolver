@@ -12,6 +12,8 @@ Suggestive updates:
 	- Collapse similar Refs (from IBS). Useful for reducing number of unknowns.
  - Possible to change alligning in table values and headers (to left aligning)? 
 
+ - When using EFMex as an option in WoE: Conditional(s) expanded with fitted?  
+
  - Potential Bugs (issues):
 	- When doing DC after single quanLR calculations and REFERENCE is removed.
 	- Identical references not removed if different names? Example "Case 7154"
@@ -30,6 +32,10 @@ ISSUE: Feil etter kjøring av WoE evidence calculations: ?????
 Error in structure(.External(.C_dotTclObjv, objv), class = "tclObj") :
   [tcl] bad window path name ".8.5.1.1.1.3".
 
+
+Changes version 2.1.2 (24.08.2026) 
+=============================================
+- Added sorting functionality in the profileSwapperGUI selector (used in WoE).
 
 Changes version 2.1.1 (10.10.2025) 
 =============================================

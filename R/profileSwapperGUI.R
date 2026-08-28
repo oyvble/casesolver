@@ -15,6 +15,15 @@ profileSwapperGUI = function(env) {
   itemList = get(objStore,envir=env)
   width0=150 #width of table
   
+  #event when clicking Sort
+  f_clickSort = function(h) {
+    items1=tab1GUI[]
+    items2=tab2GUI[]
+    if(length(items1)>0) tab1GUI[] <- sort(items1,decreasing=FALSE)
+    if(length(items2)>0) tab2GUI[] <- sort(items2,decreasing=FALSE)
+    gWidgets2::size(tab1GUI) <- gWidgets2::size(tab2GUI) <- list(column.widths=width0) 
+  }
+  
   #event when clicking OK
   f_clickOK = function(h) {
     #bool = gWidgets2::gconfirm("Are you sure you want to continue?")
@@ -54,20 +63,15 @@ profileSwapperGUI = function(env) {
     return(NULL) #return selected profiles when window is exit 
   }  ) #call quit function
 
-  #header <- ggroup(horizontal = TRUE, container=inwin,expand=TRUE,fill=TRUE)
-  #glabel("Included", container=header)  
-  #glabel("Swap", container=header)  
-  #glabel("Excluded", container=header)  
-
   frame <- gWidgets2::ggroup(horizontal = TRUE, container=inwin,expand=TRUE,fill=TRUE)
   suppressWarnings({
     tab1GUI <- gWidgets2::gtable(items=itemList$items1,multiple = TRUE,container = frame,expand=TRUE,fill=TRUE, handler=f_swap,action=1)
     gridBut <- gWidgets2::ggroup(space=5, container=frame,horizontal = FALSE)
     gWidgets2::gbutton("-->",container=gridBut, handler=f_swap, action=1)
     gWidgets2::gbutton("<--",container=gridBut, handler=f_swap, action=2)
+    gWidgets2::gbutton("Sort",container=gridBut, handler=f_clickSort)
     gWidgets2::gbutton("OK",container=gridBut, handler=f_clickOK)
     tab2GUI <- gWidgets2::gtable(items=itemList$items2,multiple = TRUE,container = frame,expand=TRUE,fill=TRUE, handler=f_swap,action=2)
-    
     gWidgets2::size(tab1GUI) <- gWidgets2::size(tab2GUI) <- list(column.widths=width0) 
   })
   gWidgets2::visible(inwin) = TRUE
