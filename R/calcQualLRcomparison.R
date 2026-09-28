@@ -39,13 +39,19 @@ systime <- system.time( {
     maxCsample = maxC #store upper limit of NOC to traverse (may depend on sample)
     
     #traverse number of contr under Hd.
+    nCmac <- ceiling(max(sapply(sample[[1]],function(x) length(x$adata)))/2) #get lower boundary of #contr
     if(useMinK1) { #TRUE if K=1 contributors should be lower number of contributors
-      nClow <- 1 
+      nClow <- 1  #start searching model from NOC=1
     } else {
-      nClow <- ceiling(max(sapply(sample[[1]],function(x) length(x$adata)))/2) #get lower boundary of #contr
-      if(useMAC) maxCsample = nClow #dont iterate higher NOC than this if method to use
+      nClow <- nCmac #start searching model from NOC=mac
+    }
+    if(useMAC) { #ensure no nC traversion if useMAC
+      nClow <- nCmac #set these to mac
+      maxCsample = nClow #dont iterate higher NOC than this if method to use
     }
     bestfoo <- NULL
+    if(nClow > maxCsample) nClow = maxCsample #force to not exceed maxCsample
+    
     for(nC in nClow:maxCsample) {
       foohd <- euroformix::calcQualMLE(nC,Qset$samples,Qset$popFreq, prC=pC,fst=0, maxIter = maxIter)
       if(is.null(bestfoo)) {

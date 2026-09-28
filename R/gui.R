@@ -71,7 +71,7 @@ gui = function(envirfile=NULL, envir=NULL) {
   #The files are stored in system settings and loaded when opening the tool:
   
   #Thresholds:
-  optF = c(0.8,10,1000,7,14,15,0.99)
+  optF = c(0.8,10,1000,7,14,15,0.99) #default settings
   if(file.exists(setupFileThresh)) optF <- setupRead(file=setupFileThresh)
   setupThresh = list(MACthresh=as.numeric(optF[1]),LRthresh1=as.numeric(optF[2]),LRthresh2=as.numeric(optF[3]),minLociSS=as.integer(optF[4]),minIBS=as.integer(optF[5]),ratio=as.numeric(optF[6]),probA=as.numeric(optF[7]))
   
@@ -101,9 +101,11 @@ gui = function(envirfile=NULL, envir=NULL) {
   setupReportLocNames = NULL
   if(file.exists(setupFileReportLocNames)) {
     optF <- setupRead(file=setupFileReportLocNames)
-    if(length(optF)>0) nLocs = round(length(optF)/2) #use number of loci in file
-    setupReportLocNames = optF[1:nLocs + nLocs] #obtain edited marker names
-    names(setupReportLocNames) = optF[1:nLocs] #obtain Conventional names
+    if(length(optF)>0) {
+      nLocs = round(length(optF)/2) #use number of loci in file
+      setupReportLocNames = optF[1:nLocs + nLocs] #obtain edited marker names
+      names(setupReportLocNames) = optF[1:nLocs] #obtain Conventional names
+    }
   }
   
   #Kit selection
@@ -132,10 +134,12 @@ gui = function(envirfile=NULL, envir=NULL) {
   setupImport = list(importfile=optF[1])
   
   #Advanced options
-  optF = c(4,4,3,"TRUE","FALSE","FALSE","FALSE","FALSE","FALSE") #this is default
-  if(file.exists(setupFileAdvanced)) optF <- setupRead(file=setupFileAdvanced)
-  if(length(optF)<8) optF = c(optF,rep("FALSE",2)) #include default value (COMPATIBLE FROM VERSION v2.0.2)
-  setupAdvanced = list(maxC1=as.integer(optF[1]),maxC2=as.integer(optF[2]),nDone=as.integer(optF[3]),useMinK1=optF[4],compSS=optF[5],isSNP=optF[6],selProfiles=optF[7],useEFMex=optF[8],useMAC=optF[9])
+  optF = c(4,4,3,"TRUE","FALSE","FALSE","FALSE","FALSE","FALSE","FALSE","FALSE") #this is default
+  if(file.exists(setupFileAdvanced)) {
+    optF2 <- setupRead(file=setupFileAdvanced)
+    optF[seq_along(optF2)] = optF2 #insert read options (MAKE COMPATIBLE FROM EARLIER VERSIONS)
+  }
+  setupAdvanced = list(maxC1=as.integer(optF[1]),maxC2=as.integer(optF[2]),nDone=as.integer(optF[3]),useMinK1=optF[4],compSS=optF[5],isSNP=optF[6],selProfiles=optF[7],useEFMex=optF[8],useMAC=optF[9],sortByComplex=optF[10],deactCaseList=optF[11])
   
   #Data view (vertical or horizontal)
   optF = c("FALSE")
@@ -174,7 +178,7 @@ gui = function(envirfile=NULL, envir=NULL) {
   }
     
   #Export options: Export/Preview
-  optF = c(TRUE,TRUE,FALSE,FALSE,FALSE,FALSE) #default values to insert
+  optF = c(FALSE,FALSE,FALSE,FALSE,FALSE,FALSE) #default values to insert
   if(file.exists(setupFileReportExpTyp)) optF <- as.logical( setupRead(file=setupFileReportExpTyp) )
   setupReportExpTyp = list(HTML=optF[1:2],DOCX=optF[3:4],DOC=optF[5:6]) 
   
@@ -321,22 +325,23 @@ gui = function(envirfile=NULL, envir=NULL) {
   } #end file
   
   #Helpfunction to set pop freq to environment 
-  setPopFreq = function(change=FALSE,giveMessage=TRUE) { #helpfunction to read popFreq from file and set to environment
+  setPopFreq = function(change=FALSE, opt=get("setupPop",envir=nnTK), giveMessage=TRUE) { #helpfunction to read popFreq from file and set to environment
     if(!change && !is.null( get("popFreq",envir=nnTK))) return(TRUE) #return if already set
     
-    opt <- get("setupPop",envir=nnTK) 
-    tryCatch( {
-      popFreq <- getFreqs(opt$popfile)
-      AMEL <- c(0.75,0.25) #Assuming 50-50 Male/Femal population, abuse on Y/Y possibility
-      names(AMEL) <- c("X","Y")
-      if( opt$amel=="TRUE" && !any(grepl("AM",names(popFreq))) ) popFreq$AMEL =AMEL
-      assign("popFreq",popFreq,envir=nnTK) #assign popFreq to nnTK-environment
-      #if(verbose) print(popFreq) #print first time
-    }, error = function(e) return(FALSE) )
-    if(is.null(get("popFreq",envir=nnTK))) { #if popFreq is missing
+    popFreq <- tryCatch({
+      freqs <- getFreqs(opt$popfile)
+      if(is.null(freqs)) stop("No population frequencies loaded")
+      AMEL <- c(X=0.75, Y=0.25) #Assuming 50-50 Male/Femal population, abuse on Y/Y possibility
+      if(opt$amel == "TRUE" && !any(grepl("AM", names(freqs)))) freqs$AMEL <- AMEL 
+      freqs #IMPORTANT: DONT PUT return expression here!
+    }, error=function(e) NULL)
+    
+    if(is.null(popFreq)) { #if popFreq is missing
       if(giveMessage) gWidgets2::gmessage( paste( L$msg.setPopFreq, L$setup,">",L$popfreq  ) ) 
       return(FALSE) 
-    }
+    } 
+    assign("popFreq",popFreq,envir=nnTK) #assign popFreq to nnTK-environment
+    assign("setupPop", opt, envir=nnTK) #also assign updated options
     return(TRUE)
   } 
   
@@ -371,18 +376,19 @@ gui = function(envirfile=NULL, envir=NULL) {
   
   f_saveproj = function(h,...) {
     projfile = mygfile(text= paste( L$save , L$proj) ,type="save")
-    if(fileNotOK(projfile)) return()
+    if(fileNotOK(projfile)) return(FALSE)
     if(length(unlist(strsplit(basename(projfile),"\\.")))==1) projfile = paste0(projfile,".Rdata")
     print("Size of stored objects (in MB):") #prints size of each stored object
     print(sapply(nnTK,object.size)/1e6) #prints size of each stored object
     save(nnTK,file=projfile,compress="xz",eval.promises=FALSE,precheck=FALSE,compression_level=2)
     print(paste("Project saved in ",projfile,sep=""))
+    return(TRUE)
   }
   
   f_quitproj = function(h,...) {
     ubool <- gWidgets2::gconfirm( L$msg.saveproj ,title= L$quitprog ,icon="info")
     if(ubool) {
-      f_saveproj(h)
+      if(!isTRUE(f_saveproj(h))) return()
     } else { 
       print("Program terminated without saving")
     }
@@ -698,7 +704,7 @@ gui = function(envirfile=NULL, envir=NULL) {
   }
   
   #GUI for importing and modifying population frequency settings
-  f_popsel=  function(h,...) {
+  f_popsel =  function(h,...) {
    opt <- get("setupPop",envir=nnTK) 
    popfn <-  opt$popfile #population file name
    rareOpt = get("setupRare",envir=nnTK) 
@@ -721,17 +727,16 @@ gui = function(envirfile=NULL, envir=NULL) {
    grid1[2,1] <- gWidgets2::gcheckbox(text=paste( L$include , L$AMEL ),checked = ifelse(opt$amel=="TRUE",TRUE,FALSE),container=grid1)
    gWidgets2::tooltip(grid1[2,1]) <- "Including AMEL into the probabilistic model (ad-hoc approach). Needs to be ticked before selecting file." 
    grid1[3,1] <- gWidgets2::gbutton( paste( L$select , L$popfreq) , container = grid1,handler = function(h, ...) { 
-    ff <- mygfile(paste( L$select , L$file ),type="open")
-    if(length(ff)==0) return()
-    opt$popfile <- ff
-    opt$amel <-gWidgets2::svalue(grid1[2,1])
-    assign("setupPop",opt,envir=nnTK)  #assign user-value to opt-list
-    ok <- setPopFreq(change=TRUE)	#Assume that another freq file has been selected
+    filename <- mygfile(paste( L$select , L$file ),type="open")
+    if(length(filename)==0) return(NULL)
+    
+    newOpt <- opt
+    newOpt$popfile <- filename
+    newOpt$amel <- gWidgets2::svalue(grid1[2,1])
+    ok <- setPopFreq(change=TRUE, opt=newOpt)	#Assume that another freq file has been selected
     if(ok) {
-      setupWrite(unlist(opt),file=setupFilePop)    #save to file in installation folder if successful
+      setupWrite(unlist(newOpt),file=setupFilePop)    #save to file in installation folder if successful
       storeRareSettings(TRUE) #store rare settings first
-      #gWidgets2::dispose(setwin) #remove subwindow
-      #f_popsel(); #update gui window again after selecting new folder
     }
    })
    
@@ -790,9 +795,9 @@ gui = function(envirfile=NULL, envir=NULL) {
    tabval[1,2] <- gWidgets2::glabel(text=opt$importfile,container=tabval)
    tabval[2,1] <- gWidgets2::glabel(text= paste( L$select , L$importfun),container=tabval)
    tabval[2,2] <- gWidgets2::gbutton(  L$select , container = tabval,handler = function(h, ...) { 
-     ff <- mygfile(paste( L$select , L$file ),type="open")
-     if(length(ff)==0) return()
-     opt$importfile <- ff
+     filename <- mygfile(paste( L$select , L$file ),type="open")
+     if(length(filename)==0) return()
+     opt$importfile <- filename
      assign("setupImport",opt,envir=nnTK)  #assign user-value to opt-list
      setupWrite(unlist(opt),file=setupFileImport)    #save to file in installation folder
      gWidgets2::dispose(setwin) #remove subwindow
@@ -823,7 +828,7 @@ gui = function(envirfile=NULL, envir=NULL) {
   
   #The user can change advanced model settings (nDone,maxContributors)
   f_advancedoptions = function(h,...) { 
-    opt <- get("setupAdvanced",envir=nnTK) 
+    opt <- get("setupAdvanced",envir=nnTK)
     setwin <- gWidgets2::gwindow( paste( L$advanced , L$options ) ,visible=FALSE)
     tabval = gWidgets2::glayout(spacing=0,container=(setwin)) 
     tabval[1,1] <- gWidgets2::glabel(text= L$maxcontrqual ,container=tabval) #"Maximum contributors in QualLR (LRmix)"
@@ -844,8 +849,12 @@ gui = function(envirfile=NULL, envir=NULL) {
     tabval[8,2] <- gWidgets2::gcheckbox(text="",checked=opt$useEFMex=="TRUE",container=tabval)
     tabval[9,1] <- gWidgets2::glabel(text= L$useMAC,container=tabval) #User can select NOC estimate to be based on MAC (maximum allele counts)
     tabval[9,2] <- gWidgets2::gcheckbox(text="",checked=opt$useMAC=="TRUE",container=tabval)
-    
-    tabval[10,1] <- gWidgets2::gbutton( L$save , container=tabval,handler = function(h, ...) { 
+    tabval[10,1] <- gWidgets2::glabel(text= L$sortByComplex,container=tabval) #User can select if sorting evidprofiles by complexity
+    tabval[10,2] <- gWidgets2::gcheckbox(text="",checked=opt$sortByComplex=="TRUE",container=tabval)
+    tabval[11,1] <- gWidgets2::glabel(text= L$deactCaseList,container=tabval) #User can select whether to show cases in drop-down meny
+    tabval[11,2] <- gWidgets2::gcheckbox(text="",checked=opt$deactCaseList=="TRUE",container=tabval)
+
+    tabval[12,1] <- gWidgets2::gbutton( L$save , container=tabval,handler = function(h, ...) { 
       opt2 = list() #avoid wrong order 
       opt2$maxC1 <- as.numeric(gWidgets2::svalue(tabval[1,2]))  #max number of contributors in LRmix model
       opt2$maxC2 <- as.numeric(gWidgets2::svalue(tabval[2,2]))  #max number of contributors in EFM model
@@ -855,7 +864,9 @@ gui = function(envirfile=NULL, envir=NULL) {
       opt2$isSNP <- as.character(gWidgets2::svalue(tabval[6,2])==TRUE)  #Should SNP module be used (all evid samples are mixtures)
       opt2$selProfiles  <- as.character(gWidgets2::svalue(tabval[7,2])==TRUE)   #User can select profile when import/report
       opt2$useEFMex  <- as.character(gWidgets2::svalue(tabval[8,2])==TRUE)   #User can select profile if EFMex should be used
-      opt2$useMAC  <- as.character(gWidgets2::svalue(tabval[9,2])==TRUE)   #User can select profile if EFMex should be used
+      opt2$useMAC  <- as.character(gWidgets2::svalue(tabval[9,2])==TRUE)   #User can select to use the maximum allele counting for estimating number of contributors
+      opt2$sortByComplex  <- as.character(gWidgets2::svalue(tabval[10,2])==TRUE)   #User can select whether to sort evidence profiles when loading wrt complexity
+      opt2$deactCaseList  <- as.character(gWidgets2::svalue(tabval[11,2])==TRUE)   #User can select whether all cases should be shown in the drop-down list
       
       if(any(is.na(unlist(opt2)))) stop("Invalid input given!") #throw error if any input is wrong
       assign("setupAdvanced",opt2,envir=nnTK)  #assign user-value to opt-list
@@ -931,13 +942,19 @@ gui = function(envirfile=NULL, envir=NULL) {
   
   #MAIN FUNCTION TO IMPORT DATA
   f_importData = function(h,...) { #wrapper function which calls other functions: importData and getStructuredData
-    #REMOVE PREV. RESULTS WHEN NEW IMPORT:
-    if(!is.null(get("DClist",envir=nnTK)) || !is.null(get("resCompMAC",envir=nnTK))) {
+    #Require restart before importing when analysis results exist
+    resultNames <- c( #look up all result tables
+      "resCompMAC", "resCompLR1", "resCompLR2", "resCompLR","resMatches", 
+      "storedFitHp","DClist", "DClistReport", "resRMP", "resIBS", "resEvidConc", "resWOEeval")
+    hasResults <- any(sapply(resultNames, function(x) { !is.null(nnTK[[x]]) }))
+    if(hasResults) {
       gWidgets2::gmessage( L$msg.restartfirst ) #message that user should restart before proceed with new case
+      return()
     }
-    caseID = gWidgets2::svalue( tabimportA[1,2] ) #get ID from table
+    
+    caseID = trimws(gWidgets2::svalue( tabimportA[1,2] )) #get ID from table
     assign("caseID",caseID,envir=nnTK) #store ID in environment
-    fn <- list.files(path=paste0(casedir,.sep,caseID), pattern="",full.names=TRUE) #get full names 
+    casefiles <- list.files(path=paste0(casedir,.sep,caseID), pattern="",full.names=TRUE) #get full names 
     
     print("-----------------------------")
     print("-------IMPORTING DATA--------")
@@ -962,87 +979,87 @@ gui = function(envirfile=NULL, envir=NULL) {
     metalist <- list() #contains list of table-elements
     consdata <- NULL #default value
   
-   for(ff in fn) { #for each files: 
-  #ff=fn[2]
-     #if( file.info(ff)$isdir ) next #skip if it was a folder
-     
-     #IMPORTING DATA FROM USER-SPECIFIED FUNCTION (MUST BE NAMED "importData")
-    tryCatch({ 
-     data2 <- importData(ff) #import data for selected case. Structure of markers must be given inside this function and returned by "markers".
-     data$mix <-  rbind(data$mix,data2$mix) #add data to table
-     data$ref <-  rbind(data$ref,data2$ref) #add data to table
-     if(length(markers)==0 && length(data2$markers)>0) markers <- data2$markers #get marker order from costumized importData file
-     consdata <- rbind(consdata,data2$cons) #add data to table (consensus data)
-  
-     #Add metadata (assumed to be matrix/dataframes:
-     tmplist <- data2$meta
-     if(length(tmplist)==0) next #skip if no elements
-     if(length(metalist)==0) { #if no list elements
-       metalist <- tmplist 
-     } else { #list elements found
-       if(all(names(metalist)==names(tmplist))) { #check if containing same elements
-         for(elem in names(metalist)) {
-          if(length(tmplist[[elem]])>0)  { #check if not empty
-            if( is.matrix(tmplist[[elem]]) ) { #BLOCK MODIFIED (v1.8.1)
-              metalist[[elem]] <- rbind(metalist[[elem]],tmplist[[elem]]) #add to matrix
-            } else {
-              metalist[[elem]] <- c(metalist[[elem]],tmplist[[elem]]) #append to vector
+    for(casefile in casefiles) { #for each case files: 
+       #if( file.info(casefile)$isdir ) next #skip if it was a folder
+       
+       #IMPORTING DATA FROM USER-SPECIFIED FUNCTION (MUST BE NAMED "importData")
+      tryCatch({ 
+       data2 <- importData(casefile) #import data for selected case. Structure of markers must be given inside this function and returned by "markers".
+       data$mix <-  rbind(data$mix,data2$mix) #add data to table
+       data$ref <-  rbind(data$ref,data2$ref) #add data to table
+       if(length(markers)==0 && length(data2$markers)>0) markers <- data2$markers #get marker order from costumized importData file
+       consdata <- rbind(consdata,data2$cons) #add data to table (consensus data)
+    
+       #Add metadata (assumed to be matrix/dataframes:
+       tmplist <- data2$meta
+       if(length(tmplist)==0) next #skip if no elements
+       if(length(metalist)==0) { #if no list elements
+         metalist <- tmplist 
+       } else { #list elements found
+         if(all(names(metalist)==names(tmplist))) { #check if containing same elements
+           for(elem in names(metalist)) {
+            if(length(tmplist[[elem]])>0)  { #check if not empty
+              if( is.matrix(tmplist[[elem]]) ) { #BLOCK MODIFIED (v1.8.1)
+                metalist[[elem]] <- rbind(metalist[[elem]],tmplist[[elem]]) #add to matrix
+              } else {
+                metalist[[elem]] <- c(metalist[[elem]],tmplist[[elem]]) #append to vector
+              }
             }
-          }
+           }
+         } else {
+          print("Metadata did not contain same list elements")        
          }
-       } else {
-        print("Metadata did not contain same list elements")        
        }
-     }
-    }, error = function(e) e) 
-   }
-   data$ref <- unique(data$ref) #consider only uniques
-   data$mix <- unique(data$mix) #consider only uniques
-   print("------------------------------")
-   
-   #Store non-profile data (CAN BE SHOWN IN REPORT)
-   assign("metaDataLIST",metalist,envir=nnTK) #assign to nnTK-environment
-   assign("consDataTABLE",consdata,envir=nnTK) #list of imported consensus data
-   
-   if( get("setupAdvanced",envir=nnTK)$selProfiles=="TRUE" ) {
-     print("-------USER SELECTION-------") #the user may select a subset of samples to import
-     guienv = new.env( parent = emptyenv() ) #create new envornment object. Parent must be empty
-     assign("selected",list(evids=unique(data$mix[,1]),refs=unique(data$ref[,1])),envir=guienv)
-     profileSelectorGUI(env=guienv) #calling function to select data
-     selList =  get("selected",envir=guienv) #get list of 
-     data = list( mix=data$mix[data$mix[,1]%in%selList$evids,,drop=FALSE] , ref=data$ref[data$ref[,1]%in%selList$refs,,drop=FALSE] ) #update data object
-   }
-   
-   #In case of no data (RETURN WITH MESSAGE):
-   if(length(markers)==0 || (nrow(data$mix)==0 && nrow(data$ref)==0) ) {
-     gWidgets2::gmessage( L$msg.nodata ) #user need to select at least one profile to proceed
-     return()
-   }
+      }, error = function(e) e)  #DONT HIGHLIGHT FILES NOT IMPORTED!
+    } #end for each case file
+
+    data$ref <- unique(data$ref) #consider only uniques
+    data$mix <- unique(data$mix) #consider only uniques
+    print("------------------------------")
      
-   print("-------STRUCTURING DATA-------")
-   datalist <- casesolver::getStructuredData(data,ln=toupper(markers),minLoc=get("setupThresh",envir=nnTK)$minLociSS) #get Data in both List-format and Table-format (mixDataTABLE,refDataTABLE,mixDataLIST)
-   datalist$mixDataMATCHSTATUS = changeUnknownName(datalist$mixDataMATCHSTATUS) #update unknown names
-   rownames(datalist$refDataTABLE) = changeUnknownName(rownames(datalist$refDataTABLE)) #update unknown names
-   
-   if(!is.null(datalist$mixDataMATCHSTATUS) && length(datalist$mixDataMATCHSTATUS)>0 && !is.null(get("setupAdvanced",envir=nnTK)$isSNP) && get("setupAdvanced",envir=nnTK)$isSNP=="TRUE") {
-     datalist$mixDataMATCHSTATUS[1:length(datalist$mixDataMATCHSTATUS)] = L$mixture #assign as mixture
-   } 
-  
-   ##Notice: The alleles in a loci should be ordered: Hence samples with same alleles can be detected   
-   #STORE DATA (BOTH TYPES) -> EASY AVAILABLE THROUGH ENVIRONMENT
-   assign("mixDataTABLE",datalist$mixDataTABLE,envir=nnTK) #assign to nnTK-environment
-   assign("refDataTABLE",datalist$refDataTABLE,envir=nnTK) #assign to nnTK-environment
-   assign("mixDataMATCHSTATUS",datalist$mixDataMATCHSTATUS,envir=nnTK) #assign to nnTK-environment
-   assign("mixDataLIST",datalist$mixDataLIST,envir=nnTK) #assign to nnTK-environment
-  # assign("refDataLIST",datalist$refDataLIST,envir=nnTK) #NOT USED ANYMORE!
-  
-   updateTables() #update datables (default sorting first time)
-   refreshTabLIST() #update mixture-list (default sorting first time)
-   setFocus() #set focus
+    #Store non-profile data (CAN BE SHOWN IN REPORT)
+    assign("metaDataLIST",metalist,envir=nnTK) #assign to nnTK-environment
+    assign("consDataTABLE",consdata,envir=nnTK) #list of imported consensus data
+    
+    if( get("setupAdvanced",envir=nnTK)$selProfiles=="TRUE" ) {
+      print("-------USER SELECTION-------") #the user may select a subset of samples to import
+      guienv = new.env( parent = emptyenv() ) #create new envornment object. Parent must be empty
+      assign("selected",list(evids=unique(data$mix[,1]),refs=unique(data$ref[,1])),envir=guienv)
+      profileSelectorGUI(env=guienv) #calling function to select data
+      selList =  get("selected",envir=guienv) #get list of 
+      data = list( mix=data$mix[data$mix[,1]%in%selList$evids,,drop=FALSE] , ref=data$ref[data$ref[,1]%in%selList$refs,,drop=FALSE] ) #update data object
+    }
+     
+    #In case of no data (RETURN WITH MESSAGE):
+    if(length(markers)==0 || (nrow(data$mix)==0 && nrow(data$ref)==0) ) {
+      gWidgets2::gmessage( L$msg.nodata ) #user need to select at least one profile to proceed
+      return()
+    }
+       
+    print("-------STRUCTURING DATA-------")
+    datalist <- casesolver::getStructuredData(data,ln=toupper(markers),minLoc=get("setupThresh",envir=nnTK)$minLociSS, sortWithComplexity=as.logical(get("setupAdvanced",envir=nnTK)$sortByComplex)) #get Data in both List-format and Table-format (mixDataTABLE,refDataTABLE,mixDataLIST)
+    datalist$mixDataMATCHSTATUS = changeUnknownName(datalist$mixDataMATCHSTATUS) #update unknown names
+    rownames(datalist$refDataTABLE) = changeUnknownName(rownames(datalist$refDataTABLE)) #update unknown names
+     
+    useSNPmodule = !is.null(get("setupAdvanced",envir=nnTK)$isSNP) && get("setupAdvanced",envir=nnTK)$isSNP=="TRUE" #indicate if using SNP module
+    if( useSNPmodule && !is.null(datalist$mixDataMATCHSTATUS) && length(datalist$mixDataMATCHSTATUS)>0) {
+      datalist$mixDataMATCHSTATUS[] = "mixture" #assign as "mixture" (use internal notation)
+    } 
+    
+    ##Notice: The alleles in a loci should be ordered: Hence samples with same alleles can be detected   
+    #STORE DATA (BOTH TYPES) -> EASY AVAILABLE THROUGH ENVIRONMENT
+    assign("mixDataTABLE",datalist$mixDataTABLE,envir=nnTK) #assign to nnTK-environment
+    assign("refDataTABLE",datalist$refDataTABLE,envir=nnTK) #assign to nnTK-environment
+    assign("mixDataMATCHSTATUS",datalist$mixDataMATCHSTATUS,envir=nnTK) #assign to nnTK-environment
+    assign("mixDataLIST",datalist$mixDataLIST,envir=nnTK) #assign to nnTK-environment
+
+    updateProfileTables() #update datables (default sorting first time)
+    refreshMatchList() #update mixture-list (default sorting first time)
+    setFocus() #set focus
   } #end import function
   
   
-  #A do-all function for selected profiles(substitutes Export and Deconvolute):
+  #A do-all function for selected(marked) profiles(substitutes Export and Deconvolute):
   f_markprofs = function(h,...) { #helpfunction to operate on selected profiles (View/Export/Deconvolve/Delete)
     mixSelID <- refSelID <- NULL
     tryCatch( { mixSelID =  as.integer(gsub("#","",gWidgets2::svalue(mixTabGUI))) }, error=function(e) print("No EVIDS in table"))
@@ -1071,7 +1088,7 @@ gui = function(envirfile=NULL, envir=NULL) {
     
     tabFun = gWidgets2::glayout(spacing=spc/2,container=(tabtmp[1,2] <- gWidgets2::gframe( L$functionalities ,container=tabtmp)))  
     
-    getSelected = function() { #helpfunction to get selected
+    getSelected = function() { #helpfunction to get selected Evid or Ref profile names
      selEvid <- selRef <-  NULL
      if(!is.null(evids) && length(evids)>0 ) selEvid <- gWidgets2::svalue(tabSel[2,1]) #get selected evids
      if(!is.null(refs) && length(refs)>0) selRef <- gWidgets2::svalue(tabSel[2,2]) #get selected refs
@@ -1128,7 +1145,7 @@ gui = function(envirfile=NULL, envir=NULL) {
     
     #FUNCTION 4: Delete selected profiles from GUI
     tabFun[4,1] = gWidgets2::gbutton(text= paste(L$deletefrom, L$gui) ,container=tabFun, handler=function(h,...) { 
-     	selL <- getSelected()
+     	selL <- getSelected() #get 
      	if( length(selL[[1]])==0 && length(selL[[2]])==0) return() #return if none selected
     	txt = L$msg.deleteprofiles #delete following profiles?
     	sortTypes = get("setupSorting",envir=nnTK) #Obtain sort types (all tables except of matchMatrix)
@@ -1140,7 +1157,7 @@ gui = function(envirfile=NULL, envir=NULL) {
     	resCompLR  = get("resCompLR",envir=nnTK) #overview of combined results
     	resMatches = get("resMatches",envir=nnTK) #this is final match results
     	allMixList = get("allMixList",envir=nnTK) #list of all evidence profiles
-    	#storedFitHp = get("storedFitHp",envir=nnTK)
+    	storedFitHp = get("storedFitHp",envir=nnTK)
 
     	#if removing any evid profiles: 
     	anyIsDeleted = FALSE
@@ -1161,10 +1178,14 @@ gui = function(envirfile=NULL, envir=NULL) {
             mixTab = mixTab[keepevidsInd,,drop=FALSE] #update table
             
             #Remove evid from comparisons
-            if(FALSE) {
+            if(FALSE) { #NOT POSSIBLE AT THE MOMENT
               if(!is.null(resCompLR1)) resCompLR1 = resCompLR1[resCompLR1[,1]%in%keepevids,,drop=FALSE]
               if(!is.null(resCompLR2)) resCompLR2 = resCompLR2[resCompLR2[,1]%in%keepevids,,drop=FALSE]
-              if(!is.null(resCompLR)) resCompLR  = resCompLR[resCompLR[,1]%in%keepevids,,drop=FALSE]
+              if(!is.null(resCompLR)) {
+                indsKeep = which(resCompLR[,1]%in%keepevids)
+                resCompLR  = resCompLR[indsKeep,,drop=FALSE]
+                storedFitHp = storedFitHp[indsKeep] #keep only these
+              }
               if(!is.null(resMatches)) resMatches  = resMatches[resMatches[,1]%in%keepevids,,drop=FALSE]
               if(!is.null(allMixList)) allMixList = allMixList[allMixList[,1]%in%keepevids,,drop=FALSE]
               if(!is.null(resCompMAC)) {
@@ -1182,10 +1203,10 @@ gui = function(envirfile=NULL, envir=NULL) {
             assign("mixDataTABLE",mixTab,envir=nnTK) #store evid table 
             assign("mixDataMATCHSTATUS",mixStatus,envir=nnTK) #store match status again 
             assign("mixDataLIST", get("mixDataLIST",envir=nnTK)[rownames(mixTab)],envir=nnTK) #store evid list
-            updateTables(type="mix",sort=sortTypes[1]) #updates evid tables again 
+            updateProfileTables(type="mix",sort=sortTypes[1]) #updates evid tables again 
           }
         } 
-    	} #end if remove evid profiles
+    	} #end case of evid profiles
     	
     	#if removing any ref profiles
     	if(length(selL[[2]])>0) {  
@@ -1216,7 +1237,11 @@ gui = function(envirfile=NULL, envir=NULL) {
           #Update comparison tables:
           if(!is.null(resCompLR1)) resCompLR1 = resCompLR1[resCompLR1[,2]%in%keeprefs,,drop=FALSE]
           if(!is.null(resCompLR2)) resCompLR2 = resCompLR2[resCompLR2[,2]%in%keeprefs,,drop=FALSE]
-          if(!is.null(resCompLR)) resCompLR  = resCompLR[resCompLR[,2]%in%keeprefs,,drop=FALSE]
+          if(!is.null(resCompLR)) {
+            indsKeep = which(resCompLR[,2]%in%keeprefs)
+            resCompLR  = resCompLR[indsKeep,,drop=FALSE]
+            storedFitHp = storedFitHp[indsKeep] #keep only these
+          }
           if(!is.null(allMixList)) allMixList = removeRef(allMixList,selL[[2]])
           if(!is.null(resMatches)) resMatches = removeRef(resMatches,selL[[2]])
           if(!is.null(resCompMAC)) {
@@ -1228,10 +1253,10 @@ gui = function(envirfile=NULL, envir=NULL) {
             }
           }
        	  #Update tables     	  
-       	  updateTables(type="ref",sort=sortTypes[2]) #updates tables again 
-       	  if(any(mixStatusIndremove)) updateTables(type="mix",sort=sortTypes[1]) #updates mix tables again 
+       	  updateProfileTables(type="ref",sort=sortTypes[2]) #updates tables again 
+       	  if(any(mixStatusIndremove)) updateProfileTables(type="mix",sort=sortTypes[1]) #updates mix tables again 
       	} #end bool
-    	}
+    	} #end case of references
     	
     	if(anyIsDeleted) { #restore tables if any deleted
       	#Save match lists (matchmatrix,qualLR,quanLR,matchlist) and update
@@ -1241,11 +1266,11 @@ gui = function(envirfile=NULL, envir=NULL) {
       	assign("resCompLR",resCompLR,envir=nnTK) #overview of combined results
       	assign("resMatches",resMatches,envir=nnTK) #this is final match results
       	assign("allMixList",allMixList,envir=nnTK) #list of all evidence profiles
-      	#assign("storedFitHp",storedFitHp,envir=nnTK)
-      	refreshTabMATRIX(1)
-      	refreshTabLIST1(sort=sortTypes[3]) #update match list (quanLR)
-      	refreshTabLIST2(sort=sortTypes[4]) #update match list (quanLR)
-      	refreshTabLIST(sort=sortTypes[5]) #update match list (final)
+      	assign("storedFitHp",storedFitHp,envir=nnTK)
+      	refreshMatchMatrix(1)
+      	refreshMatchListQual(sort=sortTypes[3]) #update match list (quanLR)
+      	refreshMatchListQuan(sort=sortTypes[4]) #update match list (quanLR)
+      	refreshMatchList(sort=sortTypes[5]) #update match list (final)
     	}
     }) #end delete funciton
     
@@ -1276,7 +1301,7 @@ gui = function(envirfile=NULL, envir=NULL) {
         if(matchStatusSel==items[2]) matchStatusSel = "mixture" #insert as mixture (translated after)
         mixStatus[names(mixStatus)%in%evidSel] = matchStatusSel #modify matchstatus
         assign("mixDataMATCHSTATUS",mixStatus,envir=nnTK) #store match status again 
-        updateTables(type="mix",sort=sortTypes[1]) #updates evid tables again 
+        updateProfileTables(type="mix",sort=sortTypes[1]) #updates evid tables again 
         gWidgets2::dispose(itemselwin) #close selection window
       }) #Modify matchstatus?
       gWidgets2::visible(itemselwin)=TRUE
@@ -1348,7 +1373,7 @@ gui = function(envirfile=NULL, envir=NULL) {
   
   f_calcIBS = function(h,...) {  #Function to calculate IBS between references
     setPopFreq(giveMessage=FALSE) #import population frequency from last selected file (not required)
-    tabIBS = casesolver::calcIBS(nnTK,nLarge,L$mixture) #calculate IBS
+    tabIBS = casesolver::calcIBS(nnTK,nLarge,"mixture") #calculate IBS
     
     if(!is.null(tabIBS)) {
      colnames(tabIBS) <- c( L$nummismatch, L$comparison, ".", L$IBS, L$nummarkers  ) #note the added column names
@@ -1482,11 +1507,11 @@ gui = function(envirfile=NULL, envir=NULL) {
    sortTypes = get("setupSorting",envir=nnTK) #Obtain sort types
    
    getMatchesLR(type="quan") #run EFM 
-   refreshTabLIST2(sort=sortTypes[4]) #update QUAN LR table with results
+   refreshMatchListQuan(sort=sortTypes[4]) #update QUAN LR table with results
   
    #Create matchlist (Final step)
    createMatchlist(modtype=2) #update matchlist with results from QUAN LR
-   refreshTabLIST(sort=sortTypes[5]) #update tables  
+   refreshMatchList(sort=sortTypes[5]) #update tables  
    gWidgets2::svalue(nb) <- 5 #go to overview when done
   }
   
@@ -1555,90 +1580,90 @@ gui = function(envirfile=NULL, envir=NULL) {
   
   #FUNCTION WHICH PERFORMS DC (uses settings in GUI)
   doDC = function(nC,evids=NULL,refs=NULL,showPlot=TRUE,useplotly=TRUE,addedProfiles=NULL) {
-   useplotly <- useplotly && require(plotly) #must be installed
-   
-   refData <- condOrder <- NULL
-   if(!is.null(refs) && length(refs)>0) {
-     refData = getRefL(refs) # get list of reference data
-     condOrder = 1:length(refs) #hypothesis is to condition on all references
-   }
-   evidData <- get("mixDataLIST",envir=nnTK)[evids] #evidence to consider
-   evids = paste0(evids,collapse="/") #collapse multiple evidence names
-   condrefs = paste0(refs,collapse="/")
-   
-   suppressWarnings({ 
-     contFit <- casesolver::calcQuanMLE(evidData,refData,condOrder,nC,nnTK,verbose=TRUE) #get fitted object
-     dc <- euroformix::deconvolve(contFit,maxlist=1) #get top candidate profiles
-   })
-   if(showPlot) {
-     kitname = casesolver::getEnvirKit(nnTK) #get kitname
-     type = casesolver::getSampleType2(evidData,kitname) #get sample type
-  
-     #INSERTING ADDED PROFILE BY MANIPULATE FITTED MLE-model
-     if(!is.null(addedProfiles)) {
-       locs = names(dc$toprankGi) #obtain locus names
-       for(loc in locs) {
-         if(is.null( contFit$model$refData)) contFit$model$refData = list() #must create list if not exist
-         for(comp in names(addedProfiles)) {
-           if(is.null( contFit$model$refData[[loc]])) contFit$model$refData[[loc]] = list() #must create list if not exist
-           alleles = addedProfiles[[comp]][[loc]]$adata
-           contFit$model$refData[[loc]][[comp]] = alleles #insert aleles
+     useplotly <- useplotly && require(plotly) #must be installed
+     
+     refData <- condOrder <- NULL
+     if(!is.null(refs) && length(refs)>0) {
+       refData = getRefL(refs) # get list of reference data
+       condOrder = 1:length(refs) #hypothesis is to condition on all references
+     }
+     evidData <- get("mixDataLIST",envir=nnTK)[evids] #evidence to consider
+     evids = paste0(evids,collapse="/") #collapse multiple evidence names
+     condrefs = paste0(refs,collapse="/")
+     
+     suppressWarnings({ 
+       contFit <- casesolver::calcQuanMLE(evidData,refData,condOrder,nC,nnTK,verbose=TRUE) #get fitted object
+       dc <- euroformix::deconvolve(contFit,maxlist=1) #get top candidate profiles
+     })
+     if(showPlot) {
+       kitname = casesolver::getEnvirKit(nnTK) #get kitname
+       type = casesolver::getSampleType2(evidData,kitname) #get sample type
+    
+       #INSERTING ADDED PROFILE BY MANIPULATE FITTED MLE-model
+       if(!is.null(addedProfiles)) {
+         locs = names(dc$toprankGi) #obtain locus names
+         for(loc in locs) {
+           if(is.null( contFit$model$refData)) contFit$model$refData = list() #must create list if not exist
+           for(comp in names(addedProfiles)) {
+             if(is.null( contFit$model$refData[[loc]])) contFit$model$refData[[loc]] = list() #must create list if not exist
+             alleles = addedProfiles[[comp]][[loc]]$adata
+             contFit$model$refData[[loc]][[comp]] = alleles #insert aleles
+           }
+         }
+         #conditional index to insert
+         if(!is.null(contFit$model$condOrder)) {
+           contFit$model$condOrder = c(contFit$model$condOrder, max(contFit$model$condOrder)+1)
+         } else {
+           contFit$model$condOrder = 1
          }
        }
-       #conditional index to insert
-       if(!is.null(contFit$model$condOrder)) {
-         contFit$model$condOrder = c(contFit$model$condOrder, max(contFit$model$condOrder)+1)
-       } else {
-         contFit$model$condOrder = 1
-       }
-     }
+       
+       tryCatch({
+         makePlotTop(type,contFit,dc,kitname)
+        }, error = function(e) print(e))
+     } #end if showPlot
+     if(!is.null(addedProfiles)) return() #stopfunction if there was added profiles to show in plot (special case)
      
-     tryCatch({
-       makePlotTop(type,contFit,dc,kitname)
-      }, error = function(e) print(e))
-   } #end if showPlot
-   if(!is.null(addedProfiles)) return() #stopfunction if there was added profiles to show in plot (special case)
-   
-   #INSERTING CANDIDATE DECONVOLED PROFILES:
-   ratio <- get("setupThresh",envir=nnTK)$ratio #get ratio-threshold
-   probA <- get("setupThresh",envir=nnTK)$probA #get probability of allele - threshold
-   
-   locs0 <- names(dc$toprankGi) #get loci (from DC)
-   contrs = colnames(dc$toprankGi[[1]]) #get contributors
-   candtab <- matrix(nrow=0,ncol=2*length(locs0)+4) #list of candidates with genotypes (and probabilities)
-   colnames(candtab) <- c(L$Component, L$Conditionals,L$NOC,L$MixProp,locs0,locs0)
-   nR = length(refData) #number of conditional refs
-   for(cind in 1:length(contrs)) { #for each contributors
-     compn <-  contrs[cind] #paste0(evid,"_C",uind) #component name
-     addRef = FALSE #Should the profile be added? (Must have at least 1 deduced allele for an unknown component)
-     mxhat <- contFit$fit$thetahat2[cind] #get mixture proportion
-     newrow <- rep(NA,2*length(locs0))
-     for(loc in locs0) { #for each locus 
-       insind <- which(locs0==loc) #insert index for genotypes
-       insind2 <- length(locs0) + insind #insert index for probabilities (added last)
-       if(is.null(dc$toprankGi[[loc]])) next #skip if marker not found
-       cand <- dc$toprankGi[[loc]][,cind] #get candidate  
-       candRatio = as.numeric(cand[3]) #obtain 'ratio to next' for candidate
-       if(!is.na(cand[3]) &&  candRatio<ratio) { #if not a likely genotype
-         ind <- which(dc$table4[,1]==compn & dc$table4[,2]==loc)[1] #find top ranked single allele
-         candProbA = as.numeric(dc$table4[ind,4]) #get allele prob for candidate
-         if( candProbA >= probA ) {
-           newrow[insind] <- dc$table4[ind,3] #insert allele if prob>probA
-           #newrow[insind2] <- candProbA #insert allele prob
-         } 
-       } else { #else insert genotype candidate
-         newrow[insind] <- cand[1] #insert genotype
-       }
-       newrow[insind2] <- signif(candRatio,2) #insert ratio, rounded, to marker (always)
-       if( cind <= nR && length(refData[[cind]][[loc]]$adata)==0 && !is.na(newrow[insind]) ) addRef  = TRUE #indicate that ref prof. should be added
-     } #end for each loci
-     if(all(is.na(newrow[1:length(locs0)]))) next #skip if not deduced genotypes (Notice change from v1.8 when adding probabilities)
-     if( cind <= nR && !addRef) next #skip if ref should not be added
-     if(cind <= nR ) compn = names(refData)[cind] #use ref name instead if conditioned on
-     newrow <- c(paste0(evids,"-",compn),condrefs,nC,signif(mxhat,2),newrow)
-     candtab <- rbind(candtab, newrow)
-   } 
-   return(candtab)
+     #INSERTING CANDIDATE DECONVOLED PROFILES:
+     ratio <- get("setupThresh",envir=nnTK)$ratio #get ratio-threshold
+     probA <- get("setupThresh",envir=nnTK)$probA #get probability of allele - threshold
+     
+     locs0 <- names(dc$toprankGi) #get loci (from DC)
+     contrs = colnames(dc$toprankGi[[1]]) #get contributors
+     candtab <- matrix(nrow=0,ncol=2*length(locs0)+4) #list of candidates with genotypes (and probabilities)
+     colnames(candtab) <- c(L$Component, L$Conditionals,L$NOC,L$MixProp,locs0,locs0)
+     nR = length(refData) #number of conditional refs
+     for(cind in 1:length(contrs)) { #for each contributors
+       compn <-  contrs[cind] #paste0(evid,"_C",uind) #component name
+       addRef = FALSE #Should the profile be added? (Must have at least 1 deduced allele for an unknown component)
+       mxhat <- contFit$fit$thetahat2[cind] #get mixture proportion
+       newrow <- rep(NA,2*length(locs0))
+       for(loc in locs0) { #for each locus 
+         insind <- which(locs0==loc) #insert index for genotypes
+         insind2 <- length(locs0) + insind #insert index for probabilities (added last)
+         if(is.null(dc$toprankGi[[loc]])) next #skip if marker not found
+         cand <- dc$toprankGi[[loc]][,cind] #get candidate  
+         candRatio = as.numeric(cand[3]) #obtain 'ratio to next' for candidate
+         if(!is.na(cand[3]) &&  candRatio<ratio) { #if not a likely genotype
+           ind <- which(dc$table4[,1]==compn & dc$table4[,2]==loc)[1] #find top ranked single allele
+           candProbA = as.numeric(dc$table4[ind,4]) #get allele prob for candidate
+           if( candProbA >= probA ) {
+             newrow[insind] <- dc$table4[ind,3] #insert allele if prob>probA
+             #newrow[insind2] <- candProbA #insert allele prob
+           } 
+         } else { #else insert genotype candidate
+           newrow[insind] <- cand[1] #insert genotype
+         }
+         newrow[insind2] <- signif(candRatio,2) #insert ratio, rounded, to marker (always)
+         if( cind <= nR && length(refData[[cind]][[loc]]$adata)==0 && !is.na(newrow[insind]) ) addRef  = TRUE #indicate that ref prof. should be added
+       } #end for each loci
+       if(all(is.na(newrow[1:length(locs0)]))) next #skip if not deduced genotypes (Notice change from v1.8 when adding probabilities)
+       if( cind <= nR && !addRef) next #skip if ref should not be added
+       if(cind <= nR ) compn = names(refData)[cind] #use ref name instead if conditioned on
+       newrow <- c(paste0(evids,"-",compn),condrefs,nC,signif(mxhat,2),newrow)
+       candtab <- rbind(candtab, newrow)
+     } 
+     return(candtab)
   } #end doDC
   
   #helpfunction to change "Unknown" to language specific name
@@ -1651,7 +1676,7 @@ gui = function(envirfile=NULL, envir=NULL) {
   
   #Helpfunction to calc LR (fit quan model for both hyps)
   #REPLICATES NOT SUPPORTED!
-  fitEFMHYPs = function(nC,evids,ref,condref=NULL) {
+  fitEFMhyps = function(nC,evids,ref,condref=NULL) {
     #Prepare data:
     #popFreq=get("popFreq",envir=nnTK);
     samples <- get("mixDataLIST",envir=nnTK)[evids] #consider lists
@@ -1685,7 +1710,7 @@ gui = function(envirfile=NULL, envir=NULL) {
   
   #FUNCTION TO SPECIFY HYPOTHESIS AND CALCUALTE SINGLE LR
   createHypLRWindow = function(evids,ref,nC,condRefs=NULL,lrvals=NULL,lrvals2=NULL) {
-    Krange = 1:4 #range of number of contributors
+    Krange = 1:5 #range of number of contributors
     selind = which(nC==Krange)
     if(length(selind)==0) selind = max(Krange)
     selwin <- gWidgets2::gwindow(paste0( L$quanmodel ), visible=TRUE)
@@ -1720,18 +1745,19 @@ gui = function(envirfile=NULL, envir=NULL) {
         return()
       }
       gWidgets2::dispose(selwin) #remove window 
-      ret = fitEFMHYPs(nC=nC2,evids=mixsel,ref=ref,condref=condsel) 
+      ret = fitEFMhyps(nC=nC2,evids=mixsel,ref=ref,condref=condsel)  #perform the calculation
     
       #user can choose whether to replace results
       txt = paste0( L$msg.calculatedLR ,"\n", L$logLR ,"=",signif(ret$mleLR,digits=4),"\n\n", L$msg.useresult )
       ubool <- gWidgets2::gconfirm(txt,title= L$msg.useresult ,icon="info")
-      if(!ubool) return() #return from function 
+      if(!ubool) return() #return from function if not
     
+      #Updating tables
       #STORE MATCH HERE (not in function directly)  
       matchlist0 = get("resCompLR",envir=nnTK)  #get stored results from Qual/Quan comparison (unsorted, but truncated)
       matchlist1 = get("resCompLR1",envir=nnTK)  #get stored qual based results from comparison (sorted wrt QualLR)
       matchlist2 = get("resCompLR2",envir=nnTK)  #get stored quan based results from comparison (sorted wrt QuanLR)
-      hpfitlist = get("storedFitHp",envir=nnTK)  #get stored model results under Hp
+      hpfitlist = get("storedFitHp",envir=nnTK)  #get stored model results under Hp (under quan based LR ("resCompLR2" table)
     
       condREF = FALSE #bool if cond. ref is included
       hasCondREF = FALSE #whether condtional ref columns is in table
@@ -1743,15 +1769,29 @@ gui = function(envirfile=NULL, envir=NULL) {
       } 
        
       #NEED TO REMOVE ALREADY EXISTING COMPARISON AND EXCHANGE WITH NEW RESULTS:
-      ind = which(matchlist0[,1]==mixsel & matchlist0[,2]==ref)  #get index in matchlist0 (hp stored in this index)
-      if(length(ind)==0) { #NB: this variant was not computet before
-        ind = which(matchlist1[,1]==mixsel & matchlist1[,2]==ref)  #get index in matchlist0 (hp NOT stored in this index)
-        newrow = matchlist1[ind,]
-      } else { #Found
-        newrow = matchlist0[ind,-6] #don't include model type
+      ind = integer(0)
+      if(!is.null(matchlist0)) ind = which(matchlist0[,1]==mixsel & matchlist0[,2]==ref)  #get index in matchlist0 (hp stored in this index)
+      if(length(ind)==0) { #In case that the variant was not computed earlier (find the qualitative result)
+        indQual = integer(0)
+        if(!is.null(matchlist1)) indQual = which(matchlist1[,1]==mixsel & matchlist1[,2]==ref)  #get index in matchlist0 (hp NOT stored in this index)
+        if(length(indQual) != 1L) {
+          gWidgets2::gmessage("Could not identify a unique qualitative comparison.")
+          return()
+        }
+        newrow = matchlist1[indQual, 1:5]
+        
+        #Append to the master table and retain its actual row index
+        matchlist0 = rbind(matchlist0, c(newrow, "quan"))
+        ind = nrow(matchlist0) #last element
+      } else {
+        if(length(ind) != 1L) {
+          gWidgets2::gmessage("Multiple matching rows found in the master comparison table.")
+          return()
+        }
+        newrow = matchlist0[ind, 1:5]
       }
       if(condREF || hasCondREF) newrow = c(newrow,"") #add column if condRef considered OR before
-      newrow[4] = signif(ret$mleLR,digits=4) #round
+      newrow[4] = ret$mleLR #signif(,digits=4) #round
       newrow[5] = nC2 #insert number of contributors
       if(condREF) newrow[6] = paste0(condsel,collapse="/") #show conditionalRefs in table
       if(is.null(matchlist2) && condREF) names(newrow)[6] = L$condref #"condRef" #need to add name
@@ -1781,16 +1821,19 @@ gui = function(envirfile=NULL, envir=NULL) {
       assign("resCompLR",matchlist0,envir=nnTK)  
     
       #STORE HPFIT RESULTS
-      hpfitlist = get("storedFitHp",envir=nnTK)  #get already stored objects
-      if(is.null(hpfitlist)) hpfitlist = replicate(nrow(matchlist1),list()) #init. list if first time
-      hpfitlist[[ind]] <- ret$fithp  #insert on right index
+      if(is.null(hpfitlist)) {
+        hpfitlist = vector("list", nrow(matchlist0))
+      } else if(length(hpfitlist) < nrow(matchlist0)) {
+        length(hpfitlist) = nrow(matchlist0) #extend with NULL entries
+      }
+      hpfitlist[ind] <- list(ret$fithp)
       assign("storedFitHp",hpfitlist,envir=nnTK)  #store object
     
       #UPDATE TABLES:
       sortTypes = get("setupSorting",envir=nnTK) #Obtain sort types
-      refreshTabLIST2(which(ord==insInd),sort=sortTypes[4]) #update tables with results, with marked on selected one
+      refreshMatchListQuan(which(ord==insInd),sort=sortTypes[4]) #update tables with results, with marked on selected one
       createMatchlist(modtype=3) #final step is to update MIXTURES table
-      refreshTabLIST(evidsel=mixsel,sort=sortTypes[5]) #update match-tables: mark on considered evidence  
+      refreshMatchList(evidsel=mixsel,sort=sortTypes[5]) #update match-tables: mark on considered evidence  
     
       gWidgets2::svalue(nb) <- 4 #go to quan LR result tab when done
     }) #end button
@@ -1833,7 +1876,7 @@ gui = function(envirfile=NULL, envir=NULL) {
        dclist <- get("DClist",envir=nnTK) #get stored DC-list
        dclist <- rbind(dclist,candtab) #add candidates
        assign("DClist",dclist,envir=nnTK) #get stored DC-list  
-       refreshDCLIST() #refresh DC-list
+       refreshDClist() #refresh DC-list
        gWidgets2::svalue(nb) <- 5 #go to DC-tab
       }
     }) #end button
@@ -1859,32 +1902,32 @@ gui = function(envirfile=NULL, envir=NULL) {
   #Functions executed when double clicked on the DC list: 
   #2) Show Deconvoluted candidates (added to deconvoluted reference list)
   addDCprofile = function(h,...) {
-   DClist <- get("DClist",envir=nnTK)
-   if(is.null(DClist)) return() #return if no list found
-   suppressWarnings({
-     id <- as.integer(gsub("#","",gWidgets2::svalue(h$obj)))
-   })
-   if(is.na(id)) id <- as.integer(gsub("#","",gWidgets2::svalue(DClistGUI)))
+    DClist <- get("DClist",envir=nnTK)
+    if(is.null(DClist)) return() #return if no list found
+    suppressWarnings({
+      id <- as.integer(gsub("#","",gWidgets2::svalue(h$obj)))
+    })
+    if(is.na(id)) id <- as.integer(gsub("#","",gWidgets2::svalue(DClistGUI)))
    
-   if(length(id)>1) {
-   	gWidgets2::gmessage( L$msg.selectoneprofile )
-     return()
-   }
-   answ <- gWidgets2::gconfirm(paste0( L$msg.addDCprofile ,"\n",DClist[id,1]))
-   if(answ) { #if extracting DCed candidate
-     DCrow = DClist[id,] #obtain DC row to extract
-     f_addref(h=list(action=DCrow)) #open edit window of references
-  
-     #Store extracted DC-result to report object:
-     refTab = get("refDataTABLE",envir=nnTK)
-     DCtab = rbind(get("DClistReport",envir=nnTK),DCrow) #create DC-tab
-     rownames(DCtab)[nrow(DCtab)] = rownames(refTab)[nrow(refTab)] #obtain last extracted ref-name and insert to row
+    if(length(id)>1) {
+      gWidgets2::gmessage( L$msg.selectoneprofile )
+      return()
+    }
+    answ <- gWidgets2::gconfirm(paste0( L$msg.addDCprofile ,"\n",DClist[id,1]))
+    if(answ) { #if extracting DCed candidate
+      DCrow = DClist[id,] #obtain DC row to extract
+      addedRefName <- f_addref(h=list(action=DCrow)) #open edit window of references
+      if(is.null(addedRefName)) return()
+      
+      #Store extracted DC-result to report object:
+      DCtab = rbind(get("DClistReport",envir=nnTK),DCrow) #create DC-tab
+      rownames(DCtab)[nrow(DCtab)] = addedRefName #add directly as last
      
-     #UPDATING DClistReport object (used for reporting):
-     assign("DClistReport",DCtab,envir=nnTK)
-     #gWidgets2::svalue(nb) <- 1 #go to data-tab     
-   }
-  }
+      #UPDATING DClistReport object (used for reporting):
+      assign("DClistReport",DCtab,envir=nnTK)
+      #gWidgets2::svalue(nb) <- 1 #go to data-tab     
+    }
+  } #end add DC-profile
   
   #Helpfunction to show LRper marker when clicked
   showLRperMarker = function(h,...) {
@@ -1893,7 +1936,7 @@ gui = function(envirfile=NULL, envir=NULL) {
     suppressWarnings({
       ids <- as.integer(gsub("#","",gWidgets2::svalue(h$obj))) #svalue gives name of button if pressed, otherwise its the row in table
     })
-    if(is.na(ids)) ids <- as.integer(gsub("#","",gWidgets2::svalue(WOElistGUI)))
+    if(length(ids)==0L || any(is.na(ids))) ids <- as.integer(gsub("#","",gWidgets2::svalue(WOElistGUI)))
     
     s0 = 2 #signif level
     for(id in ids) {
@@ -1904,7 +1947,7 @@ gui = function(envirfile=NULL, envir=NULL) {
     }
   }
   
-  #function which takes all matches (with LR>threshold) and create a list to double click on (showing confirming under all conded)
+  #function which takes all matches (with LR>threshold) and create a refined match list
   createMatchlist = function(modtype) { #directly after calculations are done
     #modtype: 0=MAConly(noLR), 1=All Qual LR, 2=All Quan LR, 3=Original Qual LR, but some updated with Quan LR
     threshLR <- get("setupThresh",envir=nnTK)$LRthresh1 #QualLR used by default
@@ -1921,23 +1964,22 @@ gui = function(envirfile=NULL, envir=NULL) {
       score <- as.numeric(tab[,4])
       tab <- tab[score>=log10(threshLR),,drop=FALSE] #combinations to consider (all above LR treshold)
     }
-    if(nrow(tab)==0) return()
     if(modtype==3) {
       threshLR2 <- get("setupThresh",envir=nnTK)$LRthresh2 #QualLR used if type 1
       tab2 <- get("resCompLR2",envir=nnTK) #must create a concensus table of Qual/Quan based (using both thresholds)
-      if(nrow(tab2)>0) {
-       for(rr in 1:nrow(tab2)) { #for each row
-         checkind = which( tab[,1]==tab2[rr,1] & tab[,2]==tab2[rr,2]) #find corresponding comparison
-         if(length(checkind)==0) {
-            if(as.numeric(tab2[rr,4])>=log10(threshLR2)) tab = rbind(tab,tab2[rr,])  #if not found AND it is above threshold, we add it to the list      
-         } else {
-          	if( as.numeric(tab2[rr,4])<log10(threshLR2)) {
-           	 tab = tab[-checkind,,drop=FALSE] #remove from list
-         	} else {
+      if(!is.null(tab2) && nrow(tab2)>0) {
+        for(rr in 1:nrow(tab2)) { #for each row
+          checkind = which( tab[,1]==tab2[rr,1] & tab[,2]==tab2[rr,2]) #find corresponding comparison
+          if(length(checkind)==0) {
+            if(as.numeric(tab2[rr,4])>=log10(threshLR2)) tab = rbind(tab, tab2[rr,1:5,drop=FALSE])  #if not found AND it is above threshold, we add it to the list      
+          } else {
+            if( as.numeric(tab2[rr,4])<log10(threshLR2)) {
+              tab = tab[-checkind,,drop=FALSE] #remove from list
+         	  } else {
              tab[checkind,4:5] = tab2[rr,4:5] #update tab if still keeped
           	}
-         }
-       } #end for each rr
+          }
+        } #end for each rr
       } #if any QUAN based LRs
     } #end model type =3
     unEvid <- unique(tab[,1]) #get unique evidence
@@ -1964,17 +2006,19 @@ gui = function(envirfile=NULL, envir=NULL) {
   #Show matches in a graph:
   #UPDATED IN v1.5.0: Uses plotly to get interactive plot
   f_showMatchNetwork = function(h,...) {
-   require(igraph)
-  
-   createInteractive = FALSE
-   if(!is.null(h)) createInteractive = TRUE
+   loaded = require(igraph,quietly = TRUE)
+   if(!loaded) {
+     print("Couldn't print match network.")
+     return()
+   }
+   createInteractive = TRUE #always as interactive plot
    action = "all" #indicate action of plot ("all, onlymix, onlyss)
    if(!is.null(h)) { #IF BUTTON CLICKED: 
      if(h$action=="onlymix") action = "onlymix" #tab = tab[tab[,5]!="1",,drop=FALSE]  # Check if comparing only against Mixture
      if(h$action=="onlyss") action = "onlyss" #tab = tab[tab[,5]=="1",,drop=FALSE]  # Check if comparing only against Mixture
    }
    casesolver::showMatchNetwork(nnTK,action,createInteractive)
-   return(TRUE)
+   return()
   }
   
   ############
@@ -2027,6 +2071,23 @@ gui = function(envirfile=NULL, envir=NULL) {
      Clist <- get("resCompLR1",envir=nnTK)  #list to consider for calculating LR (based on qualLR)
      Clist <- Clist[as.numeric(Clist[,4])>=log10(get("setupThresh",envir=nnTK)$LRthresh1),,drop=FALSE] #keep only variants above thrshold AND COLUMNS in MAC
     }
+    
+    #Need to handle if comparison list is empty (after MAC or LRquan)
+    if(is.null(Clist) || nrow(Clist)==0) {
+      emptyTab <- matrix(character(), nrow=0, ncol=5, dimnames=list(NULL, c("Evidence", "Reference", "MAC", "log10LR", "numContr")))
+      assign("resCompLR", cbind(emptyTab, type=character()), envir=nnTK)
+      if(type=="qual") {
+        assign("resCompLR1", emptyTab, envir=nnTK)
+        suppressWarnings(matchL1GUI[] <- NULL) #bypass warning
+      } else {
+        assign("resCompLR2", emptyTab, envir=nnTK)
+        assign("storedFitHp", list(), envir=nnTK)
+        suppressWarnings(matchL2GUI[] <- NULL) #bypass warning
+      }
+      return()
+    }
+    
+    
     DBmix <- get("mixDataLIST",envir=nnTK)[unique(Clist[,1])] #get relevant evidence
     DBref <- get("refDataTABLE",envir=nnTK)
     DBref = DBref[rownames(DBref)%in%unique(Clist[,2]),,drop=FALSE] #get only relevant references
@@ -2042,7 +2103,8 @@ gui = function(envirfile=NULL, envir=NULL) {
     
         #use "Rule of three" for EFM model when applied to SNPs
         if(!is.null(get("setupAdvanced",envir=nnTK)$isSNP) && get("setupAdvanced",envir=nnTK)$isSNP=="TRUE")  nContr = rep("3",nrow(Clist))
-        useEFMex = get("setupAdvanced",envir=nnTK)$useEFMex=="TRUE"
+        useEFMex = FALSE
+        if(!is.null(setupAdvanced$useEFMex) && get("setupAdvanced",envir=nnTK)$useEFMex=="TRUE") useEFMex = TRUE
     #matchlist=Clist[,1:3,drop=FALSE];popFreq=mod$popFreq;kit=mod$kit;xiBW=mod$xiBW;xiFW=mod$xiFW;pC=mod$pC;lambda=mod$lambda;threshT=mod$threshT;nDone=mod$nDone;maxC=get("setupAdvanced",envir=nnTK)$maxC2;normalize=mod$normalize;minFreq=mod$minFreq
         matchLRres <- calcQuanLRcomparison(DBmix,DBref,matchlist=Clist[,1:3,drop=FALSE],popFreq=mod$popFreq,kit=mod$kit,xiBW=mod$xiBW,xiFW=mod$xiFW,pC=mod$pC,lambda=mod$lambda,threshT=mod$threshT,nDone=mod$nDone,maxC=get("setupAdvanced",envir=nnTK)$maxC2,nContr=nContr, normalize=mod$normalize,minFreq=mod$minFreq,useEFMex=useEFMex) 
      }
@@ -2056,7 +2118,7 @@ gui = function(envirfile=NULL, envir=NULL) {
       LRcol <- which(colnames(matchlist)=="log10LR") #get column where LR is
       LRval <- as.numeric(matchlist[,LRcol])
       ord <- order( LRval,decreasing=TRUE)
-      matchlist[,LRcol] <- round(LRval,2) #round to 2 dec
+      #matchlist[,LRcol] <- round(LRval,2) #round to 2 dec
       #matchlist[ord,] #sort list by LR
       assign("resCompLR1", matchlist[ord,,drop=FALSE],envir=nnTK)  #store sorted matchlist 
     }
@@ -2067,7 +2129,7 @@ gui = function(envirfile=NULL, envir=NULL) {
       LRcol <- which(colnames(matchlist)=="log10LR") #get column where LR is
       LRval <- as.numeric(matchlist[,LRcol])
       ord <- order( LRval,decreasing=TRUE)
-      matchlist[,LRcol] <- round(LRval,2) #round to 2 dec
+      #matchlist[,LRcol] <- round(LRval,2) #round to 2 dec
       #matchlist[ord,] #sort list by LR
       assign("resCompLR2", matchlist[ord,,drop=FALSE],envir=nnTK)  #store sorted matchlist 
     }
@@ -2076,14 +2138,15 @@ gui = function(envirfile=NULL, envir=NULL) {
   
   #Function giving window for editing alleles for new references (returns ref-name)
   f_addref = function(h,...) { 
+    addedRefName <- NULL
     refT <- get("refDataTABLE",envir=nnTK)
     refTNames = rownames(refT)
-    if(nrow(refT)>0) {
+    if(!is.null(refT) && nrow(refT)>0) {
      locs <- colnames(refT) #get loci names from ref-table
     } else {
      locs <- colnames(get("mixDataTABLE",envir=nnTK)) #get loci names from mix-table (in case of no refs)
     }
-    refind = 1:nrow(refT) #index of refs to consider (may be empty also)
+    refind = seq_len(nrow(refT)) 
     if( length(refTNames)>=nLarge) { #the user must give a segment of refs
       ret = gWidgets2::ginput( L$msg.indexinput , text = "1-10", title = "User input", icon = "info")
       ret = unlist(strsplit(ret,","))
@@ -2124,6 +2187,7 @@ gui = function(envirfile=NULL, envir=NULL) {
     guitab <- gWidgets2::gdf(items=newTab,container = tabval) 
     gWidgets2::add(tabval,guitab,expand=TRUE,fill=TRUE) 
     
+    #Save button:
     gWidgets2::gbutton(text= L$save ,spacing=0,container=tabval,handler = function(h, ...) { 
       if(nrow(refT)==0) {
         newref <- t(as.character(unlist(guitab[])))
@@ -2136,15 +2200,19 @@ gui = function(envirfile=NULL, envir=NULL) {
       delindsOld <- newref[,1]=="" #index of all refs to delete (When names are set to "")
     
       if(any(delindsOld)) { #if deleting previous stored refs
-       answ <- gWidgets2::gconfirm(paste0( L$msg.suredelete ,":\n",paste0(refN[delindsOld],collapse="/"),"?"))
-       if(answ) { #if agree then refs are deleted
-        refT <- refT[!delindsOld,,drop=FALSE] #update ref-table
-        newref = newref[!delindsOld,,drop=FALSE] #BUG fixed in v1.4.0
-        refN = refN[!delindsOld]
-       }
+        answ <- gWidgets2::gconfirm(paste0( L$msg.suredelete ,":\n",paste0(refN[delindsOld],collapse="/"),"?"))
+        if(answ) { #if agree then refs are deleted
+          refT <- refT[!delindsOld,,drop=FALSE] #update ref-table
+          newref = newref[!delindsOld,,drop=FALSE] #BUG fixed in v1.4.0
+          refN = refN[!delindsOld]
+        } else {
+          newref[,1] <- refN       #restore names when deletion is declined
+          delindsOld[] <- FALSE   #cancel the deletion flags
+        }
       } 
     
       #CHECK FOR CHANGES (not added ref)
+      isChanged = integer(0)
       if(nrow(refT)>0) { #must have at least one ref
        isChanged = which(refT != newref[,-1],arr.ind=TRUE)
        if(length(isChanged)>0) {
@@ -2187,18 +2255,18 @@ gui = function(envirfile=NULL, envir=NULL) {
       if(!is.null(Anew2)) {
        refT <- rbind(refT,Anew2) #add to existing table
        rownames(refT)[nrow(refT)] <- sn
-       
-       
       }    
       assign("refDataTABLE",refT,envir=nnTK) #store table 
+      if(!is.null(Anew2)) addedRefName <<- as.character(sn)
+      
       gWidgets2::dispose(setwin) #close window
       tcltk::tclvalue(flag) <- "destroy" #Destroy wait flag
-      
       sortTypes = get("setupSorting",envir=nnTK) #Obtain sort types
-      updateTables(type="ref",sort=sortTypes[2]) #updates tables again (with same sorting)
+      updateProfileTables(type="ref",sort=sortTypes[2]) #updates tables again (with same sorting)
     }) #end button
     gWidgets2::visible(setwin) <- TRUE
     tcltk::tkwait.variable(flag) #important to not quit window before broken
+    return(addedRefName)
   }  #end add ref
   
   #FUNCTION TO STORE TABLE:
@@ -2241,7 +2309,7 @@ gui = function(envirfile=NULL, envir=NULL) {
      dclist <- get("DClist",envir=nnTK) #get stored DC-list
      dclist <- rbind(dclist,candtabs) #add candidates
      assign("DClist",dclist,envir=nnTK) #get stored DC-list  
-     refreshDCLIST() #refresh DC-list
+     refreshDClist() #refresh DC-list
      gWidgets2::svalue(nb) <- 6 #go to DC-tab after calculation
     }
   } #end f_doDCall
@@ -2249,33 +2317,34 @@ gui = function(envirfile=NULL, envir=NULL) {
   #Function to do WOE as a final step from matchlist
   f_doWOEcall = function(h,...) {
    
-   #CHECK AND SET FREQUENCY FILE BEFORE
-   ok = setPopFreq(giveMessage=TRUE) #import population frequency from last selected file
-   if(!ok) return() #retun from function if not frequencies are set.
+    #CHECK AND SET FREQUENCY FILE BEFORE
+    ok = setPopFreq(giveMessage=TRUE) #import population frequency from last selected file
+    if(!ok) return() #retun from function if not frequencies are set.
   
-   #perform WOE calculation (returns from function when closed/finished)
-   calcWOEhyps(nnTK) 
-   #Update with WoE table when done evaluated
-   #length( get("resWOEeval",envir=nnTK) )
-   resList = get("resWOEeval",envir=nnTK) #obtain results
-   #object.size(resWOEeval)/1e6 #size of object
-   if(length(resList)==0 || !is.null(resList$resTable)) return(NULL) #return if no elements
-   extractrow = function(x) {
-     s0 = 2
-     evidtxt = paste0(x$evid,collapse="/")
-     condtxt = paste0(x$cond ,collapse="/")
-     validtxt = paste0(x$nFailedHp,"/",x$nFailedHd)
-     c(evidtxt,x$poi,condtxt,x$NOC,round(x$mleLR,s0),round(x$bayesLR,s0),round(x$consLR,s0),round(x$MxPOI,s0),validtxt)
-   }
-   resTable = t(sapply(resList,  extractrow))
-   colnames(resTable) = c(L$evidences, L$POI, L$Conditionals, L$NOC, L$LRmle, L$LRbayes, L$LRcons, L$MxPOI, L$nFailed)
-   resList$resTable =resTable #insert table
+    #perform WOE calculation (returns from function when closed/finished)
+    useEmpty = FALSE
+    if(h$action=="more") useEmpty = TRUE #wheter performing more calculations (then set as empty)
+    calcWOEhyps(nnTK,useEmpty) 
+    #Update with WoE table when done evaluated
+    
+    resList = get("resWOEeval",envir=nnTK) #obtain results
+    if(length(resList)==0 || !is.null(resList$resTable)) return(NULL) #return if no elements
+    extractrow = function(x) {
+      s0 = 2
+      evidtxt = paste0(x$evid,collapse="/")
+      condtxt = paste0(x$cond ,collapse="/")
+      validtxt = paste0(x$nFailedHp,"/",x$nFailedHd)
+      c(evidtxt,x$poi,condtxt,x$NOC,round(x$mleLR,s0),round(x$bayesLR,s0),round(x$consLR,s0),round(x$MxPOI,s0),validtxt)
+    }
+    resTable = t(sapply(resList,  extractrow))
+    colnames(resTable) = c(L$evidences, L$POI, L$Conditionals, L$NOC, L$LRmle, L$LRbayes, L$LRcons, L$MxPOI, L$nFailed)
+    resList$resTable =resTable #insert table
    
-   print("Done with Weight-of-evidence calculations!")
-   assign("resWOEeval",resList,envir=nnTK) #obtain results
-   refreshWOELIST()
-   gWidgets2::svalue(nb) <- 7  #change panel
-   setFocus() #refocus
+    print("Done with Weight-of-evidence calculations!")
+    assign("resWOEeval",resList,envir=nnTK) #obtain results
+    refreshWOELIST()
+    gWidgets2::svalue(nb) <- 7  #change panel
+    setFocus() #refocus
   }
   
   
@@ -2367,11 +2436,10 @@ gui = function(envirfile=NULL, envir=NULL) {
    gWidgets2::gaction( paste( L$select , L$language ) ,handler=f_selLanguage) #select language
   )
   
-  
   #change working directory to the one stored in nnTK-environment
   wd=get("workdir",envir=nnTK) #assign working directory to nnTK-environment
   if(!is.null(wd)) {
-  tryCatch( { setwd(wd) }, error = function(e) print("Warning: Workdirectory could not be changed!") )
+    tryCatch( { setwd(wd) }, error = function(e) print("Warning: Workdirectory could not be changed!") )
   }
   
   #############
@@ -2394,46 +2462,37 @@ gui = function(envirfile=NULL, envir=NULL) {
   ###############Tab 1: Import Data:##################
   ####################################################
   
-  #TAB layout
+  #TAB layout: A=upper buttons, B = Functionalities, C=Evid/Ref window
   layhor0 = as.logical(get("setupView",envir=nnTK)$importHorizontal) #get configured layout of tables
   tabimportA = gWidgets2::glayout(spacing=5,container=gWidgets2::gframe( paste( L$select , L$caseid ) ,container=tabimport)) #kit and population selecter
   tabimportC = gWidgets2::glayout(spacing=5,container=gWidgets2::gframe( L$functionalities ,container=tabimport)) #Tasks button
   tabimportB = gWidgets2::gpanedgroup(horizontal=layhor0,container=gWidgets2::gframe( paste0( L$data.evidref ),container=tabimport,expand=TRUE,fill=TRUE),expand=TRUE,fill=TRUE) #evidence,ref dataframe
   
+  #OBTAIN CASE SELECTION
   txtEmptycasedir = paste( L$msg.emptycasedir, L$setup, ">", L$set , L$pathcasefolders ) #create a error message for not finding case folders
-  #Choose box and import button
-  casedir <-  get("setupCase",envir=nnTK)$casepath
-  if(is.na(casedir) || casedir=="") gWidgets2::gmessage( txtEmptycasedir )
-  casefolds <- list.dirs(casedir,recursive=FALSE, full.names = TRUE)  #keep full path
-  casefolds2 <- list.dirs(casedir,recursive=FALSE, full.names = FALSE)  #extract only folder CHanged in v1.7
+  casedir <-  get("setupCase",envir=nnTK)$casepath #Obtaining case path (casefolder)
+  if(is.na(casedir) || casedir=="") gWidgets2::gmessage( txtEmptycasedir ) #if not selected properly
   
-  caseid <- get("caseID",envir=nnTK) 
-  if(is.null(caseid)) {
-    caseid <- 0 #set a default index
-  } else {
-    caseid <- which(casefolds2==caseid) #must be index
+  casefolds = NULL #default is no selected casefolders
+  caseID <- get("caseID",envir=nnTK) #obtain selected caseIDin environment
+  if(is.null(caseID)) {
+    deactList = get("setupAdvanced",envir=nnTK)$deactCaseList #whether to deactivate case list
+    if(!is.null(deactList) && as.logical(deactList)) { #in case of deactivating the case list
+      casefolds = "" #insert empty: User needs to fill in
+    } else { #otherwise the full case list is provided
+      casefolds <- list.dirs(casedir,recursive=FALSE, full.names = FALSE)  #extract only folder CHanged in v1.7
+    }    
+  } else { #case-id was found. need to add to list
+    casefolds = caseID
   }
-  tabimportA[1,1] = gWidgets2::gbutton(text= L$changeview ,container=tabimportA,handler=function(h,...) { #CHANGE VIEW
-    opt = get("setupView",envir=nnTK) #get options
-    if(layhor0) {
-      opt$importHorizontal = "FALSE"
-    } else {
-      opt$importHorizontal = "TRUE"
-    }
-    assign("setupView",opt,envir=nnTK)  #store to environment
-    setupWrite(unlist(opt),file=setupFileView)    #save to file in installation folder
-    gWidgets2::dispose(mainwin) #shut down window
-    #gc() #empty garbage memory
-    gui(envir=nnTK) #restart GUI session with project environment
-  })
+  ################################################################################################################
   
   #BUTTON FOR IMPORTING DATA (calls f_importData)
-  if( length(casefolds2)>0 && length(caseid)>0  ) {#v1.4.1: ADDED if to make possible to exchange proj files
-    tabimportA[1,2] <- gWidgets2::gcombobox(items=casefolds2, selected = caseid  , editable = TRUE, container = tabimportA) 
-    tabimportA[1,3] <- gWidgets2::gbutton(text= L$import ,container=tabimportA,handler=f_importData) #IMPORT FUNCTION!!!
-    gWidgets2::tooltip(tabimportA[1,3]) <- L$tip.data.import #add tooltip only if button is visible
-  }
-  
+  #Case list is always provided
+  tabimportA[1,2] <- gWidgets2::gcombobox(items=casefolds, selected = 1  , editable = TRUE, container = tabimportA) 
+  tabimportA[1,3] <- gWidgets2::gbutton(text= L$import ,container=tabimportA,handler=f_importData) #IMPORT FUNCTION!!!
+  gWidgets2::tooltip(tabimportA[1,3]) <- L$tip.data.import #add tooltip only if button is visible
+
   mixTabGUI <- gWidgets2::gtable(items="",multiple = TRUE,container = tabimportB, handler=clicktable,action="mix")
   refTabGUI <- gWidgets2::gtable(items="",multiple = TRUE,container = tabimportB, handler=clicktable,action="ref")
   #gWidgets2::add(tabimportB,mixTabGUI,expand=TRUE,fill=TRUE)
@@ -2443,24 +2502,24 @@ gui = function(envirfile=NULL, envir=NULL) {
   #TABLE SORTING
   sortstring1 <- paste( L$data.sortevid, c("#", L$name , L$matchstatus )) #EVID
   tabimportA[1,4] = gWidgets2::gcombobox(items=sortstring1,selected=1,container=tabimportA,horizontal = TRUE, handler=
-  function(h,...) { 
-   sortval = which(sortstring1== gWidgets2::svalue(tabimportA[1,4])) #sort value
-   resave_Sorting(1,sortval) #resaving to setupSorting object
-   updateTables(sort=sortval,type=h$action) 
-  },action="mix")
+    function(h,...) { 
+     sortval = which(sortstring1== gWidgets2::svalue(tabimportA[1,4])) #sort value
+     resave_Sorting(1,sortval) #resaving to setupSorting object
+     updateProfileTables(sort=sortval,type=h$action) 
+    },action="mix")
   sortstring2 <-  paste( L$data.sortref, c("#", L$name )) #REFERENCE
   tabimportA[1,5] = gWidgets2::gcombobox(items=sortstring2,selected=1,container=tabimportA,horizontal = TRUE, handler=
-  function(h,...) { 
-   sortval = which(sortstring2== gWidgets2::svalue(tabimportA[1,5]))
-   resave_Sorting(2,sortval) #resaving to setupSorting object
-   updateTables(sort=sortval,type=h$action) 
-  },action="ref")
+    function(h,...) { 
+     sortval = which(sortstring2== gWidgets2::svalue(tabimportA[1,5]))
+     resave_Sorting(2,sortval) #resaving to setupSorting object
+     updateProfileTables(sort=sortval,type=h$action) 
+    },action="ref")
   
   #UPDATE IN v1.5: Possible to add references afterwards
   tabimportA[1,6] <- gWidgets2::gbutton(text= L$importref ,container=tabimportA,handler = function(h, ...) { #IMPORT REFS
-    ff <- mygfile( paste( L$select , L$file) ,type="open")
-    if(length(ff)==0) return()
-    tab = euroformix::tableReader(ff) #read table and insert to GUI format
+    filename <- mygfile( paste( L$select , L$file) ,type="open")
+    if(length(filename)==0) return()
+    tab = euroformix::tableReader(filename) #read table and insert to GUI format
     
     #Borrowing code from euroformix::efm L977 (import reference-databases)
     cn = colnames(tab) #colnames 
@@ -2494,70 +2553,87 @@ gui = function(envirfile=NULL, envir=NULL) {
     assign("refDataTABLE",refT,envir=nnTK) #store table 
     
     sortTypes = get("setupSorting",envir=nnTK) #Obtain sort types
-    updateTables(type="ref",sort=sortTypes[2]) #updates ref-table again 
+    updateProfileTables(type="ref",sort=sortTypes[2]) #updates ref-table again 
   })
   
+  tabimportA[1,7] = gWidgets2::gbutton(text= L$changeview ,container=tabimportA,handler=function(h,...) { #CHANGE VIEW
+    opt = get("setupView",envir=nnTK) #get options
+    if(layhor0) {
+      opt$importHorizontal = "FALSE"
+    } else {
+      opt$importHorizontal = "TRUE"
+    }
+    assign("setupView",opt,envir=nnTK)  #store to environment
+    setupWrite(unlist(opt),file=setupFileView)    #save to file in installation folder
+    gWidgets2::dispose(mainwin) #shut down window
+    #gc() #empty garbage memory
+    gui(envir=nnTK) #restart GUI session with project environment
+  })
+  
+  ################################################################################################################
   tabimportC[1,1] = gWidgets2::gbutton(text= L$compare ,container=tabimportC,handler= #COMPARE FUNCTION
-  function(h,...) {
-  
-  refDataTABLE =  get("refDataTABLE",envir=nnTK)
-  if(is.null(refDataTABLE) || nrow(refDataTABLE)==0) return() #return if no refs
-  
-  #Reset all earlier comparison-results (since method may have changed):
-  print("Resetting all previous comparison-results...")
-  assign("resCompMAC",NULL,envir=nnTK);assign("resCompLR1",NULL,envir=nnTK);assign("resCompLR2",NULL,envir=nnTK)  
-  assign("resCompLR",NULL,envir=nnTK);assign("resMatches",NULL,envir=nnTK);assign("allMixList",NULL,envir=nnTK) 
-  suppressWarnings({
-   matchL1GUI[] = NULL #Set to zero if anything
-   matchL2GUI[] = NULL #Set to zero if anything
-  })
-  
-  #CHECK AND SET FREQUENCY FILE
-  ok = setPopFreq(giveMessage=TRUE) #import population frequency from last selected file
-  if(ok) {
-   locsUse = names(get("popFreq",envir=nnTK)) #use markers in freq table if found
-  } else {
-   locsUse = colnames(get("mixDataTABLE",envir=nnTK)) #otherwise use loci from evid data
-  }
-  print(paste0(length(locsUse)," loci used in COMPARISON:"))
-  print(paste0(locsUse,collapse="/")) #Print to console which loci are used
-  
-  #Step 1: Calculate MAC
-  res <- getMatchesMAC(locs=locsUse)  #get name of loci to consider
-  if(is.null(res)) return(); #return if nothing to compare.
-  refreshTabMATRIX() #update tables
-  gWidgets2::svalue(nb) <- 2 #go to comparison tab
-  
-  #CALCULATING LR BASED SCORES:
-  if(nrow(res$MatchList)==0) return() #Return if no candidates to calculate
-  modtype <- get("setupModel",envir=nnTK)$modeltype #model type selected {1="qual",2="quan",3="both"} #Otherwise only MAC based
-  if(!ok) modtype = 0 # return() #show MAC results if LR can't be calculated
-  
-  sortTypes = get("setupSorting",envir=nnTK) #Obtain sort types
-  #Step 2 (optional): Calculate qual based LR
-  if( modtype%in%c(1,3) ) {
-   getMatchesLR(type="qual") #LRmix
-   refreshTabLIST1(sort=sortTypes[3]) #update table with results
-   gWidgets2::svalue(nb) <- 3 #go to qual LR result tab when done
-  }
-  
-  #Step 3 (optional): Calculate quan based LR
-  if( modtype%in%c(2,3) ) {
-   if( get("setupModel",envir=nnTK)$degrad==1 && !casesolver::canPrintEPG(nnTK) ) { #If degradation model chosen but kit not selected
-    gWidgets2::gmessage( paste( L$msg.kitspecify, L$settings ,">", L$select ,L$kit) )
-    return()
-   } 
-   getMatchesLR(type="quan") #EFM based
-   refreshTabLIST2(sort=sortTypes[4]) #update tables with results
-   gWidgets2::svalue(nb) <- 4 #go to quan LR result tab when done
-  }
-  
-  #Step 3: Create matchlist (Final)
-  createMatchlist(modtype=modtype) 
-  refreshTabLIST(sort=sortTypes[5]) #update tables  
-  gWidgets2::svalue(nb) <- 5 #go to overview when done
-  
-  })
+    function(h,...) {
+    
+    refDataTABLE =  get("refDataTABLE",envir=nnTK)
+    if(is.null(refDataTABLE) || nrow(refDataTABLE)==0) return() #return if no refs
+    
+    #Reset all earlier comparison-results (since method may have changed):
+    print("Resetting all previous comparison-results...")
+    assign("resCompMAC",NULL,envir=nnTK);assign("resCompLR1",NULL,envir=nnTK);assign("resCompLR2",NULL,envir=nnTK)  
+    assign("resCompLR",NULL,envir=nnTK);assign("resMatches",NULL,envir=nnTK);assign("allMixList",NULL,envir=nnTK) 
+    suppressWarnings({
+      matchL1GUI[] <- NULL #clear previous matches
+      matchL2GUI[] <- NULL #clear previous matches
+      mixlistGUI[] <- NULL #clear previous matches
+    })
+    
+    #CHECK AND SET FREQUENCY FILE
+    ok = setPopFreq(giveMessage=TRUE) #import population frequency from last selected file
+    if(ok) {
+     locsUse = names(get("popFreq",envir=nnTK)) #use markers in freq table if found
+    } else {
+     locsUse = colnames(get("mixDataTABLE",envir=nnTK)) #otherwise use loci from evid data
+    }
+    print(paste0(length(locsUse)," loci used in COMPARISON:"))
+    print(paste0(locsUse,collapse="/")) #Print to console which loci are used
+    
+    #Step 1: Calculate MAC
+    res <- getMatchesMAC(locs=locsUse)  #indicate which loci to consider
+    if(is.null(res)) return(); #return if nothing to compare.
+    refreshMatchMatrix() #update tables
+    gWidgets2::svalue(nb) <- 2 #go to comparison tab
+    
+    #CALCULATING LR BASED SCORES:
+    if(nrow(res$MatchList)==0) return() #Return if no candidates to calculate
+    modtype <- get("setupModel",envir=nnTK)$modeltype #model type selected {1="qual",2="quan",3="both"} #Otherwise only MAC based
+    if(!ok) modtype = 0 # return() #show MAC results if LR can't be calculated
+    
+    sortTypes = get("setupSorting",envir=nnTK) #Obtain sort types
+    #Step 2 (optional): Calculate qual based LR
+    if( modtype%in%c(1,3) ) {
+     getMatchesLR(type="qual") #LRmix
+     refreshMatchListQual(sort=sortTypes[3]) #update table with results
+     gWidgets2::svalue(nb) <- 3 #go to qual LR result tab when done
+    }
+    
+    #Step 3 (optional): Calculate quan based LR
+    if( modtype%in%c(2,3) ) {
+     if( get("setupModel",envir=nnTK)$degrad==1 && !casesolver::canPrintEPG(nnTK) ) { #If degradation model chosen but kit not selected
+      gWidgets2::gmessage( paste( L$msg.kitspecify, L$settings ,">", L$select ,L$kit) )
+      return()
+     } 
+     getMatchesLR(type="quan") #EFM based
+     refreshMatchListQuan(sort=sortTypes[4]) #update tables with results
+     gWidgets2::svalue(nb) <- 4 #go to quan LR result tab when done
+    }
+    
+    #Step 3: Create matchlist (Final)
+    createMatchlist(modtype=modtype) 
+    refreshMatchList(sort=sortTypes[5]) #update tables  
+    gWidgets2::svalue(nb) <- 5 #go to overview when done
+    
+    }
+  ) #end compare function button
   tabimportC[1,2] = gWidgets2::gbutton(text= paste( L$create , L$report) ,container=tabimportC,handler=function(h,...) {
    casesolver::createReport(nnTK) #creating report (separate R-script)
   })
@@ -2568,63 +2644,65 @@ gui = function(envirfile=NULL, envir=NULL) {
   tabimportC[1,6] = gWidgets2::gbutton(text= L$data.concordance ,container=tabimportC,handler=f_calcEvidConc)
   tabimportC[1,7] = gWidgets2::gbutton(text= L$data.editrefs ,container=tabimportC,handler=f_addref)
   tabimportC[1,8] = gWidgets2::gbutton(text= L$restart ,container=tabimportC,handler=
-  function(h,...) {
-   gWidgets2::dispose(mainwin) #shut down window
-   gui() #start an empty session (recognized)
-  })
+    function(h,...) {
+     gWidgets2::dispose(mainwin) #shut down window
+     gui() #start an empty session (recognized)
+    })
   
   
   #INSERT DATA (TABLE-FORMAT) TO GUI: NOTICE the clicktable handler 
-  updateTables <- function(sort=1,type="both") { #function to call to update tables (possibly changed order)
-   gWidgets2::visible(mainwin) = FALSE
-   
-   mixTab <- refTab <- "" #empty tables by default
-   if(type%in%c("both","mix")) {    #Add mix-table
-    mixDataTABLE <- get("mixDataTABLE",envir=nnTK) #assigned in nnTK-environment
-    if( !is.null(mixDataTABLE) && nrow(mixDataTABLE)>0 ) { #make sure that there are data in table
-     mixDataMATCHSTATUS <- get("mixDataMATCHSTATUS",envir=nnTK) #assign to nnTK-environment 
-  
-     #SORT TABLE:     
-     ord = casesolver::orderTableSort(rownames(mixDataTABLE),mixDataMATCHSTATUS,sort)
-     
-     newtab <- cbind(mixDataMATCHSTATUS,mixDataTABLE)
-     mixTab <- casesolver::addRownameTable(newtab,type=2,L$samplename)
-     colnames(mixTab)[1:3] <- c(" ", L$samplename,L$matchstatus) #insert column name for table
-     mixTab[mixTab[,3]=="mixture",3] = L$mixture #insert name: BEWARE THAT SAMPLENAMES SHOULD NOT CONTAIN "mixture"
-  
-     mixTabGUI[] <- mixTab[ord,,drop=FALSE] #update order in GUI table
-     if(!layhor0 && !is.null(ncol(mixTab)) && nrow(mixTab)<nLarge ) { #if vertical layout and less than nlarge rows
-      colw1 = c(30,150,150)
-      colL = 100 #column width for each locus
-      gWidgets2::size(mixTabGUI) <- list(column.widths=c(colw1,rep(colL,ncol(mixTab)-length(colw1))))
-     }
-    }
-   } 
-   if(type%in%c("both","ref")) {    #Add ref-table
-    refDataTABLE <- get("refDataTABLE",envir=nnTK) #assign to nnTK-environment
-    if(!is.null(refDataTABLE) && nrow(refDataTABLE)>0 ) { #make sure that there are data in table
-      
-     #SORT TABLE:     
-     ord = casesolver::orderTableSort(rownames(refDataTABLE),sort=sort)
-      
-     refTab <- casesolver::addRownameTable(refDataTABLE,type=2,L$samplename)
-     refTabGUI[] <- refTab[ord,,drop=FALSE]
-  
-     if(!layhor0 && !is.null(ncol(refTab)) && nrow(refTab)<nLarge ) { #if vertical layout and less than nlarge rows
-      colw1 = c(30,150,150)
-      colw2 = c(colw1[1],sum(colw1[-1]))
-      colL = 100 #column widt for each locus
-      gWidgets2::size(refTabGUI) <- list(column.widths=c(colw2,rep(colL,ncol(refTab)-length(colw2))))
-     }
+  updateProfileTables <- function(sort=1,type="both") { #function to call to update tables (possibly changed order)
+    gWidgets2::visible(mainwin) = FALSE
+    
+    mixTab <- refTab <- "" #empty tables by default
+    if(type%in%c("both","mix")) {    #Add mix-table
+      mixDataTABLE <- get("mixDataTABLE",envir=nnTK) #assigned in nnTK-environment
+      if( !is.null(mixDataTABLE) && nrow(mixDataTABLE)>0 ) { #make sure that there are data in table
+        mixDataMATCHSTATUS <- get("mixDataMATCHSTATUS",envir=nnTK) #assign to nnTK-environment 
+        #SORT TABLE:     
+        ord = casesolver::orderTableSort(rownames(mixDataTABLE),mixDataMATCHSTATUS,sort)
+        
+        newtab <- cbind(mixDataMATCHSTATUS,mixDataTABLE)
+        mixTab <- casesolver::addRownameTable(newtab,type=2,L$samplename)
+        colnames(mixTab)[1:3] <- c(" ", L$samplename,L$matchstatus) #insert column name for table
+        mixTab[mixTab[,3]=="mixture",3] = L$mixture #insert name: BEWARE THAT SAMPLENAMES SHOULD NOT CONTAIN "mixture"
+        
+        mixTabGUI[] <- mixTab[ord,,drop=FALSE] #update order in GUI table
+        if(!layhor0 && !is.null(ncol(mixTab)) && nrow(mixTab)<nLarge ) { #if vertical layout and less than nlarge rows
+          colw1 = c(30,150,150)
+          colL = 100 #column width for each locus
+          gWidgets2::size(mixTabGUI) <- list(column.widths=c(colw1,rep(colL,ncol(mixTab)-length(colw1))))
+        }
+      } else {
+        suppressWarnings(mixTabGUI[] <- NULL) #bypass warning
+      }
     } 
-   }
-   gWidgets2::visible(mainwin) = TRUE
-   setFocus()
+    if(type%in%c("both","ref")) {    #Add ref-table
+      refDataTABLE <- get("refDataTABLE",envir=nnTK) #assign to nnTK-environment
+      if(!is.null(refDataTABLE) && nrow(refDataTABLE)>0 ) { #make sure that there are data in table
+        #SORT TABLE:     
+        ord = casesolver::orderTableSort(rownames(refDataTABLE),sort=sort)
+        
+        refTab <- casesolver::addRownameTable(refDataTABLE,type=2,L$samplename)
+        refTabGUI[] <- refTab[ord,,drop=FALSE]
+        
+        if(!layhor0 && !is.null(ncol(refTab)) && nrow(refTab)<nLarge ) { #if vertical layout and less than nlarge rows
+          colw1 = c(30,150,150)
+          colw2 = c(colw1[1],sum(colw1[-1]))
+          colL = 100 #column widt for each locus
+          gWidgets2::size(refTabGUI) <- list(column.widths=c(colw2,rep(colL,ncol(refTab)-length(colw2))))
+        }
+      } else {
+        suppressWarnings(refTabGUI[] <- NULL) #bypass warning 
+      } 
+    }
+    gWidgets2::visible(mainwin) = TRUE
+    setFocus()
   } #end update Table
-  updateTables() #update when program starts (use default sorting)
+  updateProfileTables() #update when program starts (use default sorting)
   
   #Add tooltips:
-  gWidgets2::tooltip(tabimportA[1,1]) <- L$tip.data.changeview
+  gWidgets2::tooltip(tabimportA[1,7]) <- L$tip.data.changeview
   gWidgets2::tooltip(tabimportA[1,6]) <- L$tip.data.importref
   gWidgets2::tooltip(tabimportC[1,1]) <- L$tip.data.compare
   gWidgets2::tooltip(tabimportC[1,2]) <- L$tip.data.createreport
@@ -2640,7 +2718,7 @@ gui = function(envirfile=NULL, envir=NULL) {
   #####################################################################################################################
   
   f_rotateMatchMatrix = function(h,...) {
-    refreshTabMATRIX(rotate=TRUE) #update with rotated table  
+    refreshMatchMatrix(rotate=TRUE) #update with rotated table  
   }
   
   f_truncatevals = function(h,...) { #removes values below threshold table
@@ -2663,9 +2741,9 @@ gui = function(envirfile=NULL, envir=NULL) {
   gWidgets2::tooltip(gridTab2[1,1]) <- L$tip.export 
   
   gridTab2[1,2] <- gWidgets2::gbutton(text= L$rotatematrix, container=gridTab2,handler=f_rotateMatchMatrix)  #Button to rotate table
-  gridTab2[1,3] <- gWidgets2::gbutton(text=paste( L$sort.by , L$sort.column),container=gridTab2,handler= function(h,...) { refreshTabMATRIX(sort = 2)}) #Sort by colnames   
-  gridTab2[1,4] <- gWidgets2::gbutton(text=paste( L$sort.by , L$sort.row),container=gridTab2,handler= function(h,...) { refreshTabMATRIX(sort = 3)}) #Sort by rownames   
-  gridTab2[1,5] <- gWidgets2::gbutton(text=paste( L$sort.by , L$sort.matchval),container=gridTab2,handler= function(h,...) { refreshTabMATRIX(sort = 4)}) #Sort by rownames   
+  gridTab2[1,3] <- gWidgets2::gbutton(text=paste( L$sort.by , L$sort.column),container=gridTab2,handler= function(h,...) { refreshMatchMatrix(sort = 2)}) #Sort by colnames   
+  gridTab2[1,4] <- gWidgets2::gbutton(text=paste( L$sort.by , L$sort.row),container=gridTab2,handler= function(h,...) { refreshMatchMatrix(sort = 3)}) #Sort by rownames   
+  gridTab2[1,5] <- gWidgets2::gbutton(text=paste( L$sort.by , L$sort.matchval),container=gridTab2,handler= function(h,...) { refreshMatchMatrix(sort = 4)}) #Sort by rownames   
   gridTab2[1,6] <- gWidgets2::gradio(items= c( L$donttruncate , L$truncate ) ,selected=1,container=gridTab2,handler=f_truncatevals)  #Button to create matchcloud
   gWidgets2::tooltip(gridTab2[1,6]) <- L$tip.matchmatrix.truncate
   tabCompMatrix <- gWidgets2::ggroup(container=tabmatchmatrix,expand=TRUE,fill=TRUE)
@@ -2673,7 +2751,7 @@ gui = function(envirfile=NULL, envir=NULL) {
   gWidgets2::add(tabCompMatrix,matchMATGUI,expand=TRUE,fill=TRUE)
   
   #POSSIBLE TO CHANGE ROTATE-LAYOUT (ORDERING OF EVID/REFS) TO SHOW IN REPORT
-  refreshTabMATRIX = function(rotate=FALSE,sort=1) { 
+  refreshMatchMatrix = function(rotate=FALSE,sort=1) { 
     resobj = get("resCompMAC",envir=nnTK)
     if(is.null(resobj$MatchMatrix)) return() #return if no match matrix found
     
@@ -2699,7 +2777,7 @@ gui = function(envirfile=NULL, envir=NULL) {
     
     setFocus()
   }
-  refreshTabMATRIX() #use default sort
+  refreshMatchMatrix() #use default sort
   
   ####################################################################################################################
   #######################################Tab 3: Match List (Qual): ##################################################
@@ -2721,7 +2799,7 @@ gui = function(envirfile=NULL, envir=NULL) {
    function(h,...) {
      sortval = which(gWidgets2::svalue(gridTab3[1,4])==sortMathListTablesTxt)
      resave_Sorting(3,sortval) #resaving to setupSorting object
-     refreshTabLIST1(sort=sortval) #change sorted order
+     refreshMatchListQual(sort=sortval) #change sorted order
    }
   )  
   tabCompLIST1 = gWidgets2::ggroup(container=tabmatchlist1,expand=TRUE,fill=TRUE)
@@ -2729,18 +2807,20 @@ gui = function(envirfile=NULL, envir=NULL) {
   matchL1GUI <- gWidgets2::gtable(items="",container=tabCompLIST1,handler=clickmatchlistQUAL)
   gWidgets2::add(tabCompLIST1,matchL1GUI,expand=TRUE,fill=TRUE)#add to frame
   
-  refreshTabLIST1 = function(sort=1) { 
+  refreshMatchListQual = function(sort=1) { 
     matchlist <- get("resCompLR1",envir=nnTK)
-    if(is.null(matchlist)) return() #return if no list found
-    if(nrow(matchlist)==0) return() #return if no candidate found
-  
+    if(is.null(matchlist) || nrow(matchlist)==0) {
+      suppressWarnings(matchL1GUI[] <- NULL) #bypass warning
+      return() #return if no list or candidates found
+    }
+    matchlist[,4] <- round(as.numeric(matchlist[,4]), 2) #round here for nice display
     resTab = casesolver::addRownameTable(matchlist,type=3,L$samplename)
     ord = casesolver::orderTableSort(resTab[,2],resTab[,3],sort) #obtain order of sorting
     
     matchL1GUI[] <-  resTab[ord,,drop=FALSE]
     if( nrow(resTab)<nLarge ) gWidgets2::size(matchL1GUI) <- list(column.widths=c(30,300,300,70,70,100))
   }
-  refreshTabLIST1() #use default sort
+  refreshMatchListQual() #use default sort
   
   ####################################################################################################################
   #######################################Tab 4: Match List (Quan): ##################################################
@@ -2754,7 +2834,7 @@ gui = function(envirfile=NULL, envir=NULL) {
    function(h,...) {
      sortval = which(gWidgets2::svalue(gridTab4[1,3])==sortMathListTablesTxt)
      resave_Sorting(4,sortval) #resaving to setupSorting object
-     refreshTabLIST2(sort=sortval) #change sorted order
+     refreshMatchListQuan(sort=sortval) #change sorted order
    }
   )  
   
@@ -2763,10 +2843,13 @@ gui = function(envirfile=NULL, envir=NULL) {
   matchL2GUI <- gWidgets2::gtable(items="",container=tabCompLIST2,handler=clickmatchlistQUAN)
   gWidgets2::add(tabCompLIST2,matchL2GUI,expand=TRUE,fill=TRUE)#add to frame
   
-  refreshTabLIST2 = function(selInd=NULL,sort=1) { 
+  refreshMatchListQuan = function(selInd=NULL,sort=1) { 
     matchlist <- get("resCompLR2",envir=nnTK)
-    if(is.null(matchlist)) return() #return if no list found
-    if(nrow(matchlist)==0) return() #return if no candidate found
+    if(is.null(matchlist) || nrow(matchlist)==0) {
+      suppressWarnings(matchL2GUI[] <- NULL) #bypass warning
+      return() #return if no list or candidates found
+    } 
+    matchlist[,4] <- round(as.numeric(matchlist[,4]), 2) #round here for nice display
     resTab = casesolver::addRownameTable(matchlist,type=3,L$samplename)
     ord = casesolver::orderTableSort(resTab[,2],resTab[,3],sort) #obtain order of sorting
     
@@ -2774,7 +2857,7 @@ gui = function(envirfile=NULL, envir=NULL) {
     if(nrow(resTab)<nLarge) gWidgets2::size(matchL2GUI) <- list(column.widths=c(30,300,300,70,70,rep(100,ncol(matchlist)-4)))
     if(!is.null(selInd)) gWidgets2::svalue(matchL2GUI) <- selInd #select row
   }
-  refreshTabLIST2() #use default sort
+  refreshMatchListQuan() #use default sort
   
   ################################################################################################
   #################################Tab 5: Matches: ##############################################
@@ -2782,7 +2865,7 @@ gui = function(envirfile=NULL, envir=NULL) {
   sortMixListTablesTxt = paste( L$sort.by , c( "#" , L$sort.evid , L$sort.ref ))
   
   gridTab5 = gWidgets2::glayout(horizontal = FALSE,spacing=5,container=gWidgets2::gframe( L$further ,container=tabmixtures),expand=TRUE,fill=TRUE) #kit and population selecter
-  gridTab5[1,1] <- gWidgets2::gbutton(text= paste( L$woeperform ),container=gridTab5,handler=f_doWOEcall) #Perform WOE
+  gridTab5[1,1] <- gWidgets2::gbutton(text= paste( L$woeperform ),container=gridTab5,handler=f_doWOEcall, action="matches") #Perform WOE
   gWidgets2::tooltip(gridTab5[1,1]) <- L$tip.matches.woe
   gridTab5[1,2] <- gWidgets2::gbutton(text= paste( L$deconvolvemixtures ) ,container=gridTab5,handler=f_doDCall)# perform DC for all mixtures (with default settings)
   gWidgets2::tooltip(gridTab5[1,2]) <- L$tip.matches.dcall
@@ -2797,7 +2880,7 @@ gui = function(envirfile=NULL, envir=NULL) {
    function(h,...) {
      sortval = which(gWidgets2::svalue(gridTab5[1,7])==sortMixListTablesTxt)
      resave_Sorting(5,sortval) #resaving to setupSorting object
-     refreshTabLIST(sort=sortval) #change sorted order
+     refreshMatchList(sort=sortval) #change sorted order
    }
   )  
   
@@ -2805,7 +2888,7 @@ gui = function(envirfile=NULL, envir=NULL) {
   mixlistGUI <- gWidgets2::gtable(items="",container=tabmixLIST,handler=clickmixlist)
   gWidgets2::add(tabmixLIST,mixlistGUI,expand=TRUE,fill=TRUE)#add to frame
   
-  refreshTabLIST = function(evidsel=NULL,sort=1) {  #get list with all mixtures with info about matched elements 
+  refreshMatchList = function(evidsel=NULL,sort=1) {  #get list with all mixtures with info about matched elements 
     #store match-results from comparison (those with LR>threshold) together with all mixtures
     matchstat <- get("mixDataMATCHSTATUS",envir=nnTK) #get match status mixtures
     indUse <- indMixEmpty <- matchstat == "mixture" | matchstat=="" #important for recognizing mixtures or empty
@@ -2834,7 +2917,7 @@ gui = function(envirfile=NULL, envir=NULL) {
     if(nrow(resTab)<nLarge) gWidgets2::size(mixlistGUI) <- list(column.widths=c(30,300,500,100))
     if(!is.null(evidsel)) gWidgets2::svalue(mixlistGUI) = which(mixlist[,1]==evidsel)  #marking line
   }
-  refreshTabLIST() #use default sort
+  refreshMatchList() #use default sort
   
   ################################################################################################
   #################################Tab 6: Deconvoluted: ##############################################
@@ -2868,7 +2951,7 @@ gui = function(envirfile=NULL, envir=NULL) {
      if(length(selID)==0) return() #none selected
      DClist <- DClist[-selID,,drop=FALSE] #update
      assign("DClist",DClist,envir=nnTK)
-     refreshDCLIST()
+     refreshDClist()
   })
   gWidgets2::tooltip(gridTab6[1,3]) <- L$tip.dc.delete
   
@@ -2925,18 +3008,21 @@ gui = function(envirfile=NULL, envir=NULL) {
                                          function(h,...) {
                                            sortval = which(gWidgets2::svalue(gridTab6[1,7])==sortDCTableTxt)
                                            #resave_Sorting(6,sortval) #DONT store sortvalue to setupSorting object
-                                           refreshDCLIST(sort=sortval) #change sorted order
+                                           refreshDClist(sort=sortval) #change sorted order
                                          })  
   
   #Function to update DC-table GUI 
-  refreshDCLIST = function(sort=1) {  #get list of matched elements
+  refreshDClist = function(sort=1) {  #get list of matched elements
    DClist <- get("DClist",envir=nnTK)
-   if(is.null(DClist)) return() #return if no list found
+   if(is.null(DClist) || nrow(DClist) == 0L) {
+     suppressWarnings(DClistGUI[] <- NULL) #clear previously displayed candidates
+     return()
+   }
    dupInd = which(duplicated(colnames(DClist))) #get index of duplicated column names
   #   locnames = colnames(DClist)[dupInd]  #column names
    
    #ORDER ROWS WRT criteria
-   ord = 1:nrow(DClist) #default is no sorting
+   ord = seq_len(nrow(DClist))
    if(sort==2) { #sort based on evid name
      ord = order(DClist[,1])
   #Order by clustering:
@@ -2952,13 +3038,13 @@ gui = function(envirfile=NULL, envir=NULL) {
    DClistGUI[] <-  DCtab[ord,,drop=FALSE] #DC table to consider 
    gWidgets2::size(DClistGUI) <- list(column.widths=c(30,100,100,30,50,rep(50,ncol(DClistGUI)-5))) 
   }
-  refreshDCLIST()
+  refreshDClist()
   
   ################################################################################################
   #################################Tab 7: Weight of evidence: ####################################
   ################################################################################################
   gridTab7 = gWidgets2::glayout(horizontal = FALSE,spacing=5,container=gWidgets2::gframe( L$further ,container=tabWOE)) #kit and population selecter
-  gridTab7[1,1] <- gWidgets2::gbutton(text=paste( L$export , L$table ),container=gridTab7,handler=f_exporttable,action="woe")#  
+  gridTab7[1,1] <- gWidgets2::gbutton(text= paste( L$calculate ),container=gridTab7,handler=f_doWOEcall, action="more") #Perform WOE
   gridTab7[1,2] <- gWidgets2::gbutton(text=paste( L$show , L$lrpermarker  ),container=gridTab7,handler=showLRperMarker)  #show LR-marker for selected
   
   #SHOW PARAM ESIMTATES
@@ -2974,7 +3060,6 @@ gui = function(envirfile=NULL, envir=NULL) {
      if(require(plotrix)) {
        MxHp = sort(resWOEeval[[id]]$MxRefs$hp,decreasing = TRUE) #sort to make same colors
        MxHd = sort(resWOEeval[[id]]$MxRefs$hd,decreasing = TRUE) #sort to make same colors
-       s0 = 2
        labelHp = paste0(names(MxHp)," ",round(MxHp*100),"%") #Obtain labels
        labelHd = paste0(names(MxHd)," ",round(MxHd*100),"%") #Obtain labels
        plotfn = paste0("WOEpie",id) #file name
@@ -3098,7 +3183,7 @@ gui = function(envirfile=NULL, envir=NULL) {
      state = gsub("$LRtxt",LRtxt,state,fixed=TRUE)
   
      #INSERT BACK TO OBJECT:
-     s0 = 2
+     s0 = 2 #set round-off accuracy
      resWOEeval[[id]]$statement <- state
      resWOEeval[[id]]$bayesLR <- resWOEeval$resTable[id,6] <- round(bayesLR,s0) #insert updated values
      resWOEeval[[id]]$consLR  <- resWOEeval$resTable[id,7] <- round(consLR,s0) #insert updated value
@@ -3128,6 +3213,8 @@ gui = function(envirfile=NULL, envir=NULL) {
    assign("resWOEeval",resWOEeval,envir=nnTK) #store object to environment again
    refreshWOELIST() #refresh table
   })
+  gridTab7[1,9] <- gWidgets2::gbutton(text=paste( L$export , L$table ),container=gridTab7,handler=f_exporttable,action="woe")#  
+  
   
   #INITITATE WOE TABLE
   tabWOELIST = gWidgets2::ggroup(container=tabWOE,expand=TRUE,fill=TRUE)
@@ -3143,7 +3230,7 @@ gui = function(envirfile=NULL, envir=NULL) {
   refreshWOELIST()
   
   #Add tooltips
-  gWidgets2::tooltip(gridTab7[1,1]) <- L$tip.export
+  gWidgets2::tooltip(gridTab7[1,1]) <- L$tip.woe.calc
   gWidgets2::tooltip(gridTab7[1,2]) <- L$tip.woe.lrpermarker
   gWidgets2::tooltip(gridTab7[1,3]) <- L$tip.woe.paramest
   gWidgets2::tooltip(gridTab7[1,4]) <- L$tip.woe.modelvalid
@@ -3151,6 +3238,7 @@ gui = function(envirfile=NULL, envir=NULL) {
   gWidgets2::tooltip(gridTab7[1,6]) <- L$tip.woe.statement
   gWidgets2::tooltip(gridTab7[1,7]) <- L$tip.woe.cons
   gWidgets2::tooltip(gridTab7[1,8]) <- L$tip.woe.delete
+  gWidgets2::tooltip(gridTab7[1,9]) <- L$tip.export
   
   ################################################################################################
   #Running through all windows to avoid "bleed through"

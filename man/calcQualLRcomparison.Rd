@@ -14,7 +14,8 @@ calcQualLRcomparison(
   useMinK1 = TRUE,
   normalize = FALSE,
   minFreq = NULL,
-  maxIter = 5
+  maxIter = 5,
+  useMAC = FALSE
 )
 }
 \arguments{
@@ -37,6 +38,8 @@ calcQualLRcomparison(
 \item{minFreq}{The freq value included for new alleles. Default NULL is using min.observed in popFreq.}
 
 \item{maxIter}{Maximum number of iterations for nlm}
+
+\item{useMAC}{Whether to use maximum allele counter (MAC) as the estimated NOC}
 }
 \description{
 Function calculating LR using EuroForMix for remaining matches (from Step 1)

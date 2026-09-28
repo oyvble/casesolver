@@ -53,7 +53,7 @@ setMarkerSettings = function(nnTK) {
 
     #Create DYE TABLE
     kitdyes = euroformix::getKit(kit0,"COLOR") #get kitinfo from selected kit
-    if(!is.na(kitdyes) && length(kitdyes)>1) { #if kitinformation found
+    if(!is.null(kitdyes) && length(kitdyes)>1) { #if kitinformation found
       kitdyes$Marker = toupper(kitdyes$Marker) #ensure upper case
       kitdyes = kitdyes[kitdyes$Marker%in%setupMarkers[[1]],,drop=FALSE  ]
       

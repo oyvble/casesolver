@@ -2,20 +2,28 @@
 #' @description A function for designing WoE hypothesis and calculate these, also statements are generated
 #' @details The WOE window must be closed in order to return from function (wait flag)
 #' @param nnTK an environment object from stored CaseSolver object
+#' @param useEmpty Whether an empty hypotheses window should be shown (used to add more calculations)
 #' @param verbose Whether progress should be printed
 #' @export
 
 
-calcWOEhyps = function(nnTK,verbose=TRUE) {
+calcWOEhyps = function(nnTK,useEmpty=FALSE,verbose=TRUE) {
   library(gWidgets2)
   setupAdvanced = get("setupAdvanced",envir=nnTK) #obtain match candidates to base calculation on
   useEFMex = FALSE #wheter to use EFMex calculations
-  if(!is.null(setupAdvanced$useEFMex)) useEFMex = setupAdvanced$useEFMex=="TRUE"
-  matchTable = get("resMatches",envir= nnTK) #obtain match candidates to base calculation on
-  tableSortType = get("setupSorting",envir= nnTK)[5]  #obtain sorting order for matches table
-  ord = casesolver::orderTableSort(matchTable[,1],matchTable[,2],tableSortType) #obtain selected sorted order for evids
-  matchTable <- matchTable[ord,,drop=FALSE] #rearrange table wrt selected sorting
-
+  if(!is.null(setupAdvanced$useEFMex) && setupAdvanced$useEFMex=="TRUE") useEFMex = TRUE
+  if(useEFMex) {
+    if(!require("EFMex", quietly = TRUE)) useEFMex = FALSE #set to false instead if required package cannot load
+    if(useEFMex) print("NOTE: EFMex is used in the comparison.")
+  }  
+  
+  matchTable = NULL 
+  if(!useEmpty) {
+    matchTable = get("resMatches",envir= nnTK) #obtain match candidates to base calculation on
+    tableSortType = get("setupSorting",envir= nnTK)[5]  #obtain sorting order for matches table
+    ord = casesolver::orderTableSort(matchTable[,1],matchTable[,2],tableSortType) #obtain selected sorted order for evids
+    matchTable <- matchTable[ord,,drop=FALSE] #rearrange table wrt selected sorting
+  }
   #Store a copy of (already) existing WOE calculations
   resWOEevalBackup <- get("resWOEeval",envir=nnTK) #obtain mle fitted results
   
@@ -50,24 +58,32 @@ calcWOEhyps = function(nnTK,verbose=TRUE) {
   #Helpfunction to get hypothesis text
   getHypTxt = function(mlefit,getNamesOnly=FALSE) {
     model = mlefit$model
-    condOrder = model$condOrder
-    nU = model$nC - sum(condOrder>0)
+    condOrder = model$condOrder #vector of length(refNames), indicating Contr-position
+    nCond = sum(condOrder>0) #number of conditionals
+    nC = model$nC #number of contributors
+    nU = model$nC - nCond #number of unknowns
     locNames =  names(mlefit$model$popFreq) #locus names
     refNames = names(model$refData) #obtain reference names
     
     #If reference names was any of the locus names we have another format:
     if( any(toupper(refNames)%in%toupper(locNames)) ) refNames = names(model$refData[[1]])
     
-    condNames <- refNames[which(condOrder>0)]
-    hyptxt = paste0(condNames,collapse="/")
+    contrNames <- rep(NA,nC) #names of contributors (may be references)
+    if(nCond>0) {
+      for(r in seq_along(refNames)) {
+        condPos = condOrder[r] #contr position of reference
+        if(condPos>0) contrNames[condPos] = refNames[r]
+      }
+    }
+    hyptxt = paste0(contrNames[!is.na(contrNames)],collapse="/") #obtain conditional contrs
     if(nU>0) {
       hyptxt = paste(hyptxt,L$and,nU)
       if(nU==1)  hyptxt = paste(hyptxt,L$unknown)
       if(nU>1)  hyptxt = paste(hyptxt,L$unknowns)
       hyptxt = paste0(hyptxt,"*")
-      condNames = c(condNames,paste0("U",1:nU)) #update with unknowns
+      contrNames[is.na(contrNames)] = paste0("U",seq_len(nU)) #include unknowns
     }
-    if(getNamesOnly) return(condNames) #return only vector of names
+    if(getNamesOnly) return(contrNames) #return only vector of names
     return(hyptxt)
   }
   

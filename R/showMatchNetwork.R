@@ -8,14 +8,21 @@
 #' @export
 
 showMatchNetwork = function(nnTK,action,createInteractive=FALSE,selList=NULL) {
+  
+  if(createInteractive) { #have to turn off interactive plot if plotly cannot be loaded
+    loaded = require(plotly,quietly = TRUE)
+    if(!loaded) createInteractive = FALSE 
+  }
+  
   L = casesolver::getLanguage( get("setupLanguage",envir=nnTK)$language ) #, get("setupLanguage",envir=nnTK)$encoding ) #get list of words from selected language
   
   matchList = get("allMixList",envir=nnTK) #get list with all matches (Matches panel)
-  if(nrow(matchList)==0) return() #return if no matches
+  if(is.null(matchList) || nrow(matchList)==0L) return(FALSE) #return if no matches
   
   defaultScore=20 #default score for log10 value (assuming no missmatch)
   tmp = strsplit(matchList[,2],"/") #get all comparison matches
   nMatches = sapply(tmp,length) #get number of matches per evid profiles
+  if(sum(nMatches)==0L) return(FALSE) #return if no match to compare
   nContrMatch = rep(matchList[,3],nMatches) #number of contributors
   EvidMatch = rep(matchList[,1],nMatches) #evidence profiles
   RefMatch = unlist(tmp) #reference profiles
@@ -31,8 +38,8 @@ showMatchNetwork = function(nnTK,action,createInteractive=FALSE,selList=NULL) {
   
   #Update scores in "ShowMatch" based on scores from "compared match results"  (MAC, qualLR,quanLR) :  
   if( !is.null(tab) ) { #if any results to filter on (MAC, qualLR,quanLR) 
-    key1 = paste0(ShowMatch[,1],ShowMatch[,2])
-    key2 = paste0(tab[,1],tab[,2])
+    key1 = paste(ShowMatch[,1],ShowMatch[,2])
+    key2 = paste(tab[,1],tab[,2])
     updateScores  =  key2%in%key1 #index to update score for
     if( any(updateScores) ) { #should any scores be update
       tab = tab[updateScores,,drop=FALSE] #update tab with scores
@@ -108,8 +115,8 @@ showMatchNetwork = function(nnTK,action,createInteractive=FALSE,selList=NULL) {
     ax = list(showline=FALSE,showticklabels=FALSE,zeroline=FALSE,showgrid=FALSE,title="") #axis setup: none
     out <- plotly::plot_ly(df, x = ~x, y = ~y, mode = "markers+text", type="scatter", text = ~what,name= ~con , hoverinfo = "name",hoverlabel=list(font=list(size=txtsz),namelength=1000,bgcolor="white",bordercolor="black"), textfont=txtfont, marker=style )
     out <- plotly::layout(out,xaxis=ax,yaxis=ax,shapes = edge_shapes)
-	out <- plotly::hide_legend(out)
-	out <- plotly::config(out, scrollZoom=TRUE, displaylogo=FALSE,modeBarButtonsToRemove=c("lasso2d","select2d","hoverClosestCartesian","hoverCompareCartesian","toggleSpikelines"),toImageButtonOptions=list(width=w0,height=h0)) 
+  	out <- plotly::hide_legend(out)
+  	out <- plotly::config(out, scrollZoom=TRUE, displaylogo=FALSE,modeBarButtonsToRemove=c("lasso2d","select2d","hoverClosestCartesian","hoverCompareCartesian","toggleSpikelines"),toImageButtonOptions=list(width=w0,height=h0)) 
     print( out ) 
   } #end if plotly
   return(TRUE)

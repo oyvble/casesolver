@@ -19,6 +19,6 @@ The function returns the items selected in the two lists (when window is closed)
 \dontrun{
 env = new.env( parent = emptyenv() ) 
 assign("text","this is my text",envir=env)
-textedior(env)
+textEditor(env)
 }
 }

@@ -4,8 +4,9 @@
 #' @param data a list with a evidence table (mix) and a reference table (ref)
 #' @param ln markers to consider (a given order)
 #' @param minLoc is minimum number of overlapping markers to be identical (for partial profiles).
+#' @param sortWithComplexity Whether evidence profiles should be sorted with respect to complexity
 #' @export
-getStructuredData = function(data,ln,minLoc=10) {
+getStructuredData = function(data,ln,minLoc=10, sortWithComplexity=FALSE) {
    #data is a list with a evidence table (mix) and a reference table (ref):
    #ln the markers to consider (a given order)
    #popFreq is a list with allele freqs popFreq[[locus]]. NB: Must contain same loci as in ln
@@ -182,13 +183,15 @@ getStructuredData = function(data,ln,minLoc=10) {
     } #end if having SS samples
    } #end IF ANY REFS
 
-   #sort structures: Hierarchical differences 
-   evidord <- order(nchar(stringEvid)) #sort evid with respect to number of characters
-   stringEvid <- stringEvid[evidord] #update order
-   evidNames <- evidNames[evidord] #update order
-   evidMatch <- evidMatch[evidord]
+   #Optional sort structure (from v2.2.0): 
+   if(sortWithComplexity) {
+     evidord <- order(nchar(stringEvid)) #sort evid with respect to number of characters
+     stringEvid <- stringEvid[evidord] #update order
+     evidNames <- evidNames[evidord] #update order
+     evidMatch <- evidMatch[evidord]
+     nClow <- nClow[evidord]  #update order
+   }   
    names(evidMatch) <- evidNames  #get vector of match status for all evidence profiles
-   nClow <- nClow[evidord]  #update order
   
    #CREATE STRUCTURE: data-frame tables + lists
    dfmix <- matrix(ncol=length(ln),nrow=length(evidNames)) 
@@ -281,7 +284,7 @@ getStructuredData = function(data,ln,minLoc=10) {
     unknownInd <- rep(NA,nS)
     refU <- matrix(nrow=nS,ncol=length(ln)) #unknown data matrix 
     colnames(refU) = ln 
-    for(evid1 in 1:nS) { #traverse through each evidence
+    for(evid1 in seq_len(nS)) { #traverse through each evidence
       matchevid <- numeric() 
       if(nS>1) {
        subind <- matCC[,1]==evid1 | matCC[,2]==evid1
@@ -313,7 +316,7 @@ getStructuredData = function(data,ln,minLoc=10) {
 
     #NOTE: CAN SOME refs may be IDENTICAL because loci-information is filled in?
     if(any(duplicated(refU))) {
- 	 print("NOTE: Some unknown references are redundant. This is not taken into account!")
+ 	    print("NOTE: Some unknown references are redundant. This is not taken into account!")
     }
 
     #Add unknowns to evidMatch:

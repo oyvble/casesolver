@@ -74,11 +74,6 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
     if(!require(flextable,quietly = TRUE))print(paste0("flextable",txt))
   }
   
-  #helpfunction when extracting reference data
-  getRefL = function(refs,forceDi=FALSE) { #return list with same order as for refs
-    refL <- casesolver::tabToListRef(tab=refDataTABLE[ match(refs,rownames(refDataTABLE)),,drop=FALSE],setEmpty=FALSE) #FORCING DUP alleles
-    return(refL)
-  }
   
   #prepare layout (own setting)
   optLay <- get("setupReportLay",envir=nnTK)  #get report layout
@@ -115,6 +110,16 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
   setupMCMC = get("setupMCMC",envir=nnTK) #get MCMC setting (used obtaining bayes/cons LR)
   casedir =  get("setupCase",envir=nnTK)$casepath #get case path
   setupAdvanced = get("setupAdvanced",envir=nnTK)
+  
+  #helpfunction when extracting reference data
+  #Note the keep of original marker names which may be modified with renamed ones
+  refMarkerNames <- colnames(refDataTABLE) #make a copy of the original names
+  getRefL = function(refs,forceDi=FALSE) { #return list with same order as for refs
+    refTab = refDataTABLE[ match(refs,rownames(refDataTABLE)),,drop=FALSE]
+    colnames(refTab) <- refMarkerNames #force insertion of original marker names
+    refL <- casesolver::tabToListRef(refTab ,setEmpty=FALSE) #FORCING DUP alleles
+    return(refL)
+  }
   
   #Obtain locus names from data tables
   locs = NULL
@@ -219,8 +224,8 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
     }
     
     if(!is.null(resRMP)) { #RANDOM MATCH PROB
-      resRMP$evidList = resRMP$evidList[resRMP$evidList[,2]%in%EVIDS,,drop=FALSE] #extract relevant
-      resRMP$refList = resRMP$refList[resRMP$refList[,2]%in%REFS,,drop=FALSE] #extract relevant
+      resRMP$evid = resRMP$evid[resRMP$evid[,2]%in%EVIDS,,drop=FALSE] #extract relevant
+      resRMP$ref = resRMP$ref[resRMP$ref[,2]%in%REFS,,drop=FALSE] #extract relevant
     }
     #Not uesd: metaDataList, consDataTABLE
   } #end if specific selected profiles
@@ -234,27 +239,28 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
   #Note: using orderTableSort(va1,var2,sort) to obtain order of table
   
   #Prepare evidence data
-  mixTab <- ssTab <- NULL #empty
+  mixTab <- ssTab <- ssDataTABLE <- NULL #empty
   if(!is.null(mixDataTABLE)) {    #Add evid-tables
     isMixture = rep(TRUE,nrow(mixDataTABLE)) #assume all is mixtures
     isMixture[ match(allMixList[allMixList[,3]=="1",1],rownames(mixDataTABLE)) ] = FALSE #ensure that it becomes SS if assigned as 1 contr.
     isMixture[mixDataMATCHSTATUS!="mixture"] = FALSE #INDICATE AS Single source if MatchStatus is not "mixture" (translated back)
     isMixture[mixDataMATCHSTATUS=="mixture"] = TRUE #LAST: INDICATE AS Mixture profile if indicated as mixture (forcing user specified as mixture)
     
-    if(sum(!isMixture)>0) { #if at least one single source
-      ssDataTABLE <-  cbind(mixDataMATCHSTATUS,mixDataTABLE)[!isMixture,,drop=FALSE]
+    if(any(!isMixture)) { #if at least one single source
+      ssDataTABLE <- cbind(mixDataMATCHSTATUS,mixDataTABLE)[!isMixture,,drop=FALSE]
       colnames(ssDataTABLE)[1] <- L$matchstatus #"MatchStatus"
       matchStatus = ssDataTABLE[,1] #obtain match status for single sources
+      ssDataTABLEcpy = ssDataTABLE #create a copy
       if(!showItem[1]) {
-        ssDataTABLE = ssDataTABLE[,-1,drop=FALSE] #drop MatchStatus column if item not to be shown
+        ssDataTABLEcpy = ssDataTABLE[,-1,drop=FALSE] #drop MatchStatus column if item not to be shown
         matchStatus = NULL
       } 
-      ordSS = casesolver::orderTableSort(rownames(ssDataTABLE),matchStatus,sortTypes[1]) #obtain selected sorted order for evids
-      ssTab <-  addRownameTable(ssDataTABLE[ordSS,,drop=FALSE],type=4,L$samplename)
+      ordSS = casesolver::orderTableSort(rownames(ssDataTABLEcpy),matchStatus,sortTypes[1]) #obtain selected sorted order for evids
+      ssTab <-  addRownameTable(ssDataTABLEcpy[ordSS,,drop=FALSE],type=4,L$samplename)
     }
     
-    if(sum(isMixture)>0) { #if at least one mixture
-      mixDataTABLE <-  mixDataTABLE[isMixture,,drop=FALSE]
+    mixDataTABLE <-  mixDataTABLE[isMixture,,drop=FALSE]
+    if(any(isMixture)) { #if at least one mixture
       ordMIX = casesolver::orderTableSort(rownames(mixDataTABLE),sort=sortTypes[1]) #obtain selected sorted order for evids
       mixTab <- addRownameTable(mixDataTABLE[ordMIX,,drop=FALSE],type=4,L$samplename)
     }
@@ -281,7 +287,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
         }
         allTab <- rbind(allTab, c(loc,newrow) )
       }#end for each locus
-      allTab <- t(allTab[,-1])
+      allTab <- t(allTab[,-1,drop=FALSE])
       colnames(allTab) <- locNamesTables #insert locus names for report
       allTabLIST[[ss]] <- allTab
     } #end for each samples
@@ -290,7 +296,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
   #Prepare DC results:
   DCdataList = list()
   ptrn = "-" #pattern used for separating sample name and component
-  if(!is.null(DCdataTABLE)) {
+  if(!is.null(DCdataTABLE) && nrow(DCdataTABLE)>0 ) {
     DCsn = rownames(DCdataTABLE) #obtain sample names for DC results
     DCcn= colnames(DCdataTABLE) #obtain column names for DC results
     locUse = locs[locs%in%DCcn] #use only loci present in column names
@@ -299,8 +305,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
     indUse1 = match(locUse,DCcn[!indExtended]) 
     indUse2 = match(locUse,DCcn[indExtended])
     
-    for(i in 1:nrow(DCdataTABLE)) {
-      
+    for(i in seq_len(nrow(DCdataTABLE))) {
       tmp = strsplit(DCdataTABLE[i,1],ptrn)[[1]] #obtain sample name + component
       sn = paste0(tmp[1:(length(tmp)-1)],collapse=ptrn) #obtain sample name
       #comp = tmp[length(tmp)] #get component (not used)
@@ -338,7 +343,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
       if(length(colRm)>0) WOEdataTABLE <- WOEdataTABLE[,-colRm,drop=FALSE] #remove columns if any to remove
       
       #Create LR per marker table
-      WOEmarkerTABLE = t(sapply(resWOE[1:nHyps],function(x) signif(x$mleLRi,s0)))
+      WOEmarkerTABLE = t(sapply(resWOE[1:nHyps],function(x) signif(x$mleLRi,s0))) #this assumes every WoE result has the same marker vector and order
       
       #insert rownames and update 
       rownames(WOEmarkerTABLE) <- rownames(WOEdataTABLE) <- 1:nHyps 
@@ -651,6 +656,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
            if(!is.null(resCompLR1) ) { #if completed
              resCompLR1 <- resCompLR1[as.numeric(resCompLR1[,4])>=log10(setupThresh$LRthresh1),,drop=FALSE]
              ordComp1 = casesolver::orderTableSort(resCompLR1[,1],resCompLR1[,2],sortTypes[3]) #obtain selected sorted order for MatchListQual
+             resCompLR1[,4] = round(as.numeric(resCompLR1[,4]),2) #use only two decimals in report
              docx <- insTable(resCompLR1[ordComp1,,drop=FALSE],type=0,obj=docx)
            } else {
              docx <- insText( L$notcompleted,italic=TRUE,obj=docx)
@@ -661,6 +667,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
            if(!is.null(resCompLR2) ) { #if completed
              resCompLR2 <- resCompLR2[as.numeric(resCompLR2[,4])>=log10(setupThresh$LRthresh2),,drop=FALSE]
              ordComp2 = casesolver::orderTableSort(resCompLR2[,1],resCompLR2[,2],sortTypes[4]) #obtain selected sorted order for MatchListQuan
+             resCompLR2[,4] = round(as.numeric(resCompLR2[,4]),2) #use only two decimals in report
              docx <- insTable(resCompLR2[ordComp2,,drop=FALSE],type=0,obj=docx)
            } else {
              docx <- insText( L$notcompleted,italic=TRUE,obj=docx)
@@ -677,15 +684,27 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
            
            #14: Match network fig is generated as a separet file
            {docx <- insTitle( reportitems[14], 2,obj=docx)
-           okplot <- !is.null(resCompLR)
-           if(okplot) {  #only add if OK
-             netf <- file.path(path2,"matchnetwork.png") #file of picture 
-             png(netf,width = WHsize[2], height = WHsize[2],res=WHsize[3])
-             casesolver::showMatchNetwork(nnTK,"all",createInteractive=FALSE,selList)
-             dev.off()
-             docx <- insIMG(netf,quadratic = TRUE,obj=docx)
-           } else { 
-             docx <- insText( L$notcompleted,obj=docx )
+           netf <- tempfile("matchnetwork_", tmpdir=path2, fileext=".png") #Unique filename prevents accidentally inserting an earlier plot.
+           plotDevice <- NULL #indicate if plotDevice is created
+           fallback <- L$none
+           
+           okplot <- tryCatch({ #preventing plot generation to crash createReport
+             png(netf, width=WHsize[2], height=WHsize[2], res=WHsize[3])
+             plotDevice <- dev.cur()
+             isTRUE(casesolver::showMatchNetwork(nnTK, "all", createInteractive=FALSE, selList=selList))
+           }, error=function(e) {
+             message("Match network failed: ", conditionMessage(e))
+             fallback <<- "Match network could not be generated."
+             FALSE
+           }, finally={
+             if(!is.null(plotDevice) && plotDevice %in% dev.list()) dev.off(plotDevice)
+           })
+           
+           if(okplot && file.exists(netf)) {
+             docx <- insIMG(netf, quadratic=TRUE, obj=docx)
+           } else {
+             unlink(netf)
+             docx <- insText(fallback, obj=docx)
            }},
            
            ##############
@@ -805,7 +824,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
            #25: Plot EPG figures for single sources
            {if( printEPG || sampleType=="LUS" ) { 
              docx <- insTitle( reportitems[25], 1,obj=docx)
-             if( !is.null(ssTab) && nrow(ssDataTABLE)>0 ) {
+             if( !is.null(ssDataTABLE) && nrow(ssDataTABLE)>0 ) {
                unREF = unique(ssDataTABLE[,1]) #get unique refs
                refL = getRefL(unREF,forceDi=FALSE) # get relevant references
                for(i in 1:nrow(ssDataTABLE)) { #for each single source profiles
@@ -845,7 +864,7 @@ createReport = function(nnTK) { #this function loads data and put them in a HTML
                  refL = getRefL(unREF,forceDi=FALSE) # get relevant references
                }
                
-               for(i in 1:nrow(mixDataTABLE)) { #for each single source profiles
+               for(i in 1:nrow(mixDataTABLE)) { #for each mixture profiles
                  evid <- rownames(mixDataTABLE)[i]
                  condref = NULL
                  if(!is.null(resMatches) && nrow(resMatches)>0) { #require match table

@@ -14,6 +14,11 @@ calcMACcomparison = function(DBmix,DBref,threshMAC) {
    #Ensure that these are matrix and not list
    DBmix = as.matrix(DBmix)
    DBref = as.matrix(DBref)
+
+   #Additional check of marker order   
+   if(is.null(colnames(DBmix)) || is.null(colnames(DBref)) || !identical(colnames(DBmix), colnames(DBref))) {
+     stop("DBmix and DBref must have identical marker names in the same order.")
+   }
    
    #Find loci for refs having only 1 allele:
    isNA <- is.na(DBref) #get loci which is NA
@@ -32,7 +37,7 @@ calcMACcomparison = function(DBmix,DBref,threshMAC) {
    bigMAC <- rep(0,nS*nR) #keep MAC in a vector (sample1-ref1,sample1-ref2,...,sample2-ref1 etc.)
 
   systime <- system.time( { #register timeusage of following comparison:
-    for(ss in 1:nS) { #for each sample: Limited in how the samples are looking
+    for(ss in seq_len(nS)) { #for each sample: Limited in how the samples are looking
     #ss=1
     bigInd <-  nR*(ss-1) + 1:nR  #index in bigMAC matrix
     macS <- nLocs <- rep(0,nR) #make vector for all references 

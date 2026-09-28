@@ -12,9 +12,9 @@ tabToListRef  = function(tab,ln=NULL,setEmpty=FALSE) {
 
    if(!is.null(ln)) {
      rmLoc = locs[!locs%in%ln] #locs to be removed
-     adLoc = ln[!ln%in%locs] #locs to be added (as empty)
+     #adLoc = ln[!ln%in%locs] #locs to be added (as empty)
      if(length(rmLoc)>0) print(paste0("Loci to be removed: ", paste0(rmLoc,collapse="/")))
-     if(length(adLoc)>0) print(paste0("Loci to be added (as empty): ", paste0(adLoc,collapse="/")))
+     #if(length(adLoc)>0) print(paste0("Loci to be added (as empty): ", paste0(adLoc,collapse="/")))
      locs <- intersect(locs,ln)
    }
    

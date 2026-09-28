@@ -4,7 +4,7 @@
 \alias{getStructuredData}
 \title{getStructuredData}
 \usage{
-getStructuredData(data, ln, minLoc = 10)
+getStructuredData(data, ln, minLoc = 10, sortWithComplexity = FALSE)
 }
 \arguments{
 \item{data}{a list with a evidence table (mix) and a reference table (ref)}
@@ -12,6 +12,8 @@ getStructuredData(data, ln, minLoc = 10)
 \item{ln}{markers to consider (a given order)}
 
 \item{minLoc}{is minimum number of overlapping markers to be identical (for partial profiles).}
+
+\item{sortWithComplexity}{Whether evidence profiles should be sorted with respect to complexity}
 }
 \description{
 A function for structuring data

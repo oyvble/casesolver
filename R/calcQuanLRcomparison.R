@@ -23,7 +23,10 @@ calcQuanLRcomparison = function(DBmix,DBref,matchlist,popFreq,kit,xiBW=0,xiFW=0,
   #Output 1=matchlist: Unique Match matrix (normalized number of allele match counting) for all combinations
   #Output 2=storedFitHp: Stored fit under Hp
   #Aim: Calcualate LR for all situations in matchlist
- 
+  if(useEFMex) {
+    if(!require("EFMex", quietly = TRUE)) useEFMex = FALSE #set to false instead if required package cannot load
+    if(useEFMex) print("NOTE: EFMex is used in the comparison.")
+  }
   calcMLE =  function(cond=NULL) {
   	 return( euroformix::contLikMLE(nC,sample,data$popFreq,data$refData,condOrder=cond,xi=xiBW,xiFW=xiFW,prC=pC,lambda=lambda,nDone=nDone,threshT=threshT,kit=kit,verbose=FALSE) )
   }
@@ -47,7 +50,7 @@ calcQuanLRcomparison = function(DBmix,DBref,matchlist,popFreq,kit,xiBW=0,xiFW=0,
     data <- euroformix::Qassignate(sample, popFreq[locs],incS=FALSE,incR=FALSE,normalize=normalize,minF=minFreq) #don't include stutters, use all loci
     if(!is.null(nContr)) {
       if(length(nContr)!=nrow(matchlist)) stop("The length of the argument nContr must be qual the number of rows in matchlist")
-      nClow <- unique(as.integer(nContr[matchlist[,1]==ss])) #estimated number of contributors from qualLR
+      nClow <- max(as.integer(nContr[matchlist[,1]==ss])) #estimated number of contributors from qualLR
     } else {
       nClow <- ceiling(max(sapply(sample[[1]],function(x) length(x$adata)))/2) #get lower boundary of #contr
     }

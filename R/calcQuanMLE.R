@@ -26,7 +26,7 @@ calcQuanMLE = function(evidData,refData,condOrder,NOC,nnTK,isWOE=FALSE,verbose=F
   }
   
   #prosess data (regarding frequencies and rare alleles etc)
-  data <- euroformix::Qassignate(evidData, mod$popFreq[locs],refD,incS=FALSE,incR=FALSE,normalize=mod$normalize,min=mod$minFreq) #popFreq must be given with correct order?
+  data <- euroformix::Qassignate(evidData, mod$popFreq[locs],refD,incS=FALSE,incR=FALSE,normalize=mod$normalize,min=mod$minFreq,verbose=verbose) #popFreq must be given with correct order?
   
   MLEfit <- euroformix::contLikMLE(NOC,data$samples,data$popFreq,data$refData,condOrder=condOrder,xi=mod$xiBW,xiFW=mod$xiFW,prC=mod$pC,lambda=mod$lambda,nDone=mod$nDone,threshT=mod$threshT,kit=mod$kit, fst=mod$fst, verbose=verbose, knownRef=knownRef)
   return(MLEfit) #fit

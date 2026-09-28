@@ -14,7 +14,7 @@ calcIBS = function(nnTK,nLarge=10000,mixtureName="mixture") {  #Function to calc
     cat(paste0("The number of references were massive (>",nLarge,").\n Only references given in MatchStatus are considered!\n"))
     cand <- get("mixDataMATCHSTATUS",envir=nnTK) #get matchstatus lists
     cand = unique(cand[cand!=mixtureName]) #consider only refs which fits to single sources 
-    DBref = DBref[rownames(DBref)%in%cand,]
+    DBref = DBref[rownames(DBref)%in%cand,,drop=FALSE]
   }
   allrefsn <- rownames( DBref )
   nR <- length(allrefsn)

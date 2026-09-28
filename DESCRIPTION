@@ -1,8 +1,8 @@
 Package: casesolver
 Type: Package
 Title: A software for comparing DNA profiles within cases
-Version: 2.1.2
-Date: 2026-08-24
+Version: 2.2.0
+Date: 2026-09-14
 Author: Oyvind Bleka
 Maintainer: Oyvind Bleka <oyvble@hotmail.com>
 Description: CaseSolver is a software which automatically compares DNA profiles within a selected case.
@@ -25,4 +25,4 @@ Suggests:
 	officer,
 	flextable,
     bigmemory
-RoxygenNote: 7.3.2
+Config/roxygen2/version: 8.1.0

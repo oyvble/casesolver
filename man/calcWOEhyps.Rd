@@ -4,10 +4,12 @@
 \alias{calcWOEhyps}
 \title{calcWOEhyps}
 \usage{
-calcWOEhyps(nnTK, verbose = TRUE)
+calcWOEhyps(nnTK, useEmpty = FALSE, verbose = TRUE)
 }
 \arguments{
 \item{nnTK}{an environment object from stored CaseSolver object}
+
+\item{useEmpty}{Whether an empty hypotheses window should be shown (used to add more calculations)}
 
 \item{verbose}{Whether progress should be printed}
 }

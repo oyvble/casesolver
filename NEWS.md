@@ -1,36 +1,96 @@
-Suggestive updates: 
 
- - Issue with WoE module: resList object from get("resWOEeval",envir=nnTK) expects fitted model as indexes.
-   However, the insertion of table resList$resTable together with indices may be problematic!
+Changes version 2.2.0 (15.09.2026) 
+=============================================
+- Default sorting when starting CaseSolver has been modified:
+	- The evidence and reference profiles follow the order has provided with importData.
+	- Functions that are modified: 
+		getStructuredData: Argument "sortWithComplexity" added to turn off sorting with complexity
+		gui:L1028 Forwarding the advanced setting variable "sortByComplex" when calling getStructuredData
 
- - Don't re-caclulate all comparisons after clicking "compare" when including new references. 
-	- Only calculate new 'EVID~POI|(COND,NOC)' combinations
-	- Qualitative, Quantitative 
+- An additional button was added to the WoE module ("Calculate") to perform additional calculations without going to MatchList.
+
+- Added advanced settings:
+	- Whether sorting samples when loading data wrt complexity ("sortByComplex" variable added).
+	- The user can deactivate the drop-down case selecter  ("deactCaseList" variable added).
+
+- Cosmetic change: Selection of GUI-layout is moved as a button last.
+
+- Added language text for the new Advanced settings (inst/Language.xlsx).
+
+- Minor changes:
+	- Trimming whitespaces to casenames (gui.R->f_importData:L943)
+	- No export types are now selected by default (user must first select which one to use).
+	- User can now select NOC=5 in the drop-down hypothesis window in gui->createHypLRWindow (L1708)
+	- Removed code not used: At gui-L2413: " casefolds <- list.dirs(casedir,recursive=FALSE, full.names = TRUE)" was not used
+	- Checking if EFMex package can be loaded before using it (calcQuanLRcomparison/calcWOEhyps).
+	- setMarkerSettings:L56 Ignore the NA check when loading kitdyes from getKit.
+	- calcMACcomparison:L20 Included check for identical markers for evid and refs
+	- getFreqs:L9+L11 Fixed issue if having only one marker.
+	- calcIBS:L17 Include drop=FALSE when subsetting DBref matrix
+	- tabToListRef:L15+L17 Commenting out part which suggests adding missing loci (not applied)
+	- calcQuanMLE:L29 Include verbose argument to the Qassignate function call.
+	- calcQuanLRcomparison:L50 Using maximum NOC across equally named samples instead of lowest number.
+	- calcQualLRcomparison: 
+		- L49: Restricting nClow if nClow exceeds maxCsample
+		- Ensure that MAC is used even if useMinK1 is true
+	- showMatchNetwork:
+		- L12-L15 Interactive MatchNetwork plot not shown if plotly cannot be loaded 
+		- L20: Added check that matchList is not NULL and return FALSE.
+		- L25: Return from function if no matches found.
+		- L41-42: Keys now include an empty space to improve uniqueness.		
+	- createReport 		
+		- L116-119: Ensure that original marker names are inserted to the ref-table used to convert ref data to list (getRefL)
+		- L227-228: evidList and refList should be "evid" and "ref" instead (consequencially not being shown in report).
+		- L248: creating a copy of ssDataTABLE needed when creating EPG later in code (same table used at L810)
+		- L290: Include drop=FALSE when subsetting allTab matrix
+		- L299+308: Prevent potential crash by including "nrow(DCdataTABLE)>0"  requirement
+		- L249+L262: Use any(x) instead of sum(x)>0 since variables are boolean
+		- L262: mixDataTable could contain single source profiles if there were no mixtures.
+		- L685-L706: Making function robust against failed MatchNetwork plot generation 	
+	
+- Bug fixes in GUI.R based on ChatGPT-6 (Medium) suggestions:
+  [1] A failed population-file change silently retains the previous frequencies:
+	- setPopFreq (L325-L343): Use temporary variable to avoid accidently storing of setupPop option
+  [2] Importing another case retained previous analysis results:
+	- f_importData (L944): Now returns from function without loading data if any result data exists from previous session.
+  [3] Deleting references breaks the association between comparisons and saved fits (L1216–1244 + L1524–1536)
+	- Updated the "Delete references from GUI" internal code: L1231 - L1233 to also adjust "storedFitHp" list 
+  [4] Manual LR updates can overwrite another comparison (L1746–1786).
+	- Updated the index identification part withing the createHypLRWindow code (L1761-1782)
+	- Updated how the storedFitHp list is updated (L1814-1819).
+  [5] Zero qualifying matches can leave old matches active (L1920–1925)
+	- Updated the createMatchlist internal code (L1957 + L1964)
+		- Deleting row "if(nrow(tab)==0) return()" fixes the issue
+		- Append only the five shared columns (avoids the conditional-reference column mismatch).
+  [6] Cancelling DC-ed reference extraction still records it as extracted
+	- Updated the f_addref internal code to return addedRefName
+	- Updated the addDCprofile internal code to use returned addedRefName (L1909)
+	- Other minor issues in f_addref were fixed. For instance 
+		- Cancelling question now restores the names and clears the deletion flags. (L2179-2180)		
+  [7] Early LR-rounding values used before match thresholds 
+	- Rounding ignored in getMatchesLR and createHypLRWindow
+	- Added back rounding in refreshMatchListQual and refreshMatchListQuan (local display)
+  [8] More robust handling of showLRperMarker:
+	- L1929: Now handling multiple selected WoE rows
+  [9] Fixed issue when closing program: Cancelling save dialog disposes the window.
+	- Now returning FALSE in cancellation and TRUE when successful in f_saveproj function
+  [10] Fixed conditioning that did not span all three lines  (L104-L107)
+  [11] Making refreshDClist more robust (handle missing elements)
+  [12] Empty comparison results were not handled consistent in getMatchesLR internal function (L2065). 
+	- A block was added to insert empty tables and return from function (L2067-L2069).
+  [13] Improved Empty-result handling for refreshMatchListQual, refreshMatchListQuan and updateProfileTables
+  [14] Also reset mixlistGUI when clicking doCompare (avoid exisisting matches to survive if new comparison stops early).
+  [15] In case of using SNP module (L1047): Force all samples to be indicated as "mixture" (instead of L$mixture).
   
- - Store name of deselected profile in report.
- - Profile manipulation:
-	- Collapse similar Refs (from IBS). Useful for reducing number of unknowns.
- - Possible to change alligning in table values and headers (to left aligning)? 
-
- - When using EFMex as an option in WoE: Conditional(s) expanded with fitted?  
-
- - Potential Bugs (issues):
-	- When doing DC after single quanLR calculations and REFERENCE is removed.
-	- Identical references not removed if different names? Example "Case 7154"
-	- When creating report with QuanLR matchlist but QuanLR not selected as model.  
-	- When trying to create a report, getting this error in R: Error in plot.window(…) : need finite ‘xlim’ values.
-  
- - Known (fixed) issues: 
-	- Crashing when DC with 1 contribution, condition on known contributor with missing markers (caused by EFM v3.0.4 or earlier).
-
-CRASH WHEN
-- PlotTopEPG/MPS
-- Selecting too many to condition on (DC). MatchList panel.
-- ISSUE: CANT SHOW MPSplots in report (when LUS+)
-
-ISSUE: Feil etter kjøring av WoE evidence calculations: ?????
-Error in structure(.External(.C_dotTclObjv, objv), class = "tclObj") :
-  [tcl] bad window path name ".8.5.1.1.1.3".
+- Variable renaming (gui.R):
+	refreshTabMATRIX -> refreshMatchMatrix
+	refreshTabLIST1 -> refreshMatchListQual
+	refreshTabLIST2  -> refreshMatchListQuan
+	refreshTabLIST -> refreshMatchList
+	refreshDCLIST ->  refreshDClist
+	updateTables -> updateProfileTables
+	ff -> filename
+	fn -> casefiles (L945)
 
 
 Changes version 2.1.2 (24.08.2026) 
